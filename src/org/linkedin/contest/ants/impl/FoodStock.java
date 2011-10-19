@@ -12,6 +12,11 @@ public class FoodStock {
 		coordinates = new ArrayList<FoodCoordinates>();
 	}
 
+	// Number of items in stock
+	public int size() {
+		return coordinates.size();
+	}
+
 	// Is this food stock empty?
 	protected boolean isEmpty() {
 		return coordinates.isEmpty();

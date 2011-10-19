@@ -13,7 +13,7 @@ public class GoToNest extends Operation {
 
 	@Override
 	public String toString() {
-		return String.format("%s %d path size", ZoranAnt.className(this), ant.path.points.size());
+		return String.format("%s %d path size", ZoranAnt.className(this), ant.path.size());
 	}
 
 	@Override
@@ -23,11 +23,11 @@ public class GoToNest extends Operation {
 		} else if (ant.here.isNest()) {
 			return null;		// We're done
 		} else {
-			Point p = ant.path.pop();
-			if (p != null && p.x == ant.here.x && p.y == ant.here.y) {
-				p = ant.path.pop();
+			ant.path.pop();
+			if (ant.path.x == ant.here.x && ant.path.y == ant.here.y) {
+				ant.path.pop();
 			}
-			if (p == null) {
+			if (ant.path.isEmpty) {
 				if (Math.abs(ant.x) <= 1 && Math.abs(ant.y) <= 1) {
 					ZSquare s = ant.square(-ant.x, -ant.y);
 					return new Move(s.dir);
@@ -36,7 +36,7 @@ public class GoToNest extends Operation {
 					return opGoTo.act();
 				}
 			}
-			ZSquare s = ant.square(p.x - ant.here.x, p.y - ant.here.y);
+			ZSquare s = ant.square(ant.path.x - ant.here.x, ant.path.y - ant.here.y);
 			if (s != null) {
 				return new Move(s.dir);
 			} else {

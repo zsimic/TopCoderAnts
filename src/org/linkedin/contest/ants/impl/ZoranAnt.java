@@ -188,7 +188,7 @@ public class ZoranAnt implements Ant {
 	@Override
 	public String toString() {
 		String rs = role == null ? "" : role.toString();
-		return String.format("%d %d p=%d f=%d x=%d y=%d %s", turn, id, path.points.size(), foodStock.coordinates.size(), x, y, rs);
+		return String.format("%d %d p=%d f=%d x=%d y=%d %s", turn, id, path.size(), foodStock.size(), x, y, rs);
 	}
 
 //--  Properties, queries
