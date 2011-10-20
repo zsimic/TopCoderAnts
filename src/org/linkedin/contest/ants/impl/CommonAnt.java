@@ -133,6 +133,7 @@ abstract class CommonAnt implements Ant {
 			} if (isOnDeadEndSquare()) {
 				// Mark cell as non-passable, because it's a dead-end
 				here.scent.setObstacle(turn);
+				path.remove(here);
 				return new Write(here.scent.getValue());
 			}
 			Action act = role.act();

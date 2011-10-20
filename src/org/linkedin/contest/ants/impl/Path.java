@@ -4,74 +4,106 @@ import java.util.*;
 
 public class Path {
 
-	protected int x;			// Last x coordinate on this path (use it to get back to nest)
+	protected int x;							// Last x coordinate on this path (use it to get back to nest)
 	protected int y;
-	protected boolean isEmpty;
-	private Integer lastKey;
-	private Hashtable<Integer, Integer> hash;
-	private ArrayList<Integer> list;
+	protected boolean isCorrupt;				// Is this path corrupt (can't be used to go back to nest)
+	protected int size;							// Size of this path
+	private Integer lastKey;					// Key corresponding to x, y
+	private Hashtable<Integer, Integer> hash;	// Hash used to determine quickly whether a coordinate is already part of the path
+	private ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
 	
 	Path() {
+		x = 0;
+		y = 0;
+		isCorrupt = false;
+		size = 0;
+		lastKey = 0;
 		hash = new Hashtable<Integer, Integer>();
 		list = new ArrayList<Integer>();
-		isEmpty = true;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("%d points", list.size());
+		if (isCorrupt) return "corrupt";
+		return String.format("%d points", size);
 	}
 
+	// Number of coordinates in path
 	public int size() {
 		return list.size();
 	}
 
-	private void update(Integer key) {
-		x = key & xMask;
-		y = (key & yMask) >>> bitOffset;
-		lastKey = key;
+	// Clear this path
+	public void clear() {
+		x = 0;
+		y = 0;
+		isCorrupt = false;
+		size = 0;
+		lastKey = 0;
+		hash.clear();
+		list.clear();
 	}
 
-	protected void pop() {
-		int n = list.size() - 1;
-		Integer v = list.remove(n);
-		hash.remove(v);
-		if (n<=0) {
-			x = 0;
-			y = 0;
-			lastKey = 0;
-			isEmpty = true;
-			return;
+	// Previous square on this path relative to given square (which must match the current x,y coordinate, or be a neighbor)
+	public ZSquare prev(CommonAnt ant, ZSquare square) {
+		if (size == 0) {
+			return null;
+		}
+		int px, py;
+		if (size == 1) {
+			px = 0;
+			py = 0;
+		} else if (x == square.x && y == square.y) {
+			Integer k = list.get(size - 2);
+			px = (k & Constants.xPointMask) - Constants.BOARD_SIZE;
+			py = ((k & Constants.yPointMask) >>> Constants.pointBitOffset) - Constants.BOARD_SIZE;
 		} else {
-			update(list.get(n-1));
+			px = square.x;
+			py = square.y;
+		}
+		if (Math.abs(x - px) > 1 || Math.abs(y - py) > 1) {
+			return null;
+		} else {
+			return ant.square(px - x, py - y);
 		}
 	}
-
-	protected void add(ZSquare square) {
+	
+	// Add coordinates in given 'square' to this path
+	public void add(ZSquare square) {
+		if (isCorrupt) return;
+		if (Math.abs(x - square.x) > 1 || Math.abs(y - square.y) > 1) {
+			clear();
+			isCorrupt = true;
+			return;
+		}
 		x = square.x;
 		y = square.y;
-		isEmpty = false;
-		lastKey = (y << bitOffset) | x;
+		lastKey = ((y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (x + Constants.BOARD_SIZE);
 		if (hash.containsKey(lastKey)) {
-			int n = hash.get(lastKey);
-			int nm = list.size() - 1;
-			while (nm > n) {
-				list.remove(nm--);
+			int n = hash.get(lastKey) + 1;
+			while (size > n) {
+				hash.remove(list.remove(--size));
 			}
 		} else {
-			hash.put(lastKey, list.size());
+			hash.put(lastKey, size++);
 			list.add(lastKey);
 		}
 	}
 
-	protected void clear() {
-		hash.clear();
-		list.clear();
-		isEmpty = true;
+	// Remove 'square' from this path (because it was marked as obstacle)
+	public void remove(ZSquare square) {
+		if (size == 0 || isCorrupt) {
+			return;
+		}
+		if (x == square.x && y == square.y) {
+			lastKey = list.remove(--size);
+			hash.remove(lastKey);
+			x = (lastKey & Constants.xPointMask) - Constants.BOARD_SIZE;
+			y = ((lastKey & Constants.yPointMask) >>> Constants.pointBitOffset) - Constants.BOARD_SIZE;
+		} else {
+			clear();
+			isCorrupt = true;
+		}
 	}
-
-	private final static int xMask = 0x000fff;
-	private final static int yMask = 0xfff000;
-	private final static int bitOffset = Integer.bitCount(xMask);
 
 }

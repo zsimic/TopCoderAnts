@@ -4,6 +4,11 @@ interface Constants {
 
 	public static final int BOARD_SIZE = 512;		// Board size
 
+	// Encoding cell coordinates
+	public final static int xPointMask = 0x000fff;
+	public final static int yPointMask = 0xfff000;
+	public final static int pointBitOffset = Integer.bitCount(xPointMask);
+
 	// Masks, bit offsets and constants for the Scent class
 	public final static long TURN_MASK     = 0x00000000000000ffL;				// 16 lowest bits to hold turn number
 	public final static long NATURE_MASK   = 0x0000000000000f00L;				// 4 bits holding the nature of this scent

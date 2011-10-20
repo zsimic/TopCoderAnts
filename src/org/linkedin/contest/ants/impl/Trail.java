@@ -1,59 +1,50 @@
 package org.linkedin.contest.ants.impl;
 
+import java.util.Hashtable;
+
 public final class Trail {
 
-	protected int trailSize = 0;			// Number of points in the trail
+	protected int trailSize;			// Number of points in the trail
+	protected int penaltyFactor;
 	protected int xArray[];
 	protected int yArray[];
 	protected int index;
 	protected int count;
+	private Hashtable<Integer, Integer> hash;
 
 	Trail() {
-		trailSize = 160;
+		trailSize = 1000;
+		penaltyFactor = 100000;
 		xArray = new int[trailSize];
 		yArray = new int[trailSize];
 		index = 0;
 		count = 0;
+		hash = new Hashtable<Integer, Integer>();
 	}
 
 	// Clear the trail
 	public void clear() {
 		index = 0;
 		count = 0;
+		hash.clear();
 	}
 
 	// Penalty for going to 'square': affected to square already recently visited
 	public double penalty(ZSquare square) {
 		if (count==0) return 0;
-		double penalty = 0;
-//		int seen = 0;
-		int i = index - 1;
-		if (i<0) i = trailSize-1;
-		int n = count;
-		while (n>0) {
-			int xx = xArray[i];
-			int yy = yArray[i--];
-			if (xx==square.x && yy==square.y) {
-				penalty += n*1000;
-//				seen++;
-//				if (seen>3) {
-//					return 500000000;
-//				}
-			}
-			if (i<0) i = trailSize-1;
-			n--;
-		}
-		return penalty;
+		Integer k = ((square.y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (square.x + Constants.BOARD_SIZE);
+		Integer v = hash.get(k);
+		if (v != null) return v * penaltyFactor;
+		return 0;
 	}
 
 	// Was 'square' the last one added to the trail?
 	public boolean isLast(ZSquare square) {
 		if (count==0) return false;
-		int i = index - 1;
-		if (i<0) i = trailSize-1;
-		int xx = xArray[i];// + square.deltaX;
-		int yy = yArray[i];// + square.deltaY;
-		return (xx==square.x && yy==square.y);
+		int i = index == 0 ? trailSize - 1 : index - 1;
+		int xx = xArray[i];
+		int yy = yArray[i];
+		return (xx == square.x && yy == square.y);
 	}
 
 	// Add 'square' to this trail
@@ -61,7 +52,19 @@ public final class Trail {
 		xArray[index] = square.x;
 		yArray[index++] = square.y;
 		if (index >= trailSize) index = 0;
-		if (count < trailSize) count++;
+		if (count < trailSize) {
+			count++;
+		} else {
+			Integer oldk = ((yArray[index] + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (xArray[index] + Constants.BOARD_SIZE);
+			Integer oldv = hash.get(oldk);
+			assert oldv != null;
+			if (oldv == 1) hash.remove(oldk);
+			else hash.put(oldk, oldv - 1);
+		}
+		Integer k = ((square.y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (square.x + Constants.BOARD_SIZE);
+		Integer v = hash.get(k);
+		if (v == null) hash.put(k, 1);
+		else hash.put(k, v + 1);
 	}
 
 }
