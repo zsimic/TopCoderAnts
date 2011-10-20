@@ -11,7 +11,7 @@ public class GoTo extends Operation {
 	private int targetX, targetY;			// Target coordinates
 	private double minDistance;				// Minimum distance we've reached from target
 	private int minReached;					// How many times we reached the minimum distance
-	
+
 	public void activate(int x, int y) {
 		this.targetX = x;
 		this.targetY = y;
@@ -19,14 +19,14 @@ public class GoTo extends Operation {
 		this.minReached = 0;
 		activate(true);
 	}
-	
+
 	// Effective next turn implementation for this operation
 	// return null when operation is complete (will be removed from the stack)
 	// return new Pass() if operation is not yet done but shouldn't be removed from the stack
 	@Override
 	Action effectiveAct() {
 		ZSquare s = ant.bestSquareForTarget(targetX, targetY);
-		double d = ZoranAnt.normalDistance(targetX - ant.x, targetY - ant.y);
+		double d = CommonAnt.normalDistance(targetX - ant.x, targetY - ant.y);
 		if (d<0.5) {
 			// We've reached the target
 			return null;

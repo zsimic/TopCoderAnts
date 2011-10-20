@@ -4,7 +4,7 @@ import org.linkedin.contest.ants.api.*;
 
 public class Gatherer extends Role {
 
-	Gatherer(ZoranAnt ant) {
+	Gatherer(CommonAnt ant) {
 		super(ant);
 		opNest = new GoToNest(this);
 		opGoTo = new GoTo(this);

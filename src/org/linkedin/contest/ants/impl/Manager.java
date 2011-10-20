@@ -4,7 +4,7 @@ import org.linkedin.contest.ants.api.*;
 
 public class Manager extends Role {
 
-	Manager(ZoranAnt ant) {
+	Manager(CommonAnt ant) {
 		super(ant);
 	}
 

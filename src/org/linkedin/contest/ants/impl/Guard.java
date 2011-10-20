@@ -4,7 +4,7 @@ import org.linkedin.contest.ants.api.*;
 
 public class Guard extends Role {
 
-	Guard(ZoranAnt ant) {
+	Guard(CommonAnt ant) {
 		super(ant);
 	}
 

@@ -6,13 +6,13 @@ public class ZSquare {
 
 	protected Square square;		// Associated square from environment
 	protected Scent scent;			// Scent found on square
-	protected ZoranAnt ant;			// Associated ant
+	protected CommonAnt ant;		// Associated ant
 	protected Direction dir;		// Direction of this square (relative to 'ant')
 	protected ZEvent event;			// Last event received from this square
 	protected int deltaX, deltaY;	// Relative coordinates of this square (relative to 'here')
 	protected int x, y;				// Coordinates of this square (relative to nest)
 
-	ZSquare(ZoranAnt ant, Direction dir) {
+	ZSquare(CommonAnt ant, Direction dir) {
 		this.ant = ant;
 		this.dir = dir;
 		this.deltaX = dir.deltaX;

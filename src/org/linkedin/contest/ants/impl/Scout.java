@@ -11,7 +11,7 @@ public class Scout extends Role {
 	private GoToNest opNest;
 	private DumpFoodStockInfo opDump;
 
-	Scout(ZoranAnt ant, ZSquare square) {
+	Scout(CommonAnt ant, ZSquare square) {
 		super(ant);
 		direction = square;
 		targetX = direction.deltaX * Constants.BOARD_SIZE * 10;
