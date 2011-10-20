@@ -2,9 +2,9 @@ package org.linkedin.contest.ants.impl;
 
 interface Constants {
 
-    public static final int BOARD_SIZE = 512;		// Board size
+	public static final int BOARD_SIZE = 512;		// Board size
 
-    // Masks, bit offsets and constants for the Scent class
+	// Masks, bit offsets and constants for the Scent class
 	public final static long TURN_MASK     = 0x00000000000000ffL;				// 16 lowest bits to hold turn number
 	public final static long NATURE_MASK   = 0x0000000000000f00L;				// 4 bits holding the nature of this scent
 	public final static long A_MASK        = 0x0000000000fff000L;				// 10 bits holding 1st argument
@@ -26,7 +26,7 @@ interface Constants {
 	public final static int cBitOffset = bBitOffset + argBitCount;				// Offset of argument 'c' in the scent
 	public final static int dBitOffset = cBitOffset + argBitCount;				// Offset of argument 'd' in the scent
 	public final static int checksumBitOffset = valueBitCount;
-	
+
 	public final static int NATURE_BOUNDARY = 1;			// Scent indicates where the boundary of the board is
 	public final static int NATURE_SCAN = 2;				// Order to scan a region for food
 	public final static int NATURE_GOTO = 3;				// Order to go to a certain cell

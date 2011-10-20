@@ -22,7 +22,7 @@ public class ZSquare {
 
 	@Override
 	public String toString() {
-		return String.format("%s%c [%d,%d]", dir.name(), isPassable() ? ' ' : '*',  x, y);
+		return String.format("%s%c [%d,%d]", dir.name(), isPassable() ? ' ' : '*', x, y);
 	}
 
 	// Normalized deltaX
@@ -36,7 +36,7 @@ public class ZSquare {
 		default: return deltaX;
 		}
 	}
-	
+
 	public double normalY() {
 		switch (dir.ordinal()) {
 		case 1:
@@ -47,7 +47,7 @@ public class ZSquare {
 		default: return deltaY;
 		}
 	}
-	
+
 	// Update square state from environment
 	public void update (Environment environment) {
 		square = environment.getSquare(dir);
@@ -56,40 +56,40 @@ public class ZSquare {
 		y = ant.y + deltaY;
 	}
 
-    // Is this square a nest, meaning that food here is counted toward the final score?
-    public boolean isNest() {
+	// Is this square a nest, meaning that food here is counted toward the final score?
+	public boolean isNest() {
 		return square.isNest();
 	}
 
-    // Is this square passable, meaning that it is possible to move onto it?
-    public boolean isPassable() {
+	// Is this square passable, meaning that it is possible to move onto it?
+	public boolean isPassable() {
 		return square.isPassable() && !scent.isObstacle();
 	}
 
-    // Does the square have at least one unit of food on it?
-    public boolean hasFood() {
+	// Does the square have at least one unit of food on it?
+	public boolean hasFood() {
 		return square.hasFood();
 	}
 
-    // Does the square have at least one ant on it?
-    public boolean hasAnts() {
+	// Does the square have at least one ant on it?
+	public boolean hasAnts() {
 		return square.hasAnts();
 	}
 
-    // How many ants are on this square?
-    public int getNumberOfAnts() {
+	// How many ants are on this square?
+	public int getNumberOfAnts() {
 		return square.getNumberOfAnts();
 	}
 
-    // How much food is on this square?
-    public int getAmountOfFood() {
+	// How much food is on this square?
+	public int getAmountOfFood() {
 		return square.getAmountOfFood();
 	}
 
-    // Set 'event'
-    public void setEvent(ZEvent evt) {
-    	event = evt;
-    	event.square = this;
-    }
-    
+	// Set 'event'
+	public void setEvent(ZEvent evt) {
+		event = evt;
+		event.square = this;
+	}
+
 }

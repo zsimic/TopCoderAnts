@@ -142,8 +142,8 @@ abstract class CommonAnt implements Ant {
 				if (act instanceof Move) {
 					ZSquare square = square(((Move)act).getDirection());
 					assert square.isPassable();
-					x += square.deltaX; 
-					y += square.deltaY; 
+					x += square.deltaX;
+					y += square.deltaY;
 					trail.add(square);
 					path.add(square);
 					progressDump("move " + square.dir.name());
@@ -294,7 +294,7 @@ abstract class CommonAnt implements Ant {
 		this.role = role;
 		dump("changed role");
 	}
-	
+
 	// Sniff for nearby food (for squares excluding nest and immediate nest neighbors)
 	protected void sniffFood() {
 		for (ZSquare s : cells) {
@@ -309,7 +309,7 @@ abstract class CommonAnt implements Ant {
 
 	// Is 'here' a dead-end square (leads to nowhere)
 	protected boolean isOnDeadEndSquare() {
-		if (here.isPassable() &&  here.getAmountOfFood() == 0) return false;
+		if (here.isPassable() && here.getAmountOfFood() == 0) return false;
 		int obstacles = 0;
 		int consecutiveObstacles = 0;
 		int consecutiveFree = 0;
@@ -338,14 +338,14 @@ abstract class CommonAnt implements Ant {
 		if (consecutiveObstacles < co) consecutiveObstacles = co;
 		assert obstacles <= 7;
 		switch (obstacles) {
-		case 7: 
+		case 7:
 			return true;
 		case 6:
 			return consecutiveFree == 2 || consecutiveObstacles == 6;
 		case 5:
 			return consecutiveFree == 3 || consecutiveObstacles == 5;
 		case 4:
-			return consecutiveFree == 4 || consecutiveObstacles == 4; 
+			return consecutiveFree == 4 || consecutiveObstacles == 4;
 		default:
 			return false;
 		}
@@ -356,10 +356,10 @@ abstract class CommonAnt implements Ant {
 		assert here.isNest();
 		Long w = here.square.getWriting();
 		if (w==null) return 0;
-	    if (w < Integer.MIN_VALUE || w > Integer.MAX_VALUE) {
-	    	return 0;
-	    }
-	    return w.intValue();
+		if (w < Integer.MIN_VALUE || w > Integer.MAX_VALUE) {
+			return 0;
+		}
+		return w.intValue();
 	}
 
 	protected void dump(String s) {
