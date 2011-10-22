@@ -18,7 +18,7 @@ public class Guard extends Role {
 		if (s != null) {
 			return new GetFood(s.dir);
 		}
-		return null;
+		return new Pass();
 	}
 
 }

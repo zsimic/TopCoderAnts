@@ -77,7 +77,6 @@ abstract class CommonAnt implements Ant {
      */
 	public Action act(Environment environment, List<WorldEvent> events) {
 		turn++;
-		assert false;
 		here.update(environment);
 		if (role==null) {
 			assert id==0;
@@ -158,6 +157,8 @@ abstract class CommonAnt implements Ant {
 			progressDump("drops food");
 		} else if (act instanceof Write) {
 			progressDump(String.format("writing value: %x", ((Write)act).getWriting()));
+		} else if (act instanceof Pass) {
+			// Do nothing
 		} else {
 			progressDump(className(act));
 		}
@@ -194,6 +195,10 @@ abstract class CommonAnt implements Ant {
 			if (s != excluded && s.hasFood()) return s;
 		}
 		return null;
+	}
+
+	protected boolean isNextToNest() {
+		return Math.abs(x) <= 1 && Math.abs(y) <= 1;
 	}
 
 	// Square in given direction number (0: north, 1: northeast, ...)

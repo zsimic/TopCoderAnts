@@ -35,7 +35,7 @@ public class Gatherer extends Role {
 			opGoTo.activate(x, y);
 			return new Write(null);
 		}
-		return null;
+		return new Pass();
 	}
 
 }

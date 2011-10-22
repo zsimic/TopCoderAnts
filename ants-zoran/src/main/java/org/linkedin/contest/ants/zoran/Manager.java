@@ -24,7 +24,7 @@ public class Manager extends Role {
 				return new Write(s.getValue());
 			}
 		}
-		return null;	// Confused
+		return new Pass();
 	}
 
 }

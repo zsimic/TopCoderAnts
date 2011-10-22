@@ -95,6 +95,8 @@ public class Scout extends Role {
 			// All done
 			ant.setRole(new Guard(ant));
 			return new Pass();
+		} else if (ant.isNextToNest()) {
+			return new Move(ant.square(-ant.here.x, -ant.here.y).dir);
 		}
 		return null;		// Confused
 	}

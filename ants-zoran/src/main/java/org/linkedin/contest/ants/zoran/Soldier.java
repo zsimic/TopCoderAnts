@@ -10,7 +10,7 @@ public class Soldier extends Role {
 
 	@Override
 	Action effectiveAct() {
-		return null;
+		return new Pass();
 	}
 
 }
