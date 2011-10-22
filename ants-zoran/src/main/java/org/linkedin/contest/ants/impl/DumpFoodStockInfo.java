@@ -1,4 +1,4 @@
-package org.linkedin.contest.ants.impl;
+package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 

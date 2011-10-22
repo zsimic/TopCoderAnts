@@ -1,4 +1,4 @@
-package org.linkedin.contest.ants.impl;
+package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
 
@@ -11,7 +11,7 @@ public class Path {
 	private Integer lastKey;					// Key corresponding to x, y
 	private Hashtable<Integer, Integer> hash;	// Hash used to determine quickly whether a coordinate is already part of the path
 	private ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
-	
+
 	Path() {
 		x = 0;
 		y = 0;
@@ -67,7 +67,7 @@ public class Path {
 			return ant.square(px - x, py - y);
 		}
 	}
-	
+
 	// Add coordinates in given 'square' to this path
 	public void add(ZSquare square) {
 		if (isCorrupt) return;

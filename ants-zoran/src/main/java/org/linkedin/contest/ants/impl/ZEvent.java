@@ -1,4 +1,4 @@
-package org.linkedin.contest.ants.impl;
+package org.linkedin.contest.ants.zoran;
 
 public class ZEvent {
 
@@ -26,11 +26,11 @@ public class ZEvent {
 	ZEvent(ZEventType evt) {
 		this.eventType = evt;
 	}
-	
+
 	@Override
 	public String toString() {
 		if (eventType==ZEventType.manDown) return MAN_DOWN;
 		return "";
 	}
-	
+
 }
