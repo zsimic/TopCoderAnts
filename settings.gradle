@@ -1,1 +1,1 @@
-include 'ants-api', 'ants-impl'
+include 'ants-api', 'ants-impl', 'ants-zoran'
