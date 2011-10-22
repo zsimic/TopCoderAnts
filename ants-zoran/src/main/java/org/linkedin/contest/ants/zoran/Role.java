@@ -32,6 +32,7 @@ public abstract class Role {
 	}
 
 	// Extra state info for this specific role, redefine to get some extra relevant output in toString()
+	@SuppressWarnings("static-method")
 	protected String stateInfo() {
 		return "";
 	}

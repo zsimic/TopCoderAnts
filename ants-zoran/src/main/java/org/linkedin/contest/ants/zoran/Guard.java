@@ -9,17 +9,16 @@ public class Guard extends Role {
 	}
 
 	// Effectively act
+	@Override
 	Action effectiveAct() {
 		if (ant.hasFood) {
 			return new DropFood(ant.here.dir);
-		} else {
-			ZSquare s = ant.squareWithFood(ant.here);
-			if (s != null) {
-				return new GetFood(s.dir);
-			} else {
-				return null;
-			}
 		}
+		ZSquare s = ant.squareWithFood(ant.here);
+		if (s != null) {
+			return new GetFood(s.dir);
+		}
+		return null;
 	}
 
 }

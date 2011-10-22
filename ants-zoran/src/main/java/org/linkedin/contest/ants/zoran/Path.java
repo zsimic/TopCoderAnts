@@ -63,9 +63,8 @@ public class Path {
 		}
 		if (Math.abs(x - px) > 1 || Math.abs(y - py) > 1) {
 			return null;
-		} else {
-			return ant.square(px - x, py - y);
 		}
+		return ant.square(px - x, py - y);
 	}
 
 	// Add coordinates in given 'square' to this path

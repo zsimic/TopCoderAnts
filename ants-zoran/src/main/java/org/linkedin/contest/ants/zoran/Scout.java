@@ -53,12 +53,11 @@ public class Scout extends Role {
 					if (!ant.here.isNest()) return new Move(ant.square(-direction.deltaX, -direction.deltaY).dir);
 					opDump.activate(true);
 					return opDump.act();
-				} else {
-					Scent s = new Scent();
-					s.setBoundary(this);
-					ant.dump(String.format("arrived next to nest, scent: %x", s.getValue()));
-					return new Write(s.getValue());
 				}
+				Scent s = new Scent();
+				s.setBoundary(this);
+				ant.dump(String.format("arrived next to nest, scent: %x", s.getValue()));
+				return new Write(s.getValue());
 			}
 			return opNest.act();
 		} else if (!hasBorder()) {
@@ -89,10 +88,9 @@ public class Scout extends Role {
 				// Return to square next to the nest where we started scouting
 				opNest.activate(true);
 				return opNest.act();
-			} else {
-				ZSquare s = ant.bestSquareForTarget(bx, by);
-				return new Move(s.dir);
 			}
+			ZSquare s = ant.bestSquareForTarget(bx, by);
+			return new Move(s.dir);
 		} else if (ant.here.isNest()) {
 			// All done
 			ant.setRole(new Guard(ant));

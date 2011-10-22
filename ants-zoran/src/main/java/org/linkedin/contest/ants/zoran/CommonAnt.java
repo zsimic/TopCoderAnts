@@ -87,83 +87,81 @@ abstract class CommonAnt implements Ant {
 			initializeState();
 			assert role != null;
 			return new Write(new Long(id));
-		} else {
-			northeast.update(environment);
-			east.update(environment);
-			southeast.update(environment);
-			south.update(environment);
-			southwest.update(environment);
-			west.update(environment);
-			northwest.update(environment);
-			north.update(environment);
-			if (here.isNest()) {
-				path.clear();
-				if (needsBoundaries > 0) {
-					if (x0 == 0 && north.scent.isBoundary()) {
-						x0 = -north.scent.b;
-						needsBoundaries--;
-					}
-					if (x1 == 0 && south.scent.isBoundary()) {
-						x1 = south.scent.b;
-						needsBoundaries--;
-					}
-					if (y0 == 0 && west.scent.isBoundary()) {
-						y0 = -west.scent.b;
-						needsBoundaries--;
-					}
-					if (y1 == 0 && east.scent.isBoundary()) {
-						y1 = east.scent.b;
-						needsBoundaries--;
-					}
-					if (id==40 && needsBoundaries == 0) {
-						dump(String.format("boundaries found: NE=%d %d SW=%d %d]", x0, y0, x1, y1));
-					}
+		}
+		northeast.update(environment);
+		east.update(environment);
+		southeast.update(environment);
+		south.update(environment);
+		southwest.update(environment);
+		west.update(environment);
+		northwest.update(environment);
+		north.update(environment);
+		if (here.isNest()) {
+			path.clear();
+			if (needsBoundaries > 0) {
+				if (x0 == 0 && north.scent.isBoundary()) {
+					x0 = -north.scent.b;
+					needsBoundaries--;
 				}
-			}
-			for (WorldEvent event : events) {
-				Direction dir = event.getDirection();
-				String eventString = event.getEvent();
-				ZEvent ev = new ZEvent(eventString);
-				square(dir).setEvent(ev);
-				dump(String.format("event %s %s", event.getDirection(), eventString));
-			}
-			if (here.scent.stinky) {
-				// Erase opponent's writing
-				return new Write(null);
-			} if (isOnDeadEndSquare()) {
-				// Mark cell as non-passable, because it's a dead-end
-				here.scent.setObstacle(turn);
-				path.remove(here);
-				return new Write(here.scent.getValue());
-			}
-			Action act = role.act();
-			if (act==null) {
-				return new Pass();
-			} else {
-				if (act instanceof Move) {
-					ZSquare square = square(((Move)act).getDirection());
-					assert square.isPassable();
-					x += square.deltaX;
-					y += square.deltaY;
-					trail.add(square);
-					path.add(square);
-					progressDump("move " + square.dir.name());
-				} else if (act instanceof GetFood) {
-					assert !hasFood;
-					hasFood = true;
-					progressDump("takes food");
-				} else if (act instanceof DropFood) {
-					assert hasFood;
-					hasFood = false;
-					progressDump("drops food");
-				} else if (act instanceof Write) {
-					progressDump(String.format("writing value: %x", ((Write)act).getWriting()));
-				} else {
-					progressDump(className(act));
+				if (x1 == 0 && south.scent.isBoundary()) {
+					x1 = south.scent.b;
+					needsBoundaries--;
 				}
-				return act;
+				if (y0 == 0 && west.scent.isBoundary()) {
+					y0 = -west.scent.b;
+					needsBoundaries--;
+				}
+				if (y1 == 0 && east.scent.isBoundary()) {
+					y1 = east.scent.b;
+					needsBoundaries--;
+				}
+				if (id==40 && needsBoundaries == 0) {
+					dump(String.format("boundaries found: NE=%d %d SW=%d %d]", x0, y0, x1, y1));
+				}
 			}
 		}
+		for (WorldEvent event : events) {
+			Direction dir = event.getDirection();
+			String eventString = event.getEvent();
+			ZEvent ev = new ZEvent(eventString);
+			square(dir).setEvent(ev);
+			dump(String.format("event %s %s", event.getDirection(), eventString));
+		}
+		if (here.scent.stinky) {
+			// Erase opponent's writing
+			return new Write(null);
+		} if (isOnDeadEndSquare()) {
+			// Mark cell as non-passable, because it's a dead-end
+			here.scent.setObstacle(turn);
+			path.remove(here);
+			return new Write(here.scent.getValue());
+		}
+		Action act = role.act();
+		if (act==null) {
+			return new Pass();
+		}
+		if (act instanceof Move) {
+			ZSquare square = square(((Move)act).getDirection());
+			assert square.isPassable();
+			x += square.deltaX;
+			y += square.deltaY;
+			trail.add(square);
+			path.add(square);
+			progressDump("move " + square.dir.name());
+		} else if (act instanceof GetFood) {
+			assert !hasFood;
+			hasFood = true;
+			progressDump("takes food");
+		} else if (act instanceof DropFood) {
+			assert hasFood;
+			hasFood = false;
+			progressDump("drops food");
+		} else if (act instanceof Write) {
+			progressDump(String.format("writing value: %x", ((Write)act).getWriting()));
+		} else {
+			progressDump(className(act));
+		}
+		return act;
 	}
 
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)

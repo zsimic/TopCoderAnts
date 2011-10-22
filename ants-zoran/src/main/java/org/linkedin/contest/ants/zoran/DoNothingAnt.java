@@ -11,6 +11,7 @@ public class DoNothingAnt implements Ant {
 
 	@Override
 	public void init() {
+		// We do nothing
 	}
 
 	@Override

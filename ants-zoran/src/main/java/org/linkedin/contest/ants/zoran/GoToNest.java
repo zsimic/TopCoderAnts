@@ -27,9 +27,8 @@ public class GoToNest extends Operation {
 			if (prev == null) {
 				opGoTo.activate(0, 0);
 				return opGoTo.act();
-			} else {
-				return new Move(prev.dir);
 			}
+			return new Move(prev.dir);
 		}
 	}
 

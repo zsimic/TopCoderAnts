@@ -153,19 +153,19 @@ public class Scent {
 
 	// Encoded scent value
 	public Long getValue() {
-		long v = (long)((long)d << Constants.dBitOffset)
-				| (long)((long)c << Constants.cBitOffset)
-				| (long)((long)b << Constants.bBitOffset)
-				| (long)((long)a << Constants.aBitOffset)
-				| (long)((long)nature << Constants.natureBitOffset)
-				| (long)(turn >>> (Constants.turnNeededBitCount - Constants.turnBitCount));
+		long v = ((long)d << Constants.dBitOffset)
+				| ((long)c << Constants.cBitOffset)
+				| ((long)b << Constants.bBitOffset)
+				| ((long)a << Constants.aBitOffset)
+				| ((long)nature << Constants.natureBitOffset)
+				| ((long)turn >>> (Constants.turnNeededBitCount - Constants.turnBitCount));
 		long n = Long.bitCount(v);
 		v |= (n << Constants.checksumBitOffset);
 		return v;
 	}
 
 	// Is scent with given 'value' a valid scent (produced by our own ants)?
-	private boolean isValidScent(Long value) {
+	private static boolean isValidScent(Long value) {
 		if (value==null) return false;
 		long chk = (value & Constants.CHECKSUM_MASK) >>> Constants.valueBitCount;
 		int n = Long.bitCount(value & Constants.VALUE_MASK);

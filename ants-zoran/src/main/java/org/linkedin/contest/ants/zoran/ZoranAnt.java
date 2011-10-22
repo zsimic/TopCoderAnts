@@ -11,6 +11,7 @@ package org.linkedin.contest.ants.zoran;
  */
 public class ZoranAnt extends CommonAnt {
 
+	@Override
 	public void initializeState() {
 //		testScent();
 		if (id<=4) setRole (new Scout(this, square (2 * (id % 4))));	// 4 scouts, one in each direction, they become guards after they're done finding the game board limits
@@ -21,7 +22,7 @@ public class ZoranAnt extends CommonAnt {
 		progressDump("created");
 	}
 
-	private void testScent(int x, int y, int amt) {
+	private static void testScent(int x, int y, int amt) {
 		Scent s = new Scent();
 		s.setFoodCoordinates(new FoodCoordinates(x, y, amt));
 		Long v1 = s.getValue();
@@ -35,7 +36,7 @@ public class ZoranAnt extends CommonAnt {
 	}
 
 	@SuppressWarnings(value = { "unused" })
-	private void testScent() {
+	private static void testScent() {
 		testScent(10,-25, 6);
 		testScent(-57,510, 1);
 		testScent(0, 0, 0);
