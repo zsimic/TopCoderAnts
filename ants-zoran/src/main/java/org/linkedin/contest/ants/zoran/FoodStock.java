@@ -25,7 +25,7 @@ public class FoodStock {
 	// Add found food coordinates in scent
 	protected void add(Scent s) {
 		assert s.isFoodCoordinates();
-		add(s.xa(), s.xb(), s.c);
+		add(s.a, s.b, s.c);
 	}
 
 	// Add found food coordinates

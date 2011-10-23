@@ -8,6 +8,11 @@ public class DumpFoodStockInfo extends Operation {
 		super(role);
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Dump food info (%d left)", ant.foodStock.size());
+	}
+
 	// Effective next turn implementation for this operation
 	// return null when operation is complete (will be removed from the stack)
 	// return new Pass() if operation is not yet done but shouldn't be removed from the stack

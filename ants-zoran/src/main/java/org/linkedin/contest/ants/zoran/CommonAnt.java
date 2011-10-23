@@ -7,15 +7,16 @@ import org.linkedin.contest.ants.api.*;
 
 abstract class CommonAnt implements Ant {
 
-	protected int id = 0;							// Ant's id (decides ant's initial role)
-	protected int turn = 0;							// Turn being played, acts as an internal timer
-	protected int x = 0;							// Current X coordinate, relative to nest
-	protected int y = 0;							// Current Y coordinate, relative to nest
-	protected boolean hasFood = false;				// Is ant currently carrying food?
+	protected int id;								// Ant's id (decides ant's initial role)
+	protected int turn;								// Turn being played, acts as an internal timer
+	protected int x;								// Current X coordinate, nest is on Constants.BOARD_SIZE by convention, to make sure all coordinates are > 0
+	protected int y;								// Current Y coordinate, relative to nest
+	protected boolean hasFood;						// Is ant currently carrying food?
 	protected int x0, y0, x1, y1;					// Boundaries of the board
 	protected ZSquare here,northeast,east,southeast,south,southwest,west,northwest,north;
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
 	protected List<ZSquare> cells;					// All cells (including 'here')
+	protected Board board;							// Board as discovered so far
 	protected Trail trail;							// Trail of where the ant has previously been on (used to avoid going back to cells recently visited)
 	protected FoodStock foodStock;					// Coordinates of points where food was seen
 	protected Path path;							// Path back to nest
@@ -34,7 +35,11 @@ abstract class CommonAnt implements Ant {
      *
      */
 	public void init() {
+		id = turn = x0 = y0 = x1 = y1 = 0;
+		x = y = Constants.BOARD_SIZE;
+		hasFood = false;
 		needsBoundaries = 4;
+		board = new Board();
 		trail = new Trail();
 		path = new Path();
 		foodStock = new FoodStock();
@@ -76,6 +81,8 @@ abstract class CommonAnt implements Ant {
      * @return an implementation of the Action class indicating what this ant should do
      */
 	public Action act(Environment environment, List<WorldEvent> events) {
+		long elapsedTimeMillis = System.currentTimeMillis();
+		Action act = null;
 		turn++;
 		here.update(environment);
 		if (role==null) {
@@ -99,7 +106,7 @@ abstract class CommonAnt implements Ant {
 			path.clear();
 			if (needsBoundaries > 0) {
 				if (x0 == 0 && north.scent.isBoundary()) {
-					x0 = -north.scent.b;
+					x0 = north.scent.b;
 					needsBoundaries--;
 				}
 				if (x1 == 0 && south.scent.isBoundary()) {
@@ -107,7 +114,7 @@ abstract class CommonAnt implements Ant {
 					needsBoundaries--;
 				}
 				if (y0 == 0 && west.scent.isBoundary()) {
-					y0 = -west.scent.b;
+					y0 = west.scent.b;
 					needsBoundaries--;
 				}
 				if (y1 == 0 && east.scent.isBoundary()) {
@@ -128,23 +135,30 @@ abstract class CommonAnt implements Ant {
 		}
 		if (here.scent.stinky) {
 			// Erase opponent's writing
-			return new Write(null);
-		} if (isOnDeadEndSquare()) {
+			act = new Write(null);
+		} else if (isOnDeadEndSquare()) {
 			// Mark cell as non-passable, because it's a dead-end
 			here.scent.setObstacle(turn);
 			path.remove(here);
-			return new Write(here.scent.getValue());
+			act = new Write(here.scent.getValue());
 		}
-		Action act = role.act();
-		if (act==null) {
-			return new Pass();
-		}
+		if (act == null) act = role.act();
+		if (act == null) act = new Pass();
 		if (act instanceof Move) {
 			ZSquare square = square(((Move)act).getDirection());
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
-			trail.add(square);
+			if (trail.add(square)) {
+				board.setPassable(northeast);
+				board.setPassable(east);
+				board.setPassable(southeast);
+				board.setPassable(south);
+				board.setPassable(southwest);
+				board.setPassable(west);
+				board.setPassable(northwest);
+				board.setPassable(north);
+			}
 			path.add(square);
 			progressDump("move " + square.dir.name());
 		} else if (act instanceof GetFood) {
@@ -162,6 +176,10 @@ abstract class CommonAnt implements Ant {
 		} else {
 			progressDump(className(act));
 		}
+		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
+		if (elapsedTimeMillis > 10) {
+			assert false;		// We took too long to compute!
+		}
 		return act;
 	}
 
@@ -177,10 +195,15 @@ abstract class CommonAnt implements Ant {
      * @return the action to perform
      */
 	public Action onDeath(WorldEvent cause) {
-		return new Say(ZEvent.MAN_DOWN + " " + role.toString(), Direction.northeast,Direction.east,Direction.southeast,
-				Direction.south,Direction.southwest,Direction.west,Direction.northwest,Direction.north);
+		return sayInAllDirections(ZEvent.MAN_DOWN + " " + role.toString());
 	}
 
+	// 'Say' action in all directions
+	public Say sayInAllDirections(String what) {
+		return new Say(String.format("%d %s", id, what), Direction.northeast,Direction.east,Direction.southeast,
+				Direction.south,Direction.southwest,Direction.west,Direction.northwest,Direction.north,Direction.here);
+	}
+	
 //--  Properties, queries
 //-----------------------
 
@@ -198,7 +221,7 @@ abstract class CommonAnt implements Ant {
 	}
 
 	protected boolean isNextToNest() {
-		return Math.abs(x) <= 1 && Math.abs(y) <= 1;
+		return !here.isNest() && Math.abs(x - Constants.BOARD_SIZE) <= 1 && Math.abs(y - Constants.BOARD_SIZE) <= 1;
 	}
 
 	// Square in given direction number (0: north, 1: northeast, ...)
@@ -302,7 +325,7 @@ abstract class CommonAnt implements Ant {
 	// Sniff for nearby food (for squares excluding nest and immediate nest neighbors)
 	protected void sniffFood() {
 		for (ZSquare s : cells) {
-			if (s.hasFood() && Math.abs(s.x) > 1 && Math.abs(s.y) > 1) {
+			if (s.hasFood() && !isNextToNest()) {
 				foodStock.add(s.x, s.y, s.getAmountOfFood());
 			}
 		}

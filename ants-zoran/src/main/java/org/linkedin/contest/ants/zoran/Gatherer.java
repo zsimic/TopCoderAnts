@@ -29,8 +29,8 @@ public class Gatherer extends Role {
 //		} else if (opHaul.isActive()) {
 //			return opHaul.act();
 		} else if (ant.here.isNest() && ant.here.scent.isFetchFood()) {
-			x = ant.here.scent.xa();
-			y = ant.here.scent.xb();
+			x = ant.here.scent.a;
+			y = ant.here.scent.b;
 			amount = ant.here.scent.c;
 			opGoTo.activate(x, y);
 			return new Write(null);

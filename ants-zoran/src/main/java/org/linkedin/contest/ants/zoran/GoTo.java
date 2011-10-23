@@ -20,6 +20,11 @@ public class GoTo extends Operation {
 		activate(true);
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Go to %d %d (dist=%g %d)", targetX, targetY, minDistance, minReached);
+	}
+
 	// Effective next turn implementation for this operation
 	// return null when operation is complete (will be removed from the stack)
 	// return new Pass() if operation is not yet done but shouldn't be removed from the stack

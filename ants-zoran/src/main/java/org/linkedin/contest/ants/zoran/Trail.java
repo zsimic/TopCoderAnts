@@ -48,7 +48,7 @@ public final class Trail {
 	}
 
 	// Add 'square' to this trail
-	public void add(ZSquare square) {
+	public boolean add(ZSquare square) {
 		xArray[index] = square.x;
 		yArray[index++] = square.y;
 		if (index >= trailSize) index = 0;
@@ -63,8 +63,12 @@ public final class Trail {
 		}
 		Integer k = ((square.y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (square.x + Constants.BOARD_SIZE);
 		Integer v = hash.get(k);
-		if (v == null) hash.put(k, 1);
-		else hash.put(k, v + 1);
+		if (v == null) {
+			hash.put(k, 1);
+			return true;
+		}
+		hash.put(k, v + 1);
+		return false;
 	}
 
 }

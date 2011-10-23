@@ -13,13 +13,9 @@ public class Path {
 	private ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
 
 	Path() {
-		x = 0;
-		y = 0;
-		isCorrupt = false;
-		size = 0;
-		lastKey = 0;
 		hash = new Hashtable<Integer, Integer>();
 		list = new ArrayList<Integer>();
+		clear();
 	}
 
 	@Override
@@ -35,8 +31,8 @@ public class Path {
 
 	// Clear this path
 	public void clear() {
-		x = 0;
-		y = 0;
+		x = Constants.BOARD_SIZE;
+		y = Constants.BOARD_SIZE;
 		isCorrupt = false;
 		size = 0;
 		lastKey = 0;
@@ -51,18 +47,19 @@ public class Path {
 		}
 		int px, py;
 		if (size == 1) {
-			px = 0;
-			py = 0;
+			px = Constants.BOARD_SIZE;
+			py = Constants.BOARD_SIZE;
 		} else if (x == square.x && y == square.y) {
 			Integer k = list.get(size - 2);
-			px = (k & Constants.xPointMask) - Constants.BOARD_SIZE;
-			py = ((k & Constants.yPointMask) >>> Constants.pointBitOffset) - Constants.BOARD_SIZE;
+			px = k & Constants.xPointMask;
+			py = (k & Constants.yPointMask) >>> Constants.pointBitOffset;
 		} else {
 			px = square.x;
 			py = square.y;
 		}
 		if (Math.abs(x - px) > 1 || Math.abs(y - py) > 1) {
-			return null;
+			assert false;
+			return null;		// We're more than one square away from 'square', a tracking error occured somewhere
 		}
 		return ant.square(px - x, py - y);
 	}
@@ -71,13 +68,14 @@ public class Path {
 	public void add(ZSquare square) {
 		if (isCorrupt) return;
 		if (Math.abs(x - square.x) > 1 || Math.abs(y - square.y) > 1) {
+			assert false;			// A tracking error occured somewhere
 			clear();
 			isCorrupt = true;
 			return;
 		}
 		x = square.x;
 		y = square.y;
-		lastKey = ((y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (x + Constants.BOARD_SIZE);
+		lastKey = (y << Constants.pointBitOffset) | x;
 		if (hash.containsKey(lastKey)) {
 			int n = hash.get(lastKey) + 1;
 			while (size > n) {
@@ -97,8 +95,8 @@ public class Path {
 		if (x == square.x && y == square.y) {
 			lastKey = list.remove(--size);
 			hash.remove(lastKey);
-			x = (lastKey & Constants.xPointMask) - Constants.BOARD_SIZE;
-			y = ((lastKey & Constants.yPointMask) >>> Constants.pointBitOffset) - Constants.BOARD_SIZE;
+			x = lastKey & Constants.xPointMask;
+			y = (lastKey & Constants.yPointMask) >>> Constants.pointBitOffset;
 		} else {
 			clear();
 			isCorrupt = true;

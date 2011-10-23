@@ -20,26 +20,6 @@ public class Scent {
 //--  Properties, queries
 //-----------------------
 
-	// Encoded x-y coordinate in 'a'
-	public int xa() {
-		return a - Constants.BOARD_SIZE;
-	}
-
-	// Encoded x-y coordinate in 'b'
-	public int xb() {
-		return b - Constants.BOARD_SIZE;
-	}
-
-	// Encoded x-y coordinate in 'c'
-	public int xc() {
-		return c - Constants.BOARD_SIZE;
-	}
-
-	// Encoded x-y coordinate in 'd'
-	public int xd() {
-		return c - Constants.BOARD_SIZE;
-	}
-
 	// Does this scent contain no meaningful info?
 	public boolean isEmpty() {
 		return stinky || rawValue == null;
@@ -90,18 +70,18 @@ public class Scent {
 	public void setScan(int turn, int x0, int x1, int y0, int y1) {
 		this.nature = Constants.NATURE_SCAN;
 		this.turn = turn;
-		this.a = x0 + Constants.BOARD_SIZE;
-		this.b = x1 + Constants.BOARD_SIZE;
-		this.c = y0 + Constants.BOARD_SIZE;
-		this.d = y1 + Constants.BOARD_SIZE;
+		this.a = x0;
+		this.b = x1;
+		this.c = y0;
+		this.d = y1;
 	}
 
 	// Scent issuing a "go to cell" order (for soldiers)
 	public void setGoTo(int turn, int x, int y) {
 		this.nature = Constants.NATURE_GOTO;
 		this.turn = turn;
-		this.a = x + Constants.BOARD_SIZE;
-		this.b = y + Constants.BOARD_SIZE;
+		this.a = x;
+		this.b = y;
 	}
 
 	// Scent indicating that current cell should be considered an non-passable obstacle
@@ -113,16 +93,16 @@ public class Scent {
 	public void setFoodCoordinates(FoodCoordinates c) {
 		this.nature = Constants.NATURE_FOOD_COORDINATES;
 		this.turn = 0;
-		this.a = c.x + Constants.BOARD_SIZE;
-		this.b = c.y + Constants.BOARD_SIZE;
+		this.a = c.x;
+		this.b = c.y;
 		this.c = c.amount;
 	}
 
 	public void setFetchFood(FoodCoordinates c) {
 		this.nature = Constants.NATURE_FETCH_FOOD;
 		this.turn = 0;
-		this.a = c.x + Constants.BOARD_SIZE;
-		this.b = c.y + Constants.BOARD_SIZE;
+		this.a = c.x;
+		this.b = c.y;
 		this.c = c.amount;
 	}
 
@@ -140,6 +120,8 @@ public class Scent {
 			b = (int)((value & Constants.B_MASK) >>> Constants.bBitOffset);
 			c = (int)((value & Constants.C_MASK) >>> Constants.cBitOffset);
 			d = (int)((value & Constants.D_MASK) >>> Constants.dBitOffset);
+			assert nature > 0 && turn >= 0;
+			assert a >= 0 && b >= 0 && c >= 0 && d >= 0; 
 		} else {
 			stinky = value != null;
 			turn = 0;
@@ -153,6 +135,8 @@ public class Scent {
 
 	// Encoded scent value
 	public Long getValue() {
+		assert nature > 0 && turn >= 0;
+		assert a >= 0 && b >= 0 && c >= 0 && d >= 0; 
 		long v = ((long)d << Constants.dBitOffset)
 				| ((long)c << Constants.cBitOffset)
 				| ((long)b << Constants.bBitOffset)

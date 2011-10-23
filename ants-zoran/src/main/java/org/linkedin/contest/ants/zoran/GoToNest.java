@@ -13,7 +13,7 @@ public class GoToNest extends Operation {
 
 	@Override
 	public String toString() {
-		return String.format("%s %d path size", CommonAnt.className(this), ant.path.size());
+		return String.format("GoToNest %d path size", ant.path.size());
 	}
 
 	@Override
