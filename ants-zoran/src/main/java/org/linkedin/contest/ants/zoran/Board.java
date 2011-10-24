@@ -1,6 +1,7 @@
 package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
+import org.linkedin.contest.ants.api.*;
 
 public class Board {
 
@@ -25,6 +26,78 @@ public class Board {
 	@Override
 	public String toString() {
 		return String.format("x=%d %d y=%d %d", minX, maxX, minY, maxY);
+	}
+
+	private final static Direction[] neighbors = new Direction[]{
+		Direction.northeast, Direction.east, Direction.southeast, Direction.south,
+		Direction.southwest, Direction.west, Direction.northwest, Direction.north
+	};
+
+	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
+		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
+		
+		Integer sourceKey = Constants.encodedXY(xStart, yStart);
+		Integer targetKey = Constants.encodedXY(xEnd, yEnd);
+		Map<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
+		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
+		Map<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
+		PathNode start = new PathNode(xStart, yStart, 0, Constants.normalDistance(xStart - xEnd, yStart - yEnd), null);
+		opened.put(sourceKey, start);
+		pQueue.add(start);
+		
+		PathNode goal = null;
+		while (opened.size() > 0) {
+			PathNode current = pQueue.poll();
+			opened.remove(current.id);
+			if (current.id.equals(targetKey)) {
+				goal = current;		// We found the target
+				break;
+			}
+			closed.put(current.id, current);
+			for (Direction neighbor : neighbors) {
+				int px = current.x + neighbor.deltaX;
+				int py = current.y + neighbor.deltaY;
+				byte state = get(px, py);
+				if (state != Constants.STATE_OBSTACLE) {
+					Integer key = Constants.encodedXY(px, py);
+//					PathNode visited = closed.get(key);
+					if (!closed.containsKey(key)) {
+						double neighborDist = Constants.normalDistance(xEnd - px, yEnd - py);				// neighbor distance to target
+						double g = current.g + Constants.normalDistance(current.x - px, current.y - py);	// current g + distance from current to neighbor
+						if (state == Constants.STATE_UNKNOWN) {
+							// We favor unknown cells, encouraging the ant to explore
+							// We treat those nodes as potential goals though, we can't put them in the open set
+							neighborDist -= 10;
+							if (goal == null) {
+								goal = new PathNode(px, py, g, neighborDist, current);
+							} else if (goal.getF() > g + neighborDist) {
+								goal.update(px, py, g, neighborDist, current);
+							}
+						} else {
+							PathNode n = opened.get(key);
+							if (n == null) {
+								// Not in the open set yet
+								n = new PathNode(px, py, g, neighborDist, current);
+								opened.put(key, n);
+								pQueue.add(n);
+							} else if (g < n.g) {
+								// Have a better route to the current node, change its parent
+								n.parent = current;
+								n.g = g;
+								n.h = neighborDist;
+							}
+						}
+					}
+				}
+			}
+		}
+		Path p = new Path();
+		while (goal != null) {
+			if (goal.parent != null) p.add(goal.id);
+			goal = goal.parent;
+		}
+		return p;
 	}
 
 	public String representation() {
@@ -80,7 +153,7 @@ public class Board {
 	}
 
 	// Get state of point at (x,y), see Constants.STATE_* for possible values
-	public int get(int x, int y) {
+	public byte get(int x, int y) {
 		assert validCoordinates(x,y);
 		int px = x - minX;
 		int py = y - minY;

@@ -38,7 +38,7 @@ public abstract class Operation {
 
 	// Activate/deactivate this operation
 	public void activate(boolean active) {
-		assert isActive != active;
+//		assert isActive != active;
 		isActive = active;
 	}
 

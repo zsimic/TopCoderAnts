@@ -25,8 +25,7 @@ public class RememberedPathToNest {
 	}
 
 	public boolean has(int x, int y) {
-		int key = (y << Constants.pointBitOffset) | x;
-		return hash.containsKey(key);
+		return hash.containsKey(Constants.encodedXY(x, y));
 	}
 
 	// Number of coordinates in path
@@ -56,8 +55,8 @@ public class RememberedPathToNest {
 			py = Constants.BOARD_SIZE;
 		} else if (x == square.x && y == square.y) {
 			Integer k = list.get(size - 2);
-			px = k & Constants.xPointMask;
-			py = (k & Constants.yPointMask) >>> Constants.pointBitOffset;
+			px = Constants.decodedX(k);
+			py = Constants.decodedY(k);
 		} else {
 			px = square.x;
 			py = square.y;
@@ -66,7 +65,7 @@ public class RememberedPathToNest {
 			assert false;
 			return null;		// We're more than one square away from 'square', a tracking error occured somewhere
 		}
-		return ant.square(px - x, py - y);
+		return ant.squareDelta(px - x, py - y);
 	}
 
 	// Add coordinates in given 'square' to this path
@@ -80,7 +79,7 @@ public class RememberedPathToNest {
 		}
 		x = square.x;
 		y = square.y;
-		lastKey = (y << Constants.pointBitOffset) | x;
+		lastKey = Constants.encodedXY(x, y);
 		if (hash.containsKey(lastKey)) {
 			int n = hash.get(lastKey) + 1;
 			while (size > n) {
@@ -100,8 +99,8 @@ public class RememberedPathToNest {
 		if (x == square.x && y == square.y) {
 			lastKey = list.remove(--size);
 			hash.remove(lastKey);
-			x = lastKey & Constants.xPointMask;
-			y = (lastKey & Constants.yPointMask) >>> Constants.pointBitOffset;
+			x = Constants.decodedX(lastKey);
+			y = Constants.decodedY(lastKey);
 		} else {
 			clear();
 			isCorrupt = true;

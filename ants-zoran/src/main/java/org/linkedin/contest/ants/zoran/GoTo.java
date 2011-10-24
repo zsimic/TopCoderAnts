@@ -31,7 +31,7 @@ public class GoTo extends Operation {
 	@Override
 	Action effectiveAct() {
 		ZSquare s = ant.bestSquareForTarget(targetX, targetY);
-		double d = CommonAnt.normalDistance(targetX - ant.x, targetY - ant.y);
+		double d = Constants.normalDistance(targetX - ant.x, targetY - ant.y);
 		if (d<0.5) {
 			// We've reached the target
 			return null;

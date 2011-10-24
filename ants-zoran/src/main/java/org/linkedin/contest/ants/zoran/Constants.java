@@ -1,13 +1,30 @@
 package org.linkedin.contest.ants.zoran;
 
-interface Constants {
+public class Constants {
 
 	public static final int BOARD_SIZE = 512;		// Board size
 
 	// Encoding cell coordinates
-	public final static int xPointMask = 0x000fff;
-	public final static int yPointMask = 0xfff000;
-	public final static int pointBitOffset = Integer.bitCount(xPointMask);
+	private final static int xPointMask = 0x000fff;
+	private final static int yPointMask = 0xfff000;
+	private final static int pointBitOffset = Integer.bitCount(xPointMask);
+
+	public final static int encodedXY(int x, int y) {
+		return (y << pointBitOffset) | x;
+	}
+
+	public final static int decodedX(int key) {
+		return key & xPointMask;
+	}
+
+	public final static int decodedY(int key) {
+		return (key & yPointMask) >>> pointBitOffset;
+	}
+
+	// Distance for (0,0) to (x,y)
+	protected static double normalDistance(int x, int y) {
+		return Math.sqrt(x*x + y*y);
+	}
 
 	// Values in Board class
 	public static final byte STATE_UNKNOWN = 0;

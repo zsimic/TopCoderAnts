@@ -153,6 +153,7 @@ abstract class CommonAnt implements Ant {
 			// Mark cell as non-passable, because it's a dead-end
 			here.scent.setObstacle(turn);
 			path.remove(here);
+			board.setObstacle(x, y);
 			act = new Write(here.scent.getValue());
 		}
 		if (act == null) act = role.act();
@@ -247,8 +248,14 @@ abstract class CommonAnt implements Ant {
 		}
 	}
 
+	// Square on given x,y (which must a neighbor of current ant position)
+	protected ZSquare squareTo(int nx, int ny) {
+		assert Math.abs(nx - x) <= 1 && Math.abs(ny - y) <= 1;
+		return squareDelta(nx - x, ny - y);
+	}
+
 	// Square with given dx, dy
-	protected ZSquare square(int dx, int dy) {
+	protected ZSquare squareDelta(int dx, int dy) {
 		if (dx == -1) {
 			if (dy == -1) return northwest;
 			else if (dy == 0) return north;
@@ -291,11 +298,6 @@ abstract class CommonAnt implements Ant {
 		return n;
 	}
 
-	// Distance for (0,0) to (x,y)
-	protected static double normalDistance(int x, int y) {
-		return Math.sqrt(x*x + y*y);
-	}
-
 	// Best square to move to in order to get to (x,y), knowing that we're going in direction 'dir'
 	protected ZSquare bestSquareForTarget(int x, int y) {
 		ZSquare best = null;
@@ -303,7 +305,7 @@ abstract class CommonAnt implements Ant {
 		for (ZSquare s : neighbors) {
 			if (s.isPassable()) {
 				double penalty = trail.penalty(s);
-				double d = normalDistance(s.x - x, s.y - y);
+				double d = Constants.normalDistance(s.x - x, s.y - y);
 				if (penalty > 0 && !trail.isLast(s)) {
 					progressDump(String.format("penalty %s: %g d=%g", s.dir.name(), penalty, d));
 				}

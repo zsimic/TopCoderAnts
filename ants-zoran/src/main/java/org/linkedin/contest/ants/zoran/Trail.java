@@ -32,7 +32,7 @@ public final class Trail {
 	// Penalty for going to 'square': affected to square already recently visited
 	public double penalty(ZSquare square) {
 		if (count==0) return 0;
-		Integer k = ((square.y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (square.x + Constants.BOARD_SIZE);
+		Integer k = Constants.encodedXY(square.x + Constants.BOARD_SIZE, square.y + Constants.BOARD_SIZE);
 		Integer v = hash.get(k);
 		if (v != null) return v * penaltyFactor;
 		return 0;
@@ -56,13 +56,13 @@ public final class Trail {
 		if (count < trailSize) {
 			count++;
 		} else {
-			Integer oldk = ((yArray[index] + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (xArray[index] + Constants.BOARD_SIZE);
+			Integer oldk = Constants.encodedXY(xArray[index] + Constants.BOARD_SIZE, yArray[index] + Constants.BOARD_SIZE);
 			Integer oldv = hash.get(oldk);
 			assert oldv != null;
 			if (oldv == 1) hash.remove(oldk);
 			else hash.put(oldk, oldv - 1);
 		}
-		Integer k = ((square.y + Constants.BOARD_SIZE) << Constants.pointBitOffset) | (square.x + Constants.BOARD_SIZE);
+		Integer k = Constants.encodedXY(square.x + Constants.BOARD_SIZE, square.y + Constants.BOARD_SIZE);
 		Integer v = hash.get(k);
 		if (v == null) {
 			hash.put(k, 1);

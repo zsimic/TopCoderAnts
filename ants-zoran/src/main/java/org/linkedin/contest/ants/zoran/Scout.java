@@ -63,7 +63,7 @@ public class Scout extends Role {
 				opNest.activate(false);
 				// We have arrived back right next to the nest where we started from: write down the boundary found
 				if (ant.here.scent.isBoundary()) {
-					if (!ant.here.isNest()) return new Move(ant.square(-direction.deltaX, -direction.deltaY).dir);
+					if (!ant.here.isNest()) return new Move(ant.squareDelta(-direction.deltaX, -direction.deltaY).dir);
 					opDump.activate(true);
 					return opDump.act();
 				}
@@ -112,7 +112,7 @@ public class Scout extends Role {
 			ant.setRole(new Guard(ant));
 			return new Pass();
 		} else if (ant.isNextToNest()) {
-			return new Move(ant.square(-ant.here.x, -ant.here.y).dir);
+			return new Move(ant.squareDelta(-ant.here.x, -ant.here.y).dir);
 		}
 		return null;		// Confused
 	}

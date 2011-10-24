@@ -57,7 +57,7 @@ public class FoodStock {
 		Collections.sort(coordinates, new Comparator<FoodCoordinates>() {
 			public int compare(FoodCoordinates c1, FoodCoordinates c2) {
 				if (c1.amount == c2.amount) {
-					return (int)(CommonAnt.normalDistance(c1.x, c1.y) - CommonAnt.normalDistance(c2.x, c2.y));
+					return (int)(Constants.normalDistance(c1.x - Constants.BOARD_SIZE, c1.y - Constants.BOARD_SIZE) - Constants.normalDistance(c2.x - Constants.BOARD_SIZE, c2.y - Constants.BOARD_SIZE));
 				}
 				return c1.amount - c2.amount;
 			}
