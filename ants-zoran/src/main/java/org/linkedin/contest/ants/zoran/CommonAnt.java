@@ -1,9 +1,7 @@
 package org.linkedin.contest.ants.zoran;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.linkedin.contest.ants.api.*;
+import java.util.*;
 
 abstract class CommonAnt implements Ant {
 

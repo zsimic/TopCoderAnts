@@ -1,7 +1,6 @@
 package org.linkedin.contest.ants.zoran;
 
-import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.*;
 
 public class Board {
 
