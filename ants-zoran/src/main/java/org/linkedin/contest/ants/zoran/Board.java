@@ -34,7 +34,7 @@ public class Board {
 	};
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, int maxIterations) {
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		
 		Integer sourceKey = Constants.encodedXY(xStart, yStart);
@@ -47,54 +47,66 @@ public class Board {
 		pQueue.add(start);
 		
 		PathNode goal = null;
-		while (opened.size() > 0) {
+		int iterations = 0;
+		boolean cont = true;
+		while (cont) {
+			iterations++;
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
 			if (current.id.equals(targetKey)) {
 				goal = current;		// We found the target
+				cont = false;
 				break;
 			}
 			closed.put(current.id, current);
 			for (Direction neighbor : neighbors) {
-				int px = current.x + neighbor.deltaX;
-				int py = current.y + neighbor.deltaY;
-				byte state = get(px, py);
+				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
+				int ny = current.y + neighbor.deltaY;
+				byte state = get(nx, ny);
 				if (state != Constants.STATE_OBSTACLE) {
-					Integer key = Constants.encodedXY(px, py);
+					Integer key = Constants.encodedXY(nx, ny);
 //					PathNode visited = closed.get(key);
 					if (!closed.containsKey(key)) {
-						double neighborDist = Constants.normalDistance(xEnd - px, yEnd - py);				// neighbor distance to target
-						double g = current.g + Constants.normalDistance(current.x - px, current.y - py);	// current g + distance from current to neighbor
+						double neighborDist = Constants.normalDistance(xEnd - nx, yEnd - ny);	// neighbor distance to target
+						double g = current.g + 1;												// current g + distance from current to neighbor
 						if (state == Constants.STATE_UNKNOWN) {
 							// We favor unknown cells, encouraging the ant to explore
 							// We treat those nodes as potential goals though, we can't put them in the open set
 							neighborDist -= 10;
 							if (goal == null) {
-								goal = new PathNode(px, py, g, neighborDist, current);
+								goal = new PathNode(nx, ny, g, neighborDist, current);
 							} else if (goal.getF() > g + neighborDist) {
-								goal.update(px, py, g, neighborDist, current);
+								goal.update(nx, ny, g, neighborDist, current);
 							}
 						} else {
-							PathNode n = opened.get(key);
-							if (n == null) {
+							PathNode node = opened.get(key);
+							if (node == null) {
 								// Not in the open set yet
-								n = new PathNode(px, py, g, neighborDist, current);
-								opened.put(key, n);
-								pQueue.add(n);
-							} else if (g < n.g) {
+								node = new PathNode(nx, ny, g, neighborDist, current);
+								opened.put(key, node);
+								pQueue.add(node);
+							} else if (g < node.g) {
 								// Have a better route to the current node, change its parent
-								n.parent = current;
-								n.g = g;
-								n.h = neighborDist;
+								node.parent = current;
+								node.g = g;
+								node.h = neighborDist;
 							}
 						}
 					}
 				}
 			}
+			if (opened.size() == 0) cont = false;
+			else if (maxIterations != 0 && goal != null && iterations > maxIterations) cont = false;
 		}
+		if (goal == null) return null;
 		Path p = new Path();
+		int prevX = goal.x;
+		int prevY = goal.y;
 		while (goal != null) {
+			assert (Math.abs(prevX - goal.x) <= 1 && Math.abs(prevY - goal.y) <= 1);
 			if (goal.parent != null) p.add(goal.id);
+			prevX = goal.x;
+			prevY = goal.y;
 			goal = goal.parent;
 		}
 		return p;
