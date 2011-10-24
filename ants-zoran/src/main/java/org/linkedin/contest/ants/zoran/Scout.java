@@ -31,7 +31,7 @@ public class Scout extends Role {
 		else if (!hasBorder()) s ="looking for border";
 		else if (ant.here.isNest()) s = "back on nest";
 		else if (ant.isNextToNest()) s = "next to nest";
-		else if (hasBorder()) s ="just found border";
+		else if (hasBorder()) s ="";
 		else s = "??";
 		return String.format("%s %s", direction.dir.name(), s);
 	}
@@ -69,7 +69,7 @@ public class Scout extends Role {
 				}
 				Scent s = new Scent();
 				s.setBoundary(this);
-				ant.dump(String.format("arrived next to nest, scent: %x", s.getValue()));
+				ant.dump(String.format("arrived next to nest, scent: %s", s.toString()));
 				return new Write(s.getValue());
 			}
 			Action act =opNest.act();
@@ -84,12 +84,12 @@ public class Scout extends Role {
 			int b, bx, by;
 			if (direction.deltaX == 0) {
 				b = ant.y;
-				bx = (int)(ant.x * 0.8);
+				bx = targetX + (int)((ant.x - targetX) * 0.8);
 				by = targetY;
 			} else {
 				b = ant.x;
 				bx = targetX;
-				by = (int)(ant.y * 0.8);
+				by = targetY + (int)((ant.y - targetY) * 0.8);
 			}
 			if (border < b) {
 				border = b;

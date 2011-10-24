@@ -24,6 +24,11 @@ public class Path {
 		return String.format("%d points", size);
 	}
 
+	public boolean has(int x, int y) {
+		int key = (y << Constants.pointBitOffset) | x;
+		return hash.containsKey(key);
+	}
+
 	// Number of coordinates in path
 	public int size() {
 		return list.size();

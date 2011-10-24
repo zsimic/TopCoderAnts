@@ -1,8 +1,6 @@
 package org.linkedin.contest.ants.zoran;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 
 public class FoodStock {
 
@@ -18,18 +16,33 @@ public class FoodStock {
 	}
 
 	// Is this food stock empty?
-	protected boolean isEmpty() {
+	public boolean isEmpty() {
 		return coordinates.isEmpty();
 	}
 
+	// Pop last food coordinate
+	public FoodCoordinates pop() {
+		if (coordinates.isEmpty()) return null;
+		FoodCoordinates c = coordinates.remove(coordinates.size()-1);
+		return c;
+	}
+
+	// Amount of food at coordinates x,y
+	public int foodAmount(int x, int y) {
+		for (FoodCoordinates coord : coordinates) {
+			if (coord.x == x && coord.y == y) return coord.amount;
+		}
+		return 0;
+	}
+
 	// Add found food coordinates in scent
-	protected void add(Scent s) {
+	public void add(Scent s) {
 		assert s.isFoodCoordinates();
 		add(s.a, s.b, s.c);
 	}
 
 	// Add found food coordinates
-	protected void add(int x, int y, int amount) {
+	public void add(int x, int y, int amount) {
 		for (FoodCoordinates c : coordinates) {
 			if (x == c.x && y == c.y) {
 				if (amount != c.amount) c.amount = amount;
@@ -39,15 +52,8 @@ public class FoodStock {
 		coordinates.add(new FoodCoordinates(x, y, amount));
 	}
 
-	// Pop last food coordinate
-	protected FoodCoordinates pop() {
-		if (coordinates.isEmpty()) return null;
-		FoodCoordinates c = coordinates.remove(coordinates.size()-1);
-		return c;
-	}
-
 	// Sort coordinates in this stock per amount first, then per distance to travel from nest
-	protected void sort() {
+	public void sort() {
 		Collections.sort(coordinates, new Comparator<FoodCoordinates>() {
 			public int compare(FoodCoordinates c1, FoodCoordinates c2) {
 				if (c1.amount == c2.amount) {
@@ -57,4 +63,5 @@ public class FoodStock {
 			}
 		});
 	}
+
 }

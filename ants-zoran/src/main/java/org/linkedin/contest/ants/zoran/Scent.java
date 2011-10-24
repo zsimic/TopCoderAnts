@@ -17,8 +17,21 @@ public class Scent {
 		update(null);
 	}
 
+	public Scent(Long val) {
+		update(val);
+	}
+
 //--  Properties, queries
 //-----------------------
+
+	@Override
+	public String toString() {
+		if (stinky) return String.format("stinky %x", rawValue);
+		else if (nature == Constants.NATURE_BOUNDARY) return String.format("boundary id=%d border=%d %x", a, b, rawValue);
+		else if (nature == Constants.NATURE_OBSTACLE) return String.format("obstacle %x", rawValue);
+		else if (nature == Constants.NATURE_FOOD_COORDINATES) return String.format("foodxy x=%d y=%d a=%d %x", a, b, c, rawValue);
+		return String.format("nature %d: %d %d %d %d %x", nature, a, b, c, d, rawValue);
+	}
 
 	// Does this scent contain no meaningful info?
 	public boolean isEmpty() {

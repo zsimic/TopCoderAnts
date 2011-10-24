@@ -12,6 +12,7 @@ interface Constants {
 	// Values in Board class
 	public static final byte STATE_UNKNOWN = 0;
 	public static final byte STATE_PASSABLE = 1;
+//	public static final byte STATE_FOOD = 2;
 	public static final byte STATE_OBSTACLE = 2;
 
 	// Masks, bit offsets and constants for the Scent class

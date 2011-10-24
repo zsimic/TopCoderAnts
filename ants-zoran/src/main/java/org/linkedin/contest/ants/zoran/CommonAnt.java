@@ -39,7 +39,7 @@ abstract class CommonAnt implements Ant {
 		x = y = Constants.BOARD_SIZE;
 		hasFood = false;
 		needsBoundaries = 4;
-		board = new Board();
+		board = new Board(this);
 		trail = new Trail();
 		path = new Path();
 		foodStock = new FoodStock();
@@ -94,6 +94,11 @@ abstract class CommonAnt implements Ant {
 			assert role != null;
 			return new Write(new Long(id));
 		}
+		if (id==1) {
+			if (turn==1000) {
+				System.out.print(board.representation());
+			}
+		}
 		northeast.update(environment);
 		east.update(environment);
 		southeast.update(environment);
@@ -102,6 +107,14 @@ abstract class CommonAnt implements Ant {
 		west.update(environment);
 		northwest.update(environment);
 		north.update(environment);
+		board.updateCell(northeast);
+		board.updateCell(east);
+		board.updateCell(southeast);
+		board.updateCell(south);
+		board.updateCell(southwest);
+		board.updateCell(west);
+		board.updateCell(northwest);
+		board.updateCell(north);
 		if (here.isNest()) {
 			path.clear();
 			if (needsBoundaries > 0) {
@@ -126,8 +139,10 @@ abstract class CommonAnt implements Ant {
 				}
 			}
 		}
+		if (events.size()>0) assert false;
 		for (WorldEvent event : events) {
 			Direction dir = event.getDirection();
+			assert false;
 			String eventString = event.getEvent();
 			ZEvent ev = new ZEvent(eventString);
 			square(dir).setEvent(ev);
@@ -149,16 +164,7 @@ abstract class CommonAnt implements Ant {
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
-			if (trail.add(square)) {
-				board.setPassable(northeast);
-				board.setPassable(east);
-				board.setPassable(southeast);
-				board.setPassable(south);
-				board.setPassable(southwest);
-				board.setPassable(west);
-				board.setPassable(northwest);
-				board.setPassable(north);
-			}
+			trail.add(square);
 			path.add(square);
 			progressDump("move " + square.dir.name());
 		} else if (act instanceof GetFood) {
@@ -170,7 +176,8 @@ abstract class CommonAnt implements Ant {
 			hasFood = false;
 			progressDump("drops food");
 		} else if (act instanceof Write) {
-			progressDump(String.format("writing value: %x", ((Write)act).getWriting()));
+			Scent s = new Scent(((Write)act).getWriting());
+			progressDump(String.format("writing value: %s", s.toString()));
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
@@ -178,7 +185,8 @@ abstract class CommonAnt implements Ant {
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
 		if (elapsedTimeMillis > 10) {
-			assert false;		// We took too long to compute!
+			System.out.print(String.format("Check time: %d\n", elapsedTimeMillis));
+//			assert false;		// We took too long to compute!
 		}
 		return act;
 	}
@@ -336,7 +344,7 @@ abstract class CommonAnt implements Ant {
 
 	// Is 'here' a dead-end square (leads to nowhere)
 	protected boolean isOnDeadEndSquare() {
-		if (here.isPassable() && here.getAmountOfFood() == 0) return false;
+		if (here.getAmountOfFood() == 0) return false;
 		int obstacles = 0;
 		int consecutiveObstacles = 0;
 		int consecutiveFree = 0;

@@ -41,7 +41,8 @@ public final class Trail {
 	// Was 'square' the last one added to the trail?
 	public boolean isLast(ZSquare square) {
 		if (count==0) return false;
-		int i = index == 0 ? trailSize - 1 : index - 1;
+		int i = index - 2;
+		if (i < 0) i += trailSize;
 		int xx = xArray[i];
 		int yy = yArray[i];
 		return (xx == square.x && yy == square.y);
