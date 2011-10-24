@@ -2,7 +2,7 @@ package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
 
-public class Path {
+public class RememberedPathToNest {
 
 	protected int x;							// Last x coordinate on this path (use it to get back to nest)
 	protected int y;
@@ -12,7 +12,7 @@ public class Path {
 	private Hashtable<Integer, Integer> hash;	// Hash used to determine quickly whether a coordinate is already part of the path
 	private ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
 
-	Path() {
+	RememberedPathToNest() {
 		hash = new Hashtable<Integer, Integer>();
 		list = new ArrayList<Integer>();
 		clear();

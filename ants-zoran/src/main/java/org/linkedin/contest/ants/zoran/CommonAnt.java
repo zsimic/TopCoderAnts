@@ -19,7 +19,7 @@ abstract class CommonAnt implements Ant {
 	protected Board board;							// Board as discovered so far
 	protected Trail trail;							// Trail of where the ant has previously been on (used to avoid going back to cells recently visited)
 	protected FoodStock foodStock;					// Coordinates of points where food was seen
-	protected Path path;							// Path back to nest
+	protected RememberedPathToNest path;			// Path back to nest
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	protected int needsBoundaries;					// Do we need boundaries coordinates?
 
@@ -41,7 +41,7 @@ abstract class CommonAnt implements Ant {
 		needsBoundaries = 4;
 		board = new Board(this);
 		trail = new Trail();
-		path = new Path();
+		path = new RememberedPathToNest();
 		foodStock = new FoodStock();
 		north = new ZSquare(this, Direction.north);
 		northeast = new ZSquare(this, Direction.northeast);
