@@ -72,7 +72,7 @@ public class Scout extends Role {
 				ant.dump(String.format("arrived next to nest, scent: %s", s.toString()));
 				return new Write(s.getValue());
 			}
-			Action act =opNest.act();
+			Action act = opNest.act();
 			assert act != null;
 			return act;
 		} else if (!hasBorder()) {

@@ -137,11 +137,12 @@ abstract class CommonAnt implements Ant {
 				}
 			}
 		}
-		if (events.size()>0) assert false;
 		for (WorldEvent event : events) {
 			Direction dir = event.getDirection();
-			assert false;
 			String eventString = event.getEvent();
+			if (id==10) {
+				System.out.print("");
+			}
 			ZEvent ev = new ZEvent(eventString);
 			square(dir).setEvent(ev);
 			dump(String.format("event %s %s", event.getDirection(), eventString));
@@ -177,6 +178,8 @@ abstract class CommonAnt implements Ant {
 		} else if (act instanceof Write) {
 			Scent s = new Scent(((Write)act).getWriting());
 			progressDump(String.format("writing value: %s", s.toString()));
+		} else if (act instanceof Say) {
+			progressDump(String.format("Say: '%s'", ((Say)act).getMessage()));
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
@@ -207,8 +210,10 @@ abstract class CommonAnt implements Ant {
 
 	// 'Say' action in all directions
 	public Say sayInAllDirections(String what) {
-		return new Say(String.format("%d %s", id, what), Direction.northeast,Direction.east,Direction.southeast,
-				Direction.south,Direction.southwest,Direction.west,Direction.northwest,Direction.north,Direction.here);
+		assert what != null;
+		return new Say(String.format("From id %d, x=%d y=%d '%s'", id, x, y, what),
+				Direction.northeast,Direction.east,Direction.southeast,Direction.south,
+				Direction.southwest,Direction.west,Direction.northwest,Direction.north,Direction.here);
 	}
 	
 //--  Properties, queries
