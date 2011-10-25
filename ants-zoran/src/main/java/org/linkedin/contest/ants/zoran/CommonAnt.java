@@ -15,16 +15,16 @@ abstract class CommonAnt implements Ant {
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
 	protected List<ZSquare> cells;					// All cells (including 'here')
 	protected Board board;							// Board as discovered so far
-	protected Trail trail;							// Trail of where the ant has previously been on (used to avoid going back to cells recently visited)
+//	protected Trail trail;							// Trail of where the ant has previously been on (used to avoid going back to cells recently visited)
 	protected FoodStock foodStock;					// Coordinates of points where food was seen
-	protected RememberedPathToNest path;			// Path back to nest
+//	protected RememberedPathToNest path;			// Path back to nest
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	protected int needsBoundaries;					// Do we need boundaries coordinates?
 
 	@Override
 	public String toString() {
 		String rs = role == null ? "" : role.toString();
-		return String.format("%d %d p=%d f=%d x=%d y=%d %s", turn, id, path.size(), foodStock.size(), x, y, rs);
+		return String.format("%d %d [%d,%d] f=%d xy=[%d,%d] %s", turn, id, board.sizeX(), board.sizeY(), foodStock.size(), x, y, rs);
 	}
 
     /**
@@ -38,8 +38,8 @@ abstract class CommonAnt implements Ant {
 		hasFood = false;
 		needsBoundaries = 4;
 		board = new Board(this);
-		trail = new Trail();
-		path = new RememberedPathToNest();
+//		trail = new Trail();
+//		path = new RememberedPathToNest();
 		foodStock = new FoodStock();
 		north = new ZSquare(this, Direction.north);
 		northeast = new ZSquare(this, Direction.northeast);
@@ -87,6 +87,7 @@ abstract class CommonAnt implements Ant {
 			assert id==0;
 			assert turn==1;
 			assert here.isNest();
+			board.updateCell(here);
 			id = intValueOnNest() + 1;
 			initializeState();
 			assert role != null;
@@ -114,7 +115,7 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(northwest);
 		board.updateCell(north);
 		if (here.isNest()) {
-			path.clear();
+//			path.clear();
 			if (needsBoundaries > 0) {
 				if (x0 == 0 && north.scent.isBoundary()) {
 					x0 = north.scent.b;
@@ -153,7 +154,7 @@ abstract class CommonAnt implements Ant {
 		} else if (isOnDeadEndSquare()) {
 			// Mark cell as non-passable, because it's a dead-end
 			here.scent.setObstacle(turn);
-			path.remove(here);
+//			path.remove(here);
 			board.setObstacle(x, y);
 			act = new Write(here.scent.getValue());
 		}
@@ -164,8 +165,8 @@ abstract class CommonAnt implements Ant {
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
-			trail.add(square);
-			path.add(square);
+//			trail.add(square);
+//			path.add(square);
 			progressDump("move " + square.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
@@ -309,12 +310,12 @@ abstract class CommonAnt implements Ant {
 		double bestDistance = 0;
 		for (ZSquare s : neighbors) {
 			if (s.isPassable()) {
-				double penalty = trail.penalty(s);
+//				double penalty = trail.penalty(s);
 				double d = Constants.normalDistance(s.x - x, s.y - y);
-				if (penalty > 0 && !trail.isLast(s)) {
-					progressDump(String.format("penalty %s: %g d=%g", s.dir.name(), penalty, d));
-				}
-				d += penalty;
+//				if (penalty > 0 && !trail.isLast(s)) {
+//					progressDump(String.format("penalty %s: %g d=%g", s.dir.name(), penalty, d));
+//				}
+//				d += penalty;
 				if (best == null || d < bestDistance) {
 					bestDistance = d;
 					best = s;
@@ -349,6 +350,7 @@ abstract class CommonAnt implements Ant {
 
 	// Is 'here' a dead-end square (leads to nowhere)
 	protected boolean isOnDeadEndSquare() {
+		if (true) return false;
 		if (here.getAmountOfFood() == 0) return false;
 		int obstacles = 0;
 		int consecutiveObstacles = 0;

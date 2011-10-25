@@ -24,7 +24,7 @@ public class Path {
 		String s = "";
 		for (Integer key : points) {
 			if (s.length() > 0) s += ',';
-			s += String.format("x=%d y=%d", Constants.decodedX(key), Constants.decodedY(key));
+			s += String.format("[%d,%d]", Constants.decodedX(key), Constants.decodedY(key));
 		}
 		return s;
 	}

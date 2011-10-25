@@ -14,7 +14,7 @@ public class ZoranAnt extends CommonAnt {
 	@Override
 	public void initializeState() {
 //		testScent();
-		if (id<=4) setRole (new Scout(this, square (2 * (id % 4))));	// 4 scouts, one in each direction, they become guards after they're done finding the game board limits
+		if (id<=4) setRole (new ScoutBorder(this, square (2 * (id % 4))));	// 4 scouts, one in each direction, they become guards after they're done finding the game board limits
 		else if (id<=10) setRole (new Guard(this));						// 6 + 4 guards
 		else if (id==11) setRole (new Manager(this));					// 1 manager
 		else if (id<=20) setRole (new Gatherer(this));					// 9 gatherers

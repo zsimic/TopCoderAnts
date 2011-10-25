@@ -13,7 +13,8 @@ public class GoToNest extends Operation {
 
 	@Override
 	public String toString() {
-		return String.format("GoToNest %d path size", ant.path.size());
+		return "";
+//		return String.format("GoToNest %d path size", ant.path.size());
 	}
 
 	@Override
@@ -22,14 +23,14 @@ public class GoToNest extends Operation {
 			return opGoTo.act();
 		} else if (ant.here.isNest()) {
 			return null;		// We're done
-		} else {
-			ZSquare prev = ant.path.prev(ant, ant.here);
-			if (prev == null) {
-				opGoTo.activate(0, 0);
-				return opGoTo.act();
-			}
-			return new Move(prev.dir);
 		}
+//		ZSquare prev = ant.path.prev(ant, ant.here);
+//		if (prev == null) {
+//			opGoTo.activate(0, 0);
+//			return opGoTo.act();
+//		}
+//		return new Move(prev.dir);
+		return null;
 	}
 
 }

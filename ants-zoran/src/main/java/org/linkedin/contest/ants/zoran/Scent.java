@@ -163,7 +163,7 @@ public class Scent {
 
 	// Is scent with given 'value' a valid scent (produced by our own ants)?
 	private static boolean isValidScent(Long value) {
-		if (value==null) return false;
+		if (value==null || value == 0) return false;
 		long chk = (value & Constants.CHECKSUM_MASK) >>> Constants.valueBitCount;
 		int n = Long.bitCount(value & Constants.VALUE_MASK);
 		n = n & 0xf;

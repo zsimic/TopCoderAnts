@@ -19,7 +19,7 @@ public abstract class Role {
 		assert ant != null;
 		turn++;
 		Action act = effectiveAct();
-		assert act != null;
+//		assert act != null;
 		return act;
 	}
 

@@ -28,21 +28,28 @@ public class Board {
 		return String.format("x=%d %d y=%d %d", minX, maxX, minY, maxY);
 	}
 
+	public int sizeX() {
+		return actualMaxX - actualMinX;
+	}
+
+	public int sizeY() {
+		return maxY - minY;
+	}
+
 	private final static Direction[] neighbors = new Direction[]{
 		Direction.northeast, Direction.east, Direction.southeast, Direction.south,
 		Direction.southwest, Direction.west, Direction.northwest, Direction.north
 	};
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, int maxIterations) {
+	public Path bestPath(int xStart, int yStart, int maxIterations, Ruler ruler) {
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		
 		Integer sourceKey = Constants.encodedXY(xStart, yStart);
-		Integer targetKey = Constants.encodedXY(xEnd, yEnd);
 		Map<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
 		Map<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
-		PathNode start = new PathNode(xStart, yStart, 0, Constants.normalDistance(xStart - xEnd, yStart - yEnd), null);
+		PathNode start = new PathNode(xStart, yStart, 0, ruler.distance(xStart, yStart), null);
 		opened.put(sourceKey, start);
 		pQueue.add(start);
 		
@@ -53,7 +60,8 @@ public class Board {
 			iterations++;
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
-			if (current.id.equals(targetKey)) {
+			double currentDistance = ruler.distance(current.x, current.y);
+			if (currentDistance < 0.5) {
 				goal = current;		// We found the target
 				cont = false;
 				break;
@@ -67,12 +75,12 @@ public class Board {
 					Integer key = Constants.encodedXY(nx, ny);
 //					PathNode visited = closed.get(key);
 					if (!closed.containsKey(key)) {
-						double neighborDist = Constants.normalDistance(xEnd - nx, yEnd - ny);	// neighbor distance to target
-						double g = current.g + 1;												// current g + distance from current to neighbor
+						double neighborDist = ruler.distance(nx, ny);		// neighbor distance to target
+						double g = current.g + 1;							// current g + distance from current to neighbor
 						if (state == Constants.STATE_UNKNOWN) {
 							// We favor unknown cells, encouraging the ant to explore
 							// We treat those nodes as potential goals though, we can't put them in the open set
-							neighborDist -= 10;
+							//neighborDist -= 10;
 							if (goal == null) {
 								goal = new PathNode(nx, ny, g, neighborDist, current);
 							} else if (goal.getF() > g + neighborDist) {
@@ -140,12 +148,12 @@ public class Board {
 				if (!known.get(j)) {
 					line += ' ';
 				} else if (obs.get(j)) {
-					assert !ant.path.has(px, py);
+//					assert !ant.path.has(px, py);
 					line += '#';
 				} else if (i == iNest && j == jNest) {
 					line += 'N';
-				} else if (ant.path.has(px, py)) {
-					line += 'x';
+//				} else if (ant.path.has(px, py)) {
+//					line += 'x';
 				} else {
 					int food = ant.foodStock.foodAmount(px, py);
 					if (food == 0) line += '.';
@@ -166,7 +174,7 @@ public class Board {
 
 	// Get state of point at (x,y), see Constants.STATE_* for possible values
 	public byte get(int x, int y) {
-		assert validCoordinates(x,y);
+		if (!validCoordinates(x,y)) return Constants.STATE_UNKNOWN;
 		int px = x - minX;
 		int py = y - minY;
 		if (!knownRows.get(py).get(px)) return Constants.STATE_UNKNOWN;
