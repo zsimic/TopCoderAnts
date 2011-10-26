@@ -24,7 +24,7 @@ public class ZoranAnt extends CommonAnt {
 
 	private static void testScent(int x, int y, int amt) {
 		Scent s = new Scent();
-		s.setFoodCoordinates(new FoodCoordinates(x, y, amt));
+		s.setFetchFood(new FoodCoordinates(x, y, amt));
 		Long v1 = s.getValue();
 //		System.out.printf("v=%x\n", v);
 		s = new Scent();

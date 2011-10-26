@@ -14,8 +14,7 @@ public class ScoutBorder extends Role implements Ruler {
 	private enum ScoutState {
 		scanning,
 		returning,
-		borderInfo,
-		boardInfo,
+		communicatingInfo,
 		done
 	}
 
@@ -23,7 +22,7 @@ public class ScoutBorder extends Role implements Ruler {
 	private int targetX, targetY;
 	private ZSquare direction;
 	private FollowPath follower = new FollowPath(this);
-	private DumpFoodStockInfo opDump = new DumpFoodStockInfo(this);
+	private TransmitMessage opTransmit = new TransmitMessage(this);
 	private ScoutState state = ScoutState.scanning;
 
 	// Distance to target
@@ -33,9 +32,7 @@ public class ScoutBorder extends Role implements Ruler {
 
 	@Override
 	Action effectiveAct() {
-		if (follower.isActive()) {
-			return follower.act();
-		}
+		if (follower.isActive()) return follower.act();
 		if (state == ScoutState.scanning) {
 			if (Math.max(ant.board.sizeX(), ant.board.sizeY()) > Constants.BOARD_SIZE * 0.9) {
 				state = ScoutState.returning;
@@ -49,20 +46,20 @@ public class ScoutBorder extends Role implements Ruler {
 			}
 		}
 		if (state == ScoutState.returning) {
-			if (ant.isNextToNest()) {
-				if (opDump.isActive()) return opDump.act();
-				state = ScoutState.borderInfo;
+			if (ant.here.isNest()) {
+				state = ScoutState.communicatingInfo;
+			} else {
+				Path path = ant.board.bestPath(ant.x, ant.y, new PointRuler(Constants.BOARD_SIZE, Constants.BOARD_SIZE));
+				assert path != null;
+				follower.setPath(path);
+				return follower.act();
 			}
-			Path path = ant.board.bestPath(ant.x, ant.y, new PointRuler(Constants.BOARD_SIZE + direction.deltaX, Constants.BOARD_SIZE + direction.deltaY));
-			assert path != null;
-			follower.setPath(path);
-			return follower.act();
 		}
-		if (state == ScoutState.borderInfo) {
-			state = ScoutState.boardInfo;
-			return new Write(0L);
-		}
-		if (state == ScoutState.boardInfo) {
+		if (state == ScoutState.communicatingInfo) {
+			if (opTransmit.message == null) opTransmit.setMessage(String.format("%s----\n%s", ant.board.representation(false), ant.foodStock.representation()));
+			if (opTransmit.isActive()) return opTransmit.act();
+			opTransmit.setMessage(null);
+			state = ScoutState.done;
 		}
 		if (state == ScoutState.done) {
 			ant.setRole(new Guard(ant));

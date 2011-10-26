@@ -2,6 +2,7 @@ package org.linkedin.contest.ants.zoran;
 
 public class Constants {
 
+	public static final String AN_ANT_SAYS = "An ant says ";
 	public static final int BOARD_SIZE = 512;		// Board size
 
 	// Encoding cell coordinates
@@ -29,7 +30,6 @@ public class Constants {
 	// Values in Board class
 	public static final byte STATE_UNKNOWN = 0;
 	public static final byte STATE_PASSABLE = 1;
-//	public static final byte STATE_FOOD = 2;
 	public static final byte STATE_OBSTACLE = 2;
 
 	// Masks, bit offsets and constants for the Scent class
@@ -55,11 +55,14 @@ public class Constants {
 	public final static int dBitOffset = cBitOffset + argBitCount;				// Offset of argument 'd' in the scent
 	public final static int checksumBitOffset = valueBitCount;
 
-	public final static int NATURE_BOUNDARY = 1;			// Scent indicates where the boundary of the board is
-	public final static int NATURE_SCAN = 2;				// Order to scan a region for food
-	public final static int NATURE_GOTO = 3;				// Order to go to a certain cell
-	public final static int NATURE_OBSTACLE = 4;			// Cells containing this mark are considered non-passable (we fill up the board to make obstacles more concave)
-	public final static int NATURE_FOOD_COORDINATES = 5;	// Gives coordinates of found food on map
-	public final static int NATURE_FETCH_FOOD = 6;			// Order to go fetch food at given coordinates
+	public final static int NATURE_SCAN = 1;				// Order to scan a region for food
+	public final static int NATURE_FETCH_FOOD = 2;			// Order to go fetch food at given coordinates
+
+	public static boolean isNumber(String s) {
+		for (int i = s.length() - 1; i >= 0; i--) {
+			if (!Character.isDigit(s.charAt(i))) return false;
+		}
+		return s.length() > 0;
+	}
 
 }

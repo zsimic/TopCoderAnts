@@ -10,16 +10,13 @@ abstract class CommonAnt implements Ant {
 	protected int x;								// Current X coordinate, nest is on Constants.BOARD_SIZE by convention, to make sure all coordinates are > 0
 	protected int y;								// Current Y coordinate, relative to nest
 	protected boolean hasFood;						// Is ant currently carrying food?
-	protected int x0, y0, x1, y1;					// Boundaries of the board
 	protected ZSquare here,northeast,east,southeast,south,southwest,west,northwest,north;
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
 	protected List<ZSquare> cells;					// All cells (including 'here')
 	protected Board board;							// Board as discovered so far
-//	protected Trail trail;							// Trail of where the ant has previously been on (used to avoid going back to cells recently visited)
 	protected FoodStock foodStock;					// Coordinates of points where food was seen
-//	protected RememberedPathToNest path;			// Path back to nest
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
-	protected int needsBoundaries;					// Do we need boundaries coordinates?
+	private HashMap<Integer, String> pendingTransmissions;		// Pending transmissions from other ants
 
 	@Override
 	public String toString() {
@@ -33,13 +30,10 @@ abstract class CommonAnt implements Ant {
      *
      */
 	public void init() {
-		id = turn = x0 = y0 = x1 = y1 = 0;
+		id = turn = 0;
 		x = y = Constants.BOARD_SIZE;
 		hasFood = false;
-		needsBoundaries = 4;
 		board = new Board(this);
-//		trail = new Trail();
-//		path = new RememberedPathToNest();
 		foodStock = new FoodStock();
 		north = new ZSquare(this, Direction.north);
 		northeast = new ZSquare(this, Direction.northeast);
@@ -52,6 +46,7 @@ abstract class CommonAnt implements Ant {
 		here = new ZSquare(this, Direction.here);
 		neighbors = new ArrayList<ZSquare>();
 		cells = new ArrayList<ZSquare>();
+		pendingTransmissions = new HashMap<Integer, String>();
 		neighbors.add(north);
 		neighbors.add(northeast);
 		neighbors.add(east);
@@ -114,49 +109,13 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(west);
 		board.updateCell(northwest);
 		board.updateCell(north);
-		if (here.isNest()) {
-//			path.clear();
-			if (needsBoundaries > 0) {
-				if (x0 == 0 && north.scent.isBoundary()) {
-					x0 = north.scent.b;
-					needsBoundaries--;
-				}
-				if (x1 == 0 && south.scent.isBoundary()) {
-					x1 = south.scent.b;
-					needsBoundaries--;
-				}
-				if (y0 == 0 && west.scent.isBoundary()) {
-					y0 = west.scent.b;
-					needsBoundaries--;
-				}
-				if (y1 == 0 && east.scent.isBoundary()) {
-					y1 = east.scent.b;
-					needsBoundaries--;
-				}
-				if (id==40 && needsBoundaries == 0) {
-					dump(String.format("boundaries found: NE=%d %d SW=%d %d]", x0, y0, x1, y1));
-				}
-			}
-		}
 		for (WorldEvent event : events) {
-			Direction dir = event.getDirection();
-			String eventString = event.getEvent();
-			if (id==10) {
-				System.out.print("");
-			}
-			ZEvent ev = new ZEvent(eventString);
-			square(dir).setEvent(ev);
-			dump(String.format("event %s %s", event.getDirection(), eventString));
+//			Direction dir = event.getDirection();
+			receiveEvent(event.getEvent());
 		}
 		if (here.scent.stinky) {
 			// Erase opponent's writing
 			act = new Write(null);
-		} else if (isOnDeadEndSquare()) {
-			// Mark cell as non-passable, because it's a dead-end
-			here.scent.setObstacle(turn);
-//			path.remove(here);
-			board.setObstacle(x, y);
-			act = new Write(here.scent.getValue());
 		}
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
@@ -165,8 +124,6 @@ abstract class CommonAnt implements Ant {
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
-//			trail.add(square);
-//			path.add(square);
 			progressDump("move " + square.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
@@ -194,6 +151,56 @@ abstract class CommonAnt implements Ant {
 		return act;
 	}
 
+	// Receive event sent by another ant, we communicate board info only...
+	private void receiveEvent(String event) {
+		String message = event;
+		if (message.startsWith(Constants.AN_ANT_SAYS)) {
+			message = message.substring(Constants.AN_ANT_SAYS.length());
+			int i, antId = 0, page = 0;
+			i = message.indexOf(' ');
+			if (i == 0 || i > 2) return;			// Not sent by us, ignore (expecting ant id first)
+			String sn = message.substring(0, i);
+			if (!Constants.isNumber(sn)) return;				// Not sent by us, ignore (expecting a number as ant id)
+			antId = Integer.parseInt(sn);
+			message = message.substring(i + 1);
+			i = message.indexOf(' ');
+			if (i == 0 || i > 2) return;			// Not sent by us, ignore (expecting a page number)
+			sn = message.substring(0, i);
+			if (!Constants.isNumber(sn)) return;				// Not sent by us, ignore (page number expected)
+			page = Integer.parseInt(sn.substring(0, i));
+			message = message.substring(i + 1);
+			if (message.length() == 0) return;		// Not sent by us, ignore (no message body)
+			String prev = pendingTransmissions.get(antId);
+			if (prev != null) message = message + prev;
+			if (page == 1) {
+				if (prev != null) pendingTransmissions.remove(antId);
+				interpret(message);
+			} else {
+				pendingTransmissions.put(antId, message);
+			}
+		}
+	}
+
+	// Interpret received string (containing board findings)
+	private void interpret(String received) {
+		ArrayList<String> list = new ArrayList<String>();
+		String message = TransmitMessage.uncompressed(received);
+		String[] lines = message.split("\n");
+		int i = 0;
+		for (; i < lines.length; i++) {
+			String line = lines[i];
+			if (line == "----") break;
+			list.add(line);
+		}
+		board.setFromLines(list);
+		list.clear();
+		for (; i < lines.length; i++) {
+			String line = lines[i];
+			list.add(line);
+		}
+		foodStock.setFromLines(list);
+	}
+
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)
 	abstract void initializeState();
 
@@ -206,7 +213,8 @@ abstract class CommonAnt implements Ant {
      * @return the action to perform
      */
 	public Action onDeath(WorldEvent cause) {
-		return sayInAllDirections(ZEvent.MAN_DOWN + " " + role.toString());
+//		return sayInAllDirections("Man down " + role.toString());
+		return new Pass();
 	}
 
 	// 'Say' action in all directions
@@ -219,11 +227,6 @@ abstract class CommonAnt implements Ant {
 	
 //--  Properties, queries
 //-----------------------
-
-	// Do we know the boundaries of the board yet?
-	protected boolean knowsBoundaries() {
-		return needsBoundaries > 0;
-	}
 
 	// Neighboring square with food on it, if any
 	protected ZSquare squareWithFood(ZSquare excluded) {
@@ -304,28 +307,6 @@ abstract class CommonAnt implements Ant {
 		return n;
 	}
 
-	// Best square to move to in order to get to (x,y), knowing that we're going in direction 'dir'
-	protected ZSquare bestSquareForTarget(int x, int y) {
-		ZSquare best = null;
-		double bestDistance = 0;
-		for (ZSquare s : neighbors) {
-			if (s.isPassable()) {
-//				double penalty = trail.penalty(s);
-				double d = Constants.normalDistance(s.x - x, s.y - y);
-//				if (penalty > 0 && !trail.isLast(s)) {
-//					progressDump(String.format("penalty %s: %g d=%g", s.dir.name(), penalty, d));
-//				}
-//				d += penalty;
-				if (best == null || d < bestDistance) {
-					bestDistance = d;
-					best = s;
-				}
-			}
-		}
-		assert best != null;
-		return best;
-	}
-
 //--  Basic operations
 //--------------------
 
@@ -347,51 +328,6 @@ abstract class CommonAnt implements Ant {
 
 //--  Ant implementation
 //----------------------
-
-	// Is 'here' a dead-end square (leads to nowhere)
-	protected boolean isOnDeadEndSquare() {
-		if (true) return false;
-		if (here.getAmountOfFood() == 0) return false;
-		int obstacles = 0;
-		int consecutiveObstacles = 0;
-		int consecutiveFree = 0;
-		int co = 0;
-		int cf = 0;
-		ZSquare prev = null;
-		for (ZSquare s : neighbors) {
-			if (!s.isPassable()) obstacles++;
-			if (prev == null || prev.isPassable() == s.isPassable()) {
-				if (s.isPassable()) cf++;
-				else co++;
-			} else {
-				if (consecutiveFree < cf) consecutiveFree = cf;
-				if (consecutiveObstacles < co) consecutiveObstacles = co;
-				if (s.isPassable()) {
-					cf = 1;
-					co = 0;
-				} else {
-					cf = 0;
-					co = 1;
-				}
-			}
-			prev = s;
-		}
-		if (consecutiveFree < cf) consecutiveFree = cf;
-		if (consecutiveObstacles < co) consecutiveObstacles = co;
-		assert obstacles <= 7;
-		switch (obstacles) {
-		case 7:
-			return true;
-		case 6:
-			return consecutiveFree == 2 || consecutiveObstacles == 6;
-		case 5:
-			return consecutiveFree == 3 || consecutiveObstacles == 5;
-		case 4:
-			return consecutiveFree == 4 || consecutiveObstacles == 4;
-		default:
-			return false;
-		}
-	}
 
 	// We store a raw integer value on nest initially to assign roles to ants on startup
 	private int intValueOnNest() {

@@ -8,7 +8,6 @@ public class ZSquare {
 	protected Scent scent;			// Scent found on square
 	protected CommonAnt ant;		// Associated ant
 	protected Direction dir;		// Direction of this square (relative to 'ant')
-	protected ZEvent event;			// Last event received from this square
 	protected int deltaX, deltaY;	// Relative coordinates of this square (relative to 'here')
 	protected int x, y;				// Coordinates of this square (relative to nest)
 
@@ -63,7 +62,7 @@ public class ZSquare {
 
 	// Is this square passable, meaning that it is possible to move onto it?
 	public boolean isPassable() {
-		return square.isPassable() && !scent.isObstacle();
+		return square.isPassable();
 	}
 
 	// Does the square have at least one unit of food on it?
@@ -84,12 +83,6 @@ public class ZSquare {
 	// How much food is on this square?
 	public int getAmountOfFood() {
 		return square.getAmountOfFood();
-	}
-
-	// Set 'event'
-	public void setEvent(ZEvent evt) {
-		event = evt;
-		event.square = this;
 	}
 
 }

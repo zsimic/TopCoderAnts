@@ -11,11 +11,7 @@ public class Manager extends Role {
 	@Override
 	Action effectiveAct() {
 		assert ant.here.isNest();
-		if (ant.here.scent.isFoodCoordinates()) {
-			ant.foodStock.add(ant.here.scent);
-			return new Write(null);
-		}
-		if (ant.here.scent.isEmpty() && !ant.foodStock.isEmpty() && (ant.knowsBoundaries() || ant.turn > 3000)) {
+		if (ant.here.scent.isEmpty() && !ant.foodStock.isEmpty()) {
 			ant.foodStock.sort();
 			FoodCoordinates c = ant.foodStock.pop();
 			if (c != null) {

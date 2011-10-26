@@ -1,7 +1,6 @@
 package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
-import java.util.zip.*;
 import org.linkedin.contest.ants.api.*;
 
 public class Board {
@@ -37,44 +36,6 @@ public class Board {
 		return maxY - minY;
 	}
 
-	private final static String compressionEncoding = "US-ASCII";
-	
-	public void decompress(String compressed) {
-		 try {
-		     // Decompress the bytes
-		     byte[] output = compressed.getBytes(compressionEncoding);
-		     Inflater decompresser = new Inflater();
-		     decompresser.setInput(output, 0, compressed.length());
-		     byte[] result = new byte[100];
-		     int resultLength = decompresser.inflate(result);
-		     decompresser.end();
-		     // Decode the bytes into a String
-		     String outputString = new String(result, 0, resultLength, compressionEncoding);
-		 } catch(java.io.UnsupportedEncodingException ex) {
-			 System.out.print(ex);
-		 } catch (java.util.zip.DataFormatException ex) {
-			 System.out.print(ex);
-		 }
-	}
-
-	public String compressed() {
-		 try {
-		     // Encode a String into bytes
-		     String inputString = representation(false);
-		     byte[] input = inputString.getBytes(compressionEncoding);
-		     // Compress the bytes
-		     byte[] output = new byte[100];
-		     Deflater compresser = new Deflater();
-		     compresser.setInput(input);
-		     compresser.finish();
-		     int compressedDataLength = compresser.deflate(output);
-		     return new String(output, 0, compressedDataLength, compressionEncoding);
-		 } catch(java.io.UnsupportedEncodingException ex) {
-			 System.out.print(ex);
-		 }
-		 return null;
-	}
-	
 	private final static Direction[] neighbors = new Direction[]{
 		Direction.northeast, Direction.east, Direction.southeast, Direction.south,
 		Direction.southwest, Direction.west, Direction.northwest, Direction.north
@@ -90,13 +51,15 @@ public class Board {
 		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
 		PathNode goal = null;
+		PathNode closest = null;
 		boolean cont = true;
 		while (cont) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
 			double currentDistance = ruler.distance(current.x, current.y);
 			if (currentDistance < 0.5) {
-				goal = current;		// We found the target
+				goal = current;					// We found the target
+				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				cont = false;
 				break;
 			}
@@ -127,16 +90,22 @@ public class Board {
 							node.g = g;
 							node.h = h;
 						}
-						if (goal == null || goal.h > node.h) {
-							// We keep the 'best' candidate in goal, as we'll often not be able to reach the target itself
-							goal = node;
+						if (state == Constants.STATE_UNKNOWN) {
+							if (goal == null || goal.h > node.h) {
+								// Mark best not-yet-explored node as the goal (unless we reach the real goal)
+								goal = node;
+							}
+						} else if (closest == null || closest.h < node.h) {
+							closest = node;
 						}
 					}
 				}
 			}
 			if (opened.isEmpty()) cont = false;
 		}
+		if (goal == null) goal = closest;
 		if (goal == null) return null;
+		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 		Path p = new Path();
 		int prevX = goal.x;
 		int prevY = goal.y;
@@ -155,7 +124,9 @@ public class Board {
 	}
 
 	public String representation(boolean decorate) {
-		String s = String.format("Board x=%d-%d y=%d-%d\n", actualMinX, actualMaxX, minY, maxY);
+		String s = "";
+		if (decorate) s+= String.format("Board x=%d-%d y=%d-%d\n", actualMinX, actualMaxX, minY, maxY);
+		else s+= String.format("%d %d\n", actualMinX, minY);
 		String line;
 		int jNest = Constants.BOARD_SIZE - minX;
 		int iNest = Constants.BOARD_SIZE - minY;
@@ -212,6 +183,30 @@ public class Board {
 		if (!knownRows.get(py).get(px)) return Constants.STATE_UNKNOWN;
 		if (obstacleRows.get(py).get(px)) return Constants.STATE_OBSTACLE;
 		return Constants.STATE_PASSABLE;
+	}
+
+	// Set board state from received 'lines'
+	public void setFromLines(List<String> lines) {
+		if (lines.size() < 4) return;
+		String firstLine = lines.remove(0);
+		if (firstLine.isEmpty()) return;
+		int i = firstLine.indexOf(' ');			// xStart
+		if (i < 0) return;
+		String sn = firstLine.substring(0, i);
+		if (!Constants.isNumber(sn)) return;
+		int xStart = Integer.parseInt(sn);
+		sn = firstLine.substring(i + 1);		// yStart
+		if (!Constants.isNumber(sn)) return;
+		int y = Integer.parseInt(sn);
+		for (String line : lines) {
+			for (i = line.length() - 1; i >= 0; i--) {
+				char c = line.charAt(i);
+				if (c == '.') setPassable(xStart + i, y);
+				else if (c == '#') setObstacle(xStart + i, y);
+				else assert c == ' ';
+			}
+			y++;
+		}
 	}
 
 	// Set state of point (x,y) to 'value' (must be one of the non-unknown Constants.STATE_* values)

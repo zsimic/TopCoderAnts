@@ -27,9 +27,7 @@ public class Scent {
 	@Override
 	public String toString() {
 		if (stinky) return String.format("stinky %x", rawValue);
-		else if (nature == Constants.NATURE_BOUNDARY) return String.format("boundary id=%d border=%d %x", a, b, rawValue);
-		else if (nature == Constants.NATURE_OBSTACLE) return String.format("obstacle %x", rawValue);
-		else if (nature == Constants.NATURE_FOOD_COORDINATES) return String.format("foodxy x=%d y=%d a=%d %x", a, b, c, rawValue);
+		else if (nature == Constants.NATURE_FETCH_FOOD) return String.format("fetch food x=%d y=%d amt=%d [%x]", a, b, c, rawValue);
 		return String.format("nature %d: %d %d %d %d %x", nature, a, b, c, d, rawValue);
 	}
 
@@ -38,29 +36,9 @@ public class Scent {
 		return stinky || rawValue == null;
 	}
 
-	// Is this a scent indicating boundary of the board?
-	public boolean isBoundary() {
-		return nature == Constants.NATURE_BOUNDARY;
-	}
-
 	// Does this scent contain an order to scan a region for food?
 	public boolean isScan() {
 		return nature == Constants.NATURE_SCAN;
-	}
-
-	// Does this scent contain an order to go to a certain cell?
-	public boolean isGoTo() {
-		return nature == Constants.NATURE_GOTO;
-	}
-
-	// Does this scent indicate that the cell where it's on should be considered as a non-passable obstacle?
-	public boolean isObstacle() {
-		return nature == Constants.NATURE_OBSTACLE;
-	}
-
-	// Scent providing food coordinates that a scout found
-	public boolean isFoodCoordinates() {
-		return nature == Constants.NATURE_FOOD_COORDINATES;
 	}
 
 	// Scent giving an order to a gatherer to go fetch food at coordinates 'xa', 'xb'
@@ -71,14 +49,6 @@ public class Scent {
 //--  Basic operations
 //--------------------
 
-	// Store a scent indicating where the boundary of the board is (info found by scouts)
-	public void setBoundary(Scout scout) {
-		this.nature = Constants.NATURE_BOUNDARY;
-		this.turn = scout.ant.turn;
-		this.a = scout.ant.id;
-		this.b = scout.border;
-	}
-
 	// Store a scent to order a gatherer ant to scan a region
 	public void setScan(int turn, int x0, int x1, int y0, int y1) {
 		this.nature = Constants.NATURE_SCAN;
@@ -87,28 +57,6 @@ public class Scent {
 		this.b = x1;
 		this.c = y0;
 		this.d = y1;
-	}
-
-	// Scent issuing a "go to cell" order (for soldiers)
-	public void setGoTo(int turn, int x, int y) {
-		this.nature = Constants.NATURE_GOTO;
-		this.turn = turn;
-		this.a = x;
-		this.b = y;
-	}
-
-	// Scent indicating that current cell should be considered an non-passable obstacle
-	public void setObstacle(int turn) {
-		this.nature = Constants.NATURE_OBSTACLE;
-		this.turn = turn;
-	}
-
-	public void setFoodCoordinates(FoodCoordinates c) {
-		this.nature = Constants.NATURE_FOOD_COORDINATES;
-		this.turn = 0;
-		this.a = c.x;
-		this.b = c.y;
-		this.c = c.amount;
 	}
 
 	public void setFetchFood(FoodCoordinates c) {

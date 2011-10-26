@@ -35,10 +35,34 @@ public class FoodStock {
 		return 0;
 	}
 
-	// Add found food coordinates in scent
-	public void add(Scent s) {
-		assert s.isFoodCoordinates();
-		add(s.a, s.b, s.c);
+	public String representation() {
+		String s = "";
+		for (FoodCoordinates c : coordinates) {
+			s += String.format("%d %d %d\n", c.x, c.y, c.amount);
+		}
+		return s;
+	}
+
+	// Add food coordinates from received 'lines'
+	public void setFromLines(List<String> lines) {
+		for (String line : lines) {
+			if (line.length() < 5) return;
+			int i = line.indexOf(' ');		// x
+			if (i < 0) return;
+			String sn = line.substring(0, i);
+			if (!Constants.isNumber(sn)) return;
+			int x = Integer.parseInt(sn);
+			line = line.substring(i + 1);
+			i = line.indexOf(' ');			// y
+			if (i < 0) return;
+			sn = line.substring(0, i);
+			if (!Constants.isNumber(sn)) return;
+			int y = Integer.parseInt(sn);
+			line = line.substring(i + 1);	// amount
+			if (!Constants.isNumber(line)) return;
+			int amount = Integer.parseInt(line);
+			add(x, y, amount);
+		}
 	}
 
 	// Add found food coordinates
