@@ -1,6 +1,7 @@
 package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
+import java.util.zip.*;
 import org.linkedin.contest.ants.api.*;
 
 public class Board {
@@ -36,28 +37,61 @@ public class Board {
 		return maxY - minY;
 	}
 
+	private final static String compressionEncoding = "US-ASCII";
+	
+	public void decompress(String compressed) {
+		 try {
+		     // Decompress the bytes
+		     byte[] output = compressed.getBytes(compressionEncoding);
+		     Inflater decompresser = new Inflater();
+		     decompresser.setInput(output, 0, compressed.length());
+		     byte[] result = new byte[100];
+		     int resultLength = decompresser.inflate(result);
+		     decompresser.end();
+		     // Decode the bytes into a String
+		     String outputString = new String(result, 0, resultLength, compressionEncoding);
+		 } catch(java.io.UnsupportedEncodingException ex) {
+			 System.out.print(ex);
+		 } catch (java.util.zip.DataFormatException ex) {
+			 System.out.print(ex);
+		 }
+	}
+
+	public String compressed() {
+		 try {
+		     // Encode a String into bytes
+		     String inputString = representation(false);
+		     byte[] input = inputString.getBytes(compressionEncoding);
+		     // Compress the bytes
+		     byte[] output = new byte[100];
+		     Deflater compresser = new Deflater();
+		     compresser.setInput(input);
+		     compresser.finish();
+		     int compressedDataLength = compresser.deflate(output);
+		     return new String(output, 0, compressedDataLength, compressionEncoding);
+		 } catch(java.io.UnsupportedEncodingException ex) {
+			 System.out.print(ex);
+		 }
+		 return null;
+	}
+	
 	private final static Direction[] neighbors = new Direction[]{
 		Direction.northeast, Direction.east, Direction.southeast, Direction.south,
 		Direction.southwest, Direction.west, Direction.northwest, Direction.north
 	};
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int maxIterations, Ruler ruler) {
+	public Path bestPath(int xStart, int yStart, Ruler ruler) {
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
-		
-		Integer sourceKey = Constants.encodedXY(xStart, yStart);
-		Map<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
+		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
+		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
 		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
-		Map<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
 		PathNode start = new PathNode(xStart, yStart, 0, ruler.distance(xStart, yStart), null);
-		opened.put(sourceKey, start);
+		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
-		
 		PathNode goal = null;
-		int iterations = 0;
 		boolean cont = true;
 		while (cont) {
-			iterations++;
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
 			double currentDistance = ruler.distance(current.x, current.y);
@@ -73,38 +107,34 @@ public class Board {
 				byte state = get(nx, ny);
 				if (state != Constants.STATE_OBSTACLE) {
 					Integer key = Constants.encodedXY(nx, ny);
-//					PathNode visited = closed.get(key);
 					if (!closed.containsKey(key)) {
-						double neighborDist = ruler.distance(nx, ny);		// neighbor distance to target
-						double g = current.g + 1;							// current g + distance from current to neighbor
-						if (state == Constants.STATE_UNKNOWN) {
-							// We favor unknown cells, encouraging the ant to explore
-							// We treat those nodes as potential goals though, we can't put them in the open set
-							//neighborDist -= 10;
-							if (goal == null) {
-								goal = new PathNode(nx, ny, g, neighborDist, current);
-							} else if (goal.getF() > g + neighborDist) {
-								goal.update(nx, ny, g, neighborDist, current);
-							}
-						} else {
-							PathNode node = opened.get(key);
-							if (node == null) {
-								// Not in the open set yet
-								node = new PathNode(nx, ny, g, neighborDist, current);
+						double h = ruler.distance(nx, ny);	// distance to target used as heuristic
+						double g = current.g + 1;			// current g + distance from current to neighbor
+						PathNode node = opened.get(key);
+						if (node == null) {
+							// Not in the open set yet
+							node = new PathNode(nx, ny, g, h, current);
+							if (state == Constants.STATE_UNKNOWN) {
+								// We haven't explored 'node' yet, put it in 'closed' immediately (its heuristic won't change)
+								closed.put(key, node);
+							} else {
 								opened.put(key, node);
 								pQueue.add(node);
-							} else if (g < node.g) {
-								// Have a better route to the current node, change its parent
-								node.parent = current;
-								node.g = g;
-								node.h = neighborDist;
 							}
+						} else if (g < node.g) {
+							// Have a better route to the current node, change its parent
+							node.parent = current;
+							node.g = g;
+							node.h = h;
+						}
+						if (goal == null || goal.h > node.h) {
+							// We keep the 'best' candidate in goal, as we'll often not be able to reach the target itself
+							goal = node;
 						}
 					}
 				}
 			}
-			if (opened.size() == 0) cont = false;
-			else if (maxIterations != 0 && goal != null && iterations > maxIterations) cont = false;
+			if (opened.isEmpty()) cont = false;
 		}
 		if (goal == null) return null;
 		Path p = new Path();
@@ -121,6 +151,10 @@ public class Board {
 	}
 
 	public String representation() {
+		return representation(true);
+	}
+
+	public String representation(boolean decorate) {
 		String s = String.format("Board x=%d-%d y=%d-%d\n", actualMinX, actualMaxX, minY, maxY);
 		String line;
 		int jNest = Constants.BOARD_SIZE - minX;
@@ -128,19 +162,20 @@ public class Board {
 		int jStart = actualMinX - minX;
 		int jEnd = actualMaxX - minX;
 		int px, py;
-//		s += String.format("%4d ", actualMinX);
-		s += "     ";
-		for (int j = jStart; j < jEnd; j++) {
-			px = j + minX;
-			if (px % 10 == 0) s += '|';
-			else if (px % 5 == 0) s += '5';
-			else s += ' ';
+		if (decorate) {
+			s += "     ";
+			for (int j = jStart; j < jEnd; j++) {
+				px = j + minX;
+				if (px % 10 == 0) s += '|';
+				else if (px % 5 == 0) s += '5';
+				else s += ' ';
+			}
+			s += '\n';
 		}
-		s += '\n';
 		for (int i = knownRows.size() - 1; i >= 0; i--) {
 			py = i + minY;
 			line = new String();
-			line += String.format("%4d ", py);
+			if (decorate) line += String.format("%4d ", py);
 			BitSet known = knownRows.get(i);
 			BitSet obs = obstacleRows.get(i);
 			for (int j = jStart; j < jEnd; j++) {
@@ -148,14 +183,11 @@ public class Board {
 				if (!known.get(j)) {
 					line += ' ';
 				} else if (obs.get(j)) {
-//					assert !ant.path.has(px, py);
 					line += '#';
 				} else if (i == iNest && j == jNest) {
 					line += 'N';
-//				} else if (ant.path.has(px, py)) {
-//					line += 'x';
 				} else {
-					int food = ant.foodStock.foodAmount(px, py);
+					int food = decorate ? ant.foodStock.foodAmount(px, py) : 0;
 					if (food == 0) line += '.';
 					else if (food > 10) line += '^';
 					else line += '%';

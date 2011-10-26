@@ -42,7 +42,7 @@ public class ScoutBorder extends Role implements Ruler {
 				System.out.print(String.format("%s %s\n", ant.toString(), direction.toString()));
 				System.out.print(ant.board.representation());
 			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, 0, this);
+				Path path = ant.board.bestPath(ant.x, ant.y, this);
 				assert path != null;
 				follower.setPath(path);
 				return follower.act();
@@ -53,7 +53,7 @@ public class ScoutBorder extends Role implements Ruler {
 				if (opDump.isActive()) return opDump.act();
 				state = ScoutState.borderInfo;
 			}
-			Path path = ant.board.bestPath(ant.x, ant.y, 0, new PointRuler(Constants.BOARD_SIZE + direction.deltaX, Constants.BOARD_SIZE + direction.deltaY));
+			Path path = ant.board.bestPath(ant.x, ant.y, new PointRuler(Constants.BOARD_SIZE + direction.deltaX, Constants.BOARD_SIZE + direction.deltaY));
 			assert path != null;
 			follower.setPath(path);
 			return follower.act();
