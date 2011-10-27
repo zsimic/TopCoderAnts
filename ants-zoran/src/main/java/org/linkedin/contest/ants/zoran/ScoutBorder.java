@@ -34,10 +34,15 @@ public class ScoutBorder extends Role {
 				System.out.print(String.format("%s %s\n", ant.toString(), direction.toString()));
 				System.out.print(ant.board.representation());
 			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, targetX, targetY);
-				assert path != null;
-				follower.setPath(path);
-				return follower.act();
+				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, direction.dir);
+				if (path == null) {
+					state = ScoutState.returning;
+					System.out.print(String.format("no more cells to explore %s %s\n", ant.toString(), direction.toString()));
+					System.out.print(ant.board.representation());
+				} else {
+					follower.setPath(path);
+					return follower.act();
+				}
 			}
 		}
 		if (state == ScoutState.returning) {

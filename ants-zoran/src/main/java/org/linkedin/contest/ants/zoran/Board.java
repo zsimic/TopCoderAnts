@@ -41,9 +41,70 @@ public class Board {
 		Direction.southwest, Direction.west, Direction.northwest, Direction.north
 	};
 
+	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
+	public Path pathToClosestUnexplored(int xStart, int yStart, Direction direction) {
+		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
+		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
+		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
+		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
+		PathNode start = new PathNode(xStart, yStart, 0, 0, null);
+		opened.put(Constants.encodedXY(xStart, yStart), start);
+		pQueue.add(start);
+		PathNode goal = null;
+		boolean cont = true;
+		while (cont) {
+			PathNode current = pQueue.poll();
+			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
+				goal = current;					// We found the target
+				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
+				cont = false;
+				break;
+			}
+			opened.remove(current.id);
+			closed.put(current.id, current);
+			for (Direction neighbor : neighbors) {
+				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
+				int ny = current.y + neighbor.deltaY;
+				byte state = get(nx, ny);
+				if (state == Constants.STATE_OBSTACLE) {
+					// Pass
+				} else if (state == Constants.STATE_UNKNOWN) {
+					if (isPointInSection(nx, ny, direction)) {
+						goal = current;
+						cont = false;
+						break;
+					}
+				} else {
+					Integer key = Constants.encodedXY(nx, ny);
+					if (!closed.containsKey(key)) {
+						double g = current.g + 1;									// current g + distance from current to neighbor
+						PathNode node = opened.get(key);
+						if (node == null) {
+							// Not in the open set yet
+							node = new PathNode(nx, ny, g, 0, current);
+							opened.put(key, node);
+							pQueue.add(node);
+						} else if (g < node.g) {
+							// Have a better route to the current node, change its parent
+							node.parent = current;
+							node.g = g;
+						}
+					}
+				}
+			}
+			if (opened.isEmpty()) cont = false;
+		}
+		return pathFromNode(goal);
+	}
+
+	private boolean isPointInSection(int x, int y, Direction direction) {
+		return true;
+	}
+
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
 	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
+		assert get(xEnd, yEnd) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
 		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
@@ -103,17 +164,22 @@ public class Board {
 			if (opened.isEmpty()) cont = false;
 		}
 		if (goal == null) goal = closest;
+		return pathFromNode(goal);
+	}
+
+	private static Path pathFromNode(PathNode goal) {
 		if (goal == null) return null;
 		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 		Path p = new Path();
 		int prevX = goal.x;
 		int prevY = goal.y;
-		while (goal != null) {
-			assert (Math.abs(prevX - goal.x) <= 1 && Math.abs(prevY - goal.y) <= 1);
-			if (goal.parent != null) p.add(goal.id);
-			prevX = goal.x;
-			prevY = goal.y;
-			goal = goal.parent;
+		PathNode node = goal;
+		while (node != null) {
+			assert (Math.abs(prevX - node.x) <= 1 && Math.abs(prevY - node.y) <= 1);
+			if (node.parent != null) p.add(node.id);
+			prevX = node.x;
+			prevY = node.y;
+			node = node.parent;
 		}
 		return p;
 	}
@@ -196,15 +262,27 @@ public class Board {
 		int xStart = Integer.parseInt(sn);
 		sn = firstLine.substring(i + 1);		// yStart
 		if (!Constants.isNumber(sn)) return;
-		int y = Integer.parseInt(sn);
+		int yEnd = Integer.parseInt(sn) + lines.size() - 1;
+		for (i = maxY + 1; i < yEnd; i++) {
+			ensureCellExists(Constants.BOARD_SIZE, i);
+		}
+		if (xStart + lines.get(0).length() - 1 > maxX + 1) {
+			for (i = maxX + 1; i < xStart + lines.get(0).length() - 1; i++) {
+				ensureCellExists(i, Constants.BOARD_SIZE);
+			}
+		}
 		for (String line : lines) {
 			for (i = line.length() - 1; i >= 0; i--) {
 				char c = line.charAt(i);
-				if (c == '.') setPassable(xStart + i, y);
-				else if (c == '#') setObstacle(xStart + i, y);
+				if (c == '.') setPassable(xStart + i, yEnd);
+				else if (c == '#') setObstacle(xStart + i, yEnd);
+				else if (c == 'N') assert xStart + i == Constants.BOARD_SIZE && yEnd == Constants.BOARD_SIZE;
 				else assert c == ' ';
 			}
-			y++;
+			yEnd--;
+		}
+		if (ant.id == 10) {
+			System.out.print(representation(true));
 		}
 	}
 
@@ -300,6 +378,7 @@ public class Board {
 				row.set(i, row.get(i+dir));
 				i += dir;
 			}
+			row.set(i, false);
 		}
 	}
 

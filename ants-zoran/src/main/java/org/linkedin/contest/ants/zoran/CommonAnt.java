@@ -109,6 +109,7 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(west);
 		board.updateCell(northwest);
 		board.updateCell(north);
+		sniffFood();
 		for (WorldEvent event : events) {
 //			Direction dir = event.getDirection();
 			receiveEvent(event.getEvent());
@@ -189,10 +190,14 @@ abstract class CommonAnt implements Ant {
 		int i = 0;
 		for (; i < lines.length; i++) {
 			String line = lines[i];
-			if (line == "----") break;
+			if (line.startsWith("----")) {
+				i++;
+				break;
+			}
 			list.add(line);
 		}
 		board.setFromLines(list);
+		if (i >= lines.length) return; 
 		list.clear();
 		for (; i < lines.length; i++) {
 			String line = lines[i];
@@ -318,9 +323,9 @@ abstract class CommonAnt implements Ant {
 	}
 
 	// Sniff for nearby food (for squares excluding nest and immediate nest neighbors)
-	protected void sniffFood() {
+	private void sniffFood() {
 		for (ZSquare s : cells) {
-			if (s.hasFood() && !isNextToNest()) {
+			if (s.hasFood() && !here.isNest() && !isNextToNest()) {
 				foodStock.add(s.x, s.y, s.getAmountOfFood());
 			}
 		}
