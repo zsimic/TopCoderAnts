@@ -42,12 +42,12 @@ public class Board {
 	};
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, Ruler ruler) {
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
 		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
-		PathNode start = new PathNode(xStart, yStart, 0, ruler.distance(xStart, yStart), null);
+		PathNode start = new PathNode(xStart, yStart, 0, Constants.normalDistance(xStart - xEnd, yStart - yEnd), null);
 		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
 		PathNode goal = null;
@@ -56,8 +56,7 @@ public class Board {
 		while (cont) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
-			double currentDistance = ruler.distance(current.x, current.y);
-			if (currentDistance < 0.5) {
+			if (current.x == xEnd && current.y == yEnd) {
 				goal = current;					// We found the target
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				cont = false;
@@ -71,8 +70,8 @@ public class Board {
 				if (state != Constants.STATE_OBSTACLE) {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
-						double h = ruler.distance(nx, ny);	// distance to target used as heuristic
-						double g = current.g + 1;			// current g + distance from current to neighbor
+						double h = Constants.normalDistance(nx - xEnd, ny - yEnd);	// distance to target used as heuristic
+						double g = current.g + 1;									// current g + distance from current to neighbor
 						PathNode node = opened.get(key);
 						if (node == null) {
 							// Not in the open set yet
@@ -91,11 +90,11 @@ public class Board {
 							node.h = h;
 						}
 						if (state == Constants.STATE_UNKNOWN) {
-							if (goal == null || goal.h > node.h) {
+							if (goal == null || goal.getF() > node.getF()) {
 								// Mark best not-yet-explored node as the goal (unless we reach the real goal)
 								goal = node;
 							}
-						} else if (closest == null || closest.h < node.h) {
+						} else if (closest == null || closest.h > node.getF()) {
 							closest = node;
 						}
 					}

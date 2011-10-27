@@ -2,13 +2,13 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
-public class ScoutBorder extends Role implements Ruler {
+public class ScoutBorder extends Role {
 
 	ScoutBorder(CommonAnt ant, ZSquare dir) {
 		super(ant);
 		this.direction = dir;
-		targetX = Constants.BOARD_SIZE + direction.deltaX * Constants.BOARD_SIZE * 1000;
-		targetY = Constants.BOARD_SIZE + direction.deltaY * Constants.BOARD_SIZE * 1000;
+		targetX = Constants.BOARD_SIZE + direction.deltaX * Constants.BOARD_SIZE;
+		targetY = Constants.BOARD_SIZE + direction.deltaY * Constants.BOARD_SIZE;
 	}
 
 	private enum ScoutState {
@@ -25,21 +25,16 @@ public class ScoutBorder extends Role implements Ruler {
 	private TransmitMessage opTransmit = new TransmitMessage(this);
 	private ScoutState state = ScoutState.scanning;
 
-	// Distance to target
-	public double distance(int x, int y) {
-		return Constants.normalDistance(x - targetX * Math.abs(direction.deltaX), y - targetY * Math.abs(direction.deltaY));
-	}
-
 	@Override
 	Action effectiveAct() {
 		if (follower.isActive()) return follower.act();
 		if (state == ScoutState.scanning) {
-			if (Math.max(ant.board.sizeX(), ant.board.sizeY()) > Constants.BOARD_SIZE * 0.9) {
+			if (turn > 2000 || Math.max(ant.board.sizeX(), ant.board.sizeY()) > Constants.BOARD_SIZE * 0.9) {
 				state = ScoutState.returning;
 				System.out.print(String.format("%s %s\n", ant.toString(), direction.toString()));
 				System.out.print(ant.board.representation());
 			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, this);
+				Path path = ant.board.bestPath(ant.x, ant.y, targetX, targetY);
 				assert path != null;
 				follower.setPath(path);
 				return follower.act();
@@ -49,7 +44,7 @@ public class ScoutBorder extends Role implements Ruler {
 			if (ant.here.isNest()) {
 				state = ScoutState.communicatingInfo;
 			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, new PointRuler(Constants.BOARD_SIZE, Constants.BOARD_SIZE));
+				Path path = ant.board.bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE);
 				assert path != null;
 				follower.setPath(path);
 				return follower.act();
