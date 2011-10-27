@@ -3,7 +3,10 @@ package org.linkedin.contest.ants.zoran;
 public class Constants {
 
 	public static final String AN_ANT_SAYS = "An ant says ";
-	public static final int BOARD_SIZE = 512;		// Board size
+	public static final int BOARD_SIZE = 512;									// Board size
+	public static final double BOARD_MAX_DISTANCE = Math.sqrt(2)*BOARD_SIZE;	// Max distance on board from nest
+
+	public final static String compressionEncoding = "US-ASCII";
 
 	// Encoding cell coordinates
 	private final static int xPointMask = 0x000fff;

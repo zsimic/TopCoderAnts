@@ -1,9 +1,9 @@
 package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
-
 import java.io.ByteArrayOutputStream;
 import java.util.Stack;
+import java.util.Arrays;
 import java.util.zip.*;
 
 public class TransmitMessage extends Operation {
@@ -59,20 +59,10 @@ public class TransmitMessage extends Operation {
 		return null;
 	}
 
-	private final static String compressionEncoding = "US-ASCII";
-
-	public final static String uncompressed(String data) {
+	public final static String uncompressed(CommonAnt ant, String data) {
 		Inflater inflator = new Inflater();
 		try {
-//			int i = data.indexOf(' ');
-//			if (i<0 || i > 10) return null;
-//			String sn = data.substring(0, i);
-//			if (!Constants.isNumber(sn)) return null;
-//			int adler = Integer.parseInt(sn);
-//			data = data.substring(i + 1);
-//			inflator.setDictionary(b);
-			byte[] input = decode64(data);
-//			byte[] input = data.getBytes(compressionEncoding);
+			byte[] input = decoded64(data);
 			inflator.setInput(input);
 			ByteArrayOutputStream bos = new ByteArrayOutputStream(input.length);
 			byte[] buf = new byte[1024];
@@ -80,16 +70,18 @@ public class TransmitMessage extends Operation {
 				int count = inflator.inflate(buf);
 				if (count > 0) {
 					bos.write(buf, 0, count);
-				} else {
+				} else if (count == 0) {
 					break;
+				} else {
+					assert false;
 				}
 			}
 			byte[] result = bos.toByteArray();
-			return new String(result, 0, result.length, compressionEncoding);
+			return new String(result, 0, result.length, Constants.compressionEncoding);
 		} catch(java.io.UnsupportedEncodingException ex) {
-			System.out.print(ex);
+			Logger.error(ant, ex.toString());
 		} catch (DataFormatException ex) {
-			System.out.print(ex);
+			Logger.error(ant, ex.toString());
 		} finally {
 			inflator.end();
 		}
@@ -97,88 +89,126 @@ public class TransmitMessage extends Operation {
 	}
 
 	// Compressed representation of string
-	public static String compressed(String inputString) {
+	public String compressed(String inputString) {
 		try {
-			byte[] input = inputString.getBytes(compressionEncoding);
+			byte[] input = inputString.getBytes(Constants.compressionEncoding);
 			byte[] output = new byte[input.length];
 			Deflater compresser = new Deflater();
 			compresser.setInput(input);
 			compresser.finish();
 			int compressedDataLength = compresser.deflate(output);
 			assert compressedDataLength > 0;
-			String s = encode64(output, compressedDataLength);
+			String s = encoded64(output, compressedDataLength);
 			return s;
 		} catch(java.io.UnsupportedEncodingException ex) {
-			System.out.print(ex);
+			Logger.error(ant, ex.toString());
 		}
 		return null;
 	}
 
-    private final static char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
+//	import sun.misc.BASE64Decoder;
+//	import sun.misc.BASE64Encoder;
+//	private static String encoded64sun(byte[] buf, int size){
+//		BASE64Encoder encoder = new BASE64Encoder();
+//		return encoder.encode(buf);
+//	}
+//	private static byte[] decoded64sun(String s) throws IOException{
+//		BASE64Decoder decoder = new BASE64Decoder();
+//		return decoder.decodeBuffer(s);
+//	}
 
-    private static int[]  toInt   = new int[128];
-
-    static {
-        for(int i=0; i< ALPHABET.length; i++){
-            toInt[ALPHABET[i]]= i;
-        }
-    }
-
-	/**
-	 * Translates the specified byte array into Base64 string.
-	 *
-	 * @param buf the byte array (not null)
-	 * @return the translated Base64 string (not null)
-	 */
-	public static String encode64(byte[] buf, int size){
-		char[] ar = new char[((size + 2) / 3) * 4];
-		int a = 0;
-		int i=0;
-		while(i < size){
-			byte b0 = buf[i++];
-			byte b1 = (i < size) ? buf[i++] : 0;
-			byte b2 = (i < size) ? buf[i++] : 0;
-
-			int mask = 0x3F;
-			ar[a++] = ALPHABET[(b0 >> 2) & mask];
-			ar[a++] = ALPHABET[((b0 << 4) | ((b1 & 0xFF) >> 4)) & mask];
-			ar[a++] = ALPHABET[((b1 << 2) | ((b2 & 0xFF) >> 6)) & mask];
-			ar[a++] = ALPHABET[b2 & mask];
-		}
-		switch(size % 3){
-			case 2: ar[--a] = '=';		//$FALL-THROUGH$
-			case 1: ar[--a] = '=';
-		}
-		return new String(ar);
+	private static final char[] CA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
+	private static final int[] IA = new int[256];
+	static {
+		Arrays.fill(IA, -1);
+		for (int i = 0, iS = CA.length; i < iS; i++)
+			IA[CA[i]] = i;
+		IA['='] = 0;
 	}
 
-    /**
-     * Translates the specified Base64 string into a byte array.
-     *
-     * @param s the Base64 string (not null)
-     * @return the byte array (not null)
-     */
-    public static byte[] decode64(String s){
-        int delta = s.endsWith( "==" ) ? 2 : s.endsWith( "=" ) ? 1 : 0;
-        byte[] buffer = new byte[s.length()*3/4 - delta];
-        int mask = 0xFF;
-        int index = 0;
-        for(int i=0; i< s.length(); i+=4){
-            int c0 = toInt[s.charAt( i )];
-            int c1 = toInt[s.charAt( i + 1)];
-            buffer[index++]= (byte)(((c0 << 2) | (c1 >> 4)) & mask);
-            if(index >= buffer.length){
-                return buffer;
-            }
-            int c2 = toInt[s.charAt( i + 2)];
-            buffer[index++]= (byte)(((c1 << 4) | (c2 >> 2)) & mask);
-            if(index >= buffer.length){
-                return buffer;
-            }
-            int c3 = toInt[s.charAt( i + 3 )];
-            buffer[index++]= (byte)(((c2 << 6) | c3) & mask);
-        }
-        return buffer;
-    } 
+	/** Decodes a BASE64 encoded string that is known to be reasonably well formatted. The preconditions are:<br>
+	 * + The array must have no line separators at all (one line).<br>
+	 * + The array must not contain illegal characters within the encoded string<br>
+	 * + The array CAN have illegal characters at the beginning and end, those will be dealt with appropriately.<br>
+	 * @param s The source string must be non empty.
+	 * @return The decoded array of bytes.
+	 */
+	public final static byte[] decoded64(String s) {
+		assert s != null && s.length() > 0;
+		int sLen = s.length();
+		int sIx = 0, eIx = sLen - 1;		// Start and end index after trimming.
+		// Trim illegal chars from start
+		while (sIx < eIx && IA[s.charAt(sIx) & 0xff] < 0)
+			sIx++;
+		// Trim illegal chars from end
+		while (eIx > 0 && IA[s.charAt(eIx) & 0xff] < 0)
+			eIx--;
+		// get the padding count (=) (0, 1 or 2)
+		int pad = s.charAt(eIx) == '=' ? (s.charAt(eIx - 1) == '=' ? 2 : 1) : 0;  // Count '=' at end.
+		int cCnt = eIx - sIx + 1;   // Content count including possible separators
+		int sepCnt = sLen > 76 ? (s.charAt(76) == '\r' ? cCnt / 78 : 0) << 1 : 0;
+		int len = ((cCnt - sepCnt) * 6 >> 3) - pad; // The number of decoded bytes
+		byte[] dArr = new byte[len];       // Preallocate byte[] of exact length
+		// Decode all but the last 0 - 2 bytes.
+		int d = 0;
+		for (int cc = 0, eLen = (len / 3) * 3; d < eLen;) {
+			// Assemble three bytes into an int from four "valid" characters.
+			int i = IA[s.charAt(sIx++)] << 18 | IA[s.charAt(sIx++)] << 12 | IA[s.charAt(sIx++)] << 6 | IA[s.charAt(sIx++)];
+			// Add the bytes
+			dArr[d++] = (byte) (i >> 16);
+			dArr[d++] = (byte) (i >> 8);
+			dArr[d++] = (byte) i;
+			// If line separator, jump over it.
+			if (sepCnt > 0 && ++cc == 19) {
+				sIx += 2;
+				cc = 0;
+			}
+		}
+		if (d < len) {
+			// Decode last 1-3 bytes (including '=') into 1-3 bytes
+			int i = 0;
+			for (int j = 0; sIx <= eIx - pad; j++)
+				i |= IA[s.charAt(sIx++)] << (18 - j * 6);
+			for (int r = 16; d < len; r -= 8)
+				dArr[d++] = (byte) (i >> r);
+		}
+		return dArr;
+	}
+
+	/** Encodes a raw byte array into a BASE64 <code>String</code> representation i accordance with RFC 2045.
+	 * @param sArr The bytes to convert. If <code>null</code> or length 0 an empty array will be returned.
+	 * @param lineSep Optional "\r\n" after 76 characters, unless end of file.<br>
+	 * No line separator will be in breach of RFC 2045 which specifies max 76 per line but will be a
+	 * little faster.
+	 * @return A BASE64 encoded array. Never <code>null</code>.
+	 */
+	private final static String encoded64(byte[] sArr, int sLen) {
+		assert sArr != null && sLen > 0;
+		int eLen = (sLen / 3) * 3;              // Length of even 24-bits.
+		int dLen = ((sLen - 1) / 3 + 1) << 2; 	// Length of returned array (=returned character count)
+		char[] dArr = new char[dLen];
+		// Encode even 24-bits
+		for (int s = 0, d = 0; s < eLen;) {
+			// Copy next three bytes into lower 24 bits of int, paying attention to sign.
+			int i = (sArr[s++] & 0xff) << 16 | (sArr[s++] & 0xff) << 8 | (sArr[s++] & 0xff);
+			// Encode the int into four chars
+			dArr[d++] = CA[(i >>> 18) & 0x3f];
+			dArr[d++] = CA[(i >>> 12) & 0x3f];
+			dArr[d++] = CA[(i >>> 6) & 0x3f];
+			dArr[d++] = CA[i & 0x3f];
+		}
+		// Pad and encode last bits if source isn't even 24 bits.
+		int left = sLen - eLen; // 0 - 2.
+		if (left > 0) {
+			// Prepare the int
+			int i = ((sArr[eLen] & 0xff) << 10) | (left == 2 ? ((sArr[sLen - 1] & 0xff) << 2) : 0);
+			// Set last four chars
+			dArr[dLen - 4] = CA[i >> 12];
+			dArr[dLen - 3] = CA[(i >>> 6) & 0x3f];
+			dArr[dLen - 2] = left == 2 ? CA[i & 0x3f] : '=';
+			dArr[dLen - 1] = '=';
+		}
+		return new String(dArr);
+	}
 
 }

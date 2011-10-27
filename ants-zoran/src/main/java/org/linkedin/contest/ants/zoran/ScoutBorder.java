@@ -4,11 +4,9 @@ import org.linkedin.contest.ants.api.*;
 
 public class ScoutBorder extends Role {
 
-	ScoutBorder(CommonAnt ant, ZSquare dir) {
+	ScoutBorder(CommonAnt ant, int section) {
 		super(ant);
-		this.direction = dir;
-		targetX = Constants.BOARD_SIZE + direction.deltaX * Constants.BOARD_SIZE;
-		targetY = Constants.BOARD_SIZE + direction.deltaY * Constants.BOARD_SIZE;
+		this.section = section;
 	}
 
 	private enum ScoutState {
@@ -18,12 +16,19 @@ public class ScoutBorder extends Role {
 		done
 	}
 
-	protected int x0, y0, x1, y1;
-	private int targetX, targetY;
-	private ZSquare direction;
+	protected int section;
 	private FollowPath follower = new FollowPath(this);
 	private TransmitMessage opTransmit = new TransmitMessage(this);
 	private ScoutState state = ScoutState.scanning;
+
+	@Override
+	public String toString() {
+		String mode;
+		if (follower.isActive()) mode = "following path";
+		else if (opTransmit.isActive()) mode = "transmitting";
+		else mode = "";
+		return String.format("Scout section %d %s %s", section, state.toString(), mode);
+	}
 
 	@Override
 	Action effectiveAct() {
@@ -31,14 +36,12 @@ public class ScoutBorder extends Role {
 		if (state == ScoutState.scanning) {
 			if (turn > 2000 || Math.max(ant.board.sizeX(), ant.board.sizeY()) > Constants.BOARD_SIZE * 0.9) {
 				state = ScoutState.returning;
-				System.out.print(String.format("%s %s\n", ant.toString(), direction.toString()));
-				System.out.print(ant.board.representation());
 			} else {
-				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, direction.dir);
+				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, section);
 				if (path == null) {
 					state = ScoutState.returning;
-					System.out.print(String.format("no more cells to explore %s %s\n", ant.toString(), direction.toString()));
-					System.out.print(ant.board.representation());
+					Logger.error(ant, "no more cells to explore");
+					Logger.dumpBoard(ant);
 				} else {
 					follower.setPath(path);
 					return follower.act();

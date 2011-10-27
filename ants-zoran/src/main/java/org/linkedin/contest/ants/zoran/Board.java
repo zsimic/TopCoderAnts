@@ -42,7 +42,8 @@ public class Board {
 	};
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
-	public Path pathToClosestUnexplored(int xStart, int yStart, Direction direction) {
+	public Path pathToClosestUnexplored(int xStart, int yStart, int section) {
+		assert section >= 0 && section <= 32;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
@@ -66,28 +67,22 @@ public class Board {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
 				byte state = get(nx, ny);
-				if (state == Constants.STATE_OBSTACLE) {
-					// Pass
-				} else if (state == Constants.STATE_UNKNOWN) {
-					if (isPointInSection(nx, ny, direction)) {
-						goal = current;
-						cont = false;
-						break;
-					}
-				} else {
+				if (state != Constants.STATE_OBSTACLE) {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
-						double g = current.g + 1;									// current g + distance from current to neighbor
+						double g = current.g + 1;							// current g + distance from current to neighbor
+						double h = distanceFromSection(nx, ny, section);	// Heuristic when exploring
 						PathNode node = opened.get(key);
 						if (node == null) {
 							// Not in the open set yet
-							node = new PathNode(nx, ny, g, 0, current);
+							node = new PathNode(nx, ny, g, h, current);
 							opened.put(key, node);
 							pQueue.add(node);
 						} else if (g < node.g) {
 							// Have a better route to the current node, change its parent
 							node.parent = current;
 							node.g = g;
+							node.h = h;
 						}
 					}
 				}
@@ -97,8 +92,9 @@ public class Board {
 		return pathFromNode(goal);
 	}
 
-	private boolean isPointInSection(int x, int y, Direction direction) {
-		return true;
+	private double distanceFromSection(int x, int y, int section) {
+		double d = Constants.normalDistance(x - Constants.BOARD_SIZE, y - Constants.BOARD_SIZE) / Constants.BOARD_MAX_DISTANCE;
+		return d;
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
@@ -281,9 +277,7 @@ public class Board {
 			}
 			yEnd--;
 		}
-		if (ant.id == 10) {
-			System.out.print(representation(true));
-		}
+		Logger.dumpBoard(ant);
 	}
 
 	// Set state of point (x,y) to 'value' (must be one of the non-unknown Constants.STATE_* values)
@@ -292,10 +286,7 @@ public class Board {
 		assert validCoordinates(x, y);
 		int px = x - minX;
 		int py = y - minY;
-//		assert !obstacleRows.get(py).get(px) || state == Constants.STATE_OBSTACLE;
-		if (obstacleRows.get(py).get(px) && state == Constants.STATE_PASSABLE) {
-			ant.dump(String.format("check x=%d y=%d s=%d", x, y, state));
-		}
+		assert !obstacleRows.get(py).get(px) || state == Constants.STATE_OBSTACLE;
 		knownRows.get(py).set(px, true);
 		obstacleRows.get(py).set(px, state==Constants.STATE_OBSTACLE);
 		if (x < actualMinX) actualMinX = x;

@@ -88,11 +88,7 @@ abstract class CommonAnt implements Ant {
 			assert role != null;
 			return new Write(new Long(id));
 		}
-		if (id==1) {
-			if (turn==1000) {
-				System.out.print(board.representation());
-			}
-		}
+		if (turn % 10000 == 0) Logger.dumpBoard(this);
 		northeast.update(environment);
 		east.update(environment);
 		southeast.update(environment);
@@ -111,13 +107,9 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(north);
 		sniffFood();
 		for (WorldEvent event : events) {
-//			Direction dir = event.getDirection();
 			receiveEvent(event.getEvent());
 		}
-		if (here.scent.stinky) {
-			// Erase opponent's writing
-			act = new Write(null);
-		}
+		if (here.scent.stinky) act = new Write(null);		// Erase opponent's writing
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
 		if (act instanceof Move) {
@@ -125,29 +117,28 @@ abstract class CommonAnt implements Ant {
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
-			progressDump("move " + square.dir.name());
+			Logger.trace(this, "move " + square.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
 			hasFood = true;
-			progressDump("takes food");
+			Logger.trace(this, "takes food");
 		} else if (act instanceof DropFood) {
 			assert hasFood;
 			hasFood = false;
-			progressDump("drops food");
+			Logger.trace(this, "drops food");
 		} else if (act instanceof Write) {
 			Scent s = new Scent(((Write)act).getWriting());
-			progressDump(String.format("writing value: %s", s.toString()));
+			Logger.trace(this, String.format("writing value: %s", s.toString()));
 		} else if (act instanceof Say) {
-			progressDump(String.format("Say: '%s'", ((Say)act).getMessage()));
+			Logger.trace(this, String.format("Say: '%s'", ((Say)act).getMessage()));
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
-			progressDump(className(act));
+			Logger.trace(this, className(act));
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
-		if (elapsedTimeMillis > 10) {
-			System.out.print(String.format("Check time: %d\n", elapsedTimeMillis));
-//			assert false;		// We took too long to compute!
+		if (elapsedTimeMillis > 200) {
+			Logger.error(this, String.format("Check run-time: %d\n", elapsedTimeMillis));
 		}
 		return act;
 	}
@@ -185,7 +176,7 @@ abstract class CommonAnt implements Ant {
 	// Interpret received string (containing board findings)
 	private void interpret(String received) {
 		ArrayList<String> list = new ArrayList<String>();
-		String message = TransmitMessage.uncompressed(received);
+		String message = TransmitMessage.uncompressed(this, received);
 		String[] lines = message.split("\n");
 		int i = 0;
 		for (; i < lines.length; i++) {
@@ -319,7 +310,7 @@ abstract class CommonAnt implements Ant {
 	protected void setRole(Role role) {
 		assert role != null;
 		this.role = role;
-		dump("changed role");
+		Logger.trace(this, "changed role");
 	}
 
 	// Sniff for nearby food (for squares excluding nest and immediate nest neighbors)
@@ -343,15 +334,6 @@ abstract class CommonAnt implements Ant {
 			return 0;
 		}
 		return w.intValue();
-	}
-
-	protected void dump(String s) {
-		System.out.printf("--> " + toString() + " " + s + "\n");
-	}
-
-	protected void progressDump(String s) {
-		if (id!=1) return;
-		System.out.printf(toString() + " " + s + "\n");
 	}
 
 	public final static String className(Object obj) {
