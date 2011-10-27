@@ -118,6 +118,7 @@ public class TransmitMessage extends Operation {
 	}
 
     private final static char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
+
     private static int[]  toInt   = new int[128];
 
     static {
