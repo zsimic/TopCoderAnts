@@ -8,6 +8,8 @@ public class Gatherer extends Role {
 		super(ant);
 	}
 
+	private Path path;
+
 	// Effectively act
 	@Override
 	Action effectiveAct() {

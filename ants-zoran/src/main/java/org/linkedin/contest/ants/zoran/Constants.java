@@ -76,9 +76,9 @@ public class Constants {
 	public final static int dBitOffset = cBitOffset + argBitCount;				// Offset of argument 'd' in the scent
 	public final static int checksumBitOffset = valueBitCount;
 
-	public final static int NATURE_SCAN = 1;				// Order to scan a region for food
+	public final static int NATURE_AWAITING_BOARD_INFO = 1;	// Scout awaiting board info update from manager
 	public final static int NATURE_FETCH_FOOD = 2;			// Order to go fetch food at given coordinates
-	public final static int NATURE_AWAITING_BOARD_INFO = 3;	// Scout awaiting board info update from manager
+	public final static int NATURE_SCAN = 3;				// Order to go fetch food at given coordinates
 
 	public static boolean isNumber(String s) {
 		for (int i = s.length() - 1; i >= 0; i--) {

@@ -18,8 +18,10 @@ public class Logger {
 			File logDir = new File("logs");
 			if (logDir.exists() && logDir.isDirectory()) {
 				for (File file : logDir.listFiles()) {
-					if (!file.delete()) {
-						System.err.print(String.format("Can't delete %s\n", file.getName()));
+					if (!file.isDirectory()) {
+						if (!file.delete()) {
+							System.err.print(String.format("Can't delete %s\n", file.getName()));
+						}
 					}
 				}
 			}
