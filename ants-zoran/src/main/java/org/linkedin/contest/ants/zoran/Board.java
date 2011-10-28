@@ -10,6 +10,7 @@ public class Board {
 	private ArrayList<BitSet> obstacleRows;
 	private int minX, minY, maxX, maxY;
 	private int actualMinX, actualMaxX;
+	protected int knownCells;
 
 	Board(CommonAnt ant) {
 		this.ant = ant;
@@ -21,6 +22,7 @@ public class Board {
 		maxX = minX + Constants.BOARD_SIZE - 1;
 		minY = maxY = Constants.BOARD_SIZE;
 		actualMinX = actualMaxX = Constants.BOARD_SIZE;
+		knownCells = 0;
 	}
 
 	@Override
@@ -249,7 +251,7 @@ public class Board {
 
 	public String representation(boolean decorate) {
 		String s = "";
-		if (decorate) s+= String.format("Board x=%d-%d y=%d-%d\n", actualMinX, actualMaxX, minY, maxY);
+		if (decorate) s+= String.format("Board x=%d-%d y=%d-%d known=%d\n", actualMinX, actualMaxX, minY, maxY, knownCells);
 		else s+= String.format("%d %d\n", actualMinX, minY);
 		String line;
 		int jNest = Constants.BOARD_SIZE - minX;
@@ -349,6 +351,8 @@ public class Board {
 		int px = x - minX;
 		int py = y - minY;
 		assert !obstacleRows.get(py).get(px) || state == Constants.STATE_OBSTACLE;
+		if (knownRows.get(py).get(px)) return;
+		knownCells++;
 		knownRows.get(py).set(px, true);
 		obstacleRows.get(py).set(px, state==Constants.STATE_OBSTACLE);
 		if (x < actualMinX) actualMinX = x;

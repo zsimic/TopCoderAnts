@@ -23,7 +23,7 @@ abstract class CommonAnt implements Ant {
 	@Override
 	public String toString() {
 		String rs = role == null ? "-no role-" : role.toString();
-		return String.format("%d %d xy=[%d,%d] bs=[%d,%d] f=[%d,%d] %s", turn, id, x, y, board.sizeX(), board.sizeY(), foodStock.size(), foodStock.totalFood, rs);
+		return String.format("%d %d xy=[%d,%d] bs=[%d,%d,%d] f=[%d,%d] %s", turn, id, x, y, board.sizeX(), board.sizeY(), board.knownCells, foodStock.size(), foodStock.totalFood, rs);
 	}
 
     /**

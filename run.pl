@@ -171,10 +171,8 @@ sub add_stat {
 
 sub archive_logs {
 	my $archiveFolder = "$logFolder/archive_".time();
-	logm("Archiving log file to $archiveFolder ... ");
 	mkdir $archiveFolder;
 	run_command("mv $logFolder/*.txt $archiveFolder/");
-	logm("done\n");
 	return $archiveFolder;
 }
 
@@ -291,24 +289,26 @@ sub read_board {
 	$res->{time} = $mtime;
 	open(my $fh, "<$fname") or fail("Can't read file $fname");
 	my $line = <$fh>;
-	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+)\] f=\[([0-9]+),([0-9]+)\]/o) {
+	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+),([0-9]+)\] f=\[([0-9]+),([0-9]+)\]/o) {
 		$res->{turn} = $1;
 		$res->{id} = $2;
 		$res->{posX} = $3;
 		$res->{posY} = $4;
 		$res->{bsizeX} = $5;
 		$res->{bsizeY} = $6;
-		$res->{foodCells} = $7;
-		$res->{foodTotal} = $8;
+		$res->{known} = $7;
+		$res->{foodCells} = $8;
+		$res->{foodTotal} = $9;
 	} else {
 		fail("Malformed line 1 in $fname: $line");
 	}
 	$line = <$fh>;
-	if ($line=~m/^Board x=([0-9]+)-([0-9]+) y=([0-9]+)-([0-9]+)$/o) {
+	if ($line=~m/^Board x=([0-9]+)-([0-9]+) y=([0-9]+)-([0-9]+) known=([0-9]+)$/o) {
 		$res->{bx0} = $1;
 		$res->{bx1} = $2;
 		$res->{by0} = $3;
 		$res->{by1} = $4;
+		$res->{known} = $5;
 	} else {
 		fail("Malformed line 2 in $fname: $line");
 	}
