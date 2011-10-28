@@ -2,9 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
-public class ScoutBorder extends Role {
+public class ScoutSection extends Role {
 
-	ScoutBorder(CommonAnt ant, int section) {
+	ScoutSection(CommonAnt ant, int section) {
 		super(ant);
 		this.section = section;
 	}

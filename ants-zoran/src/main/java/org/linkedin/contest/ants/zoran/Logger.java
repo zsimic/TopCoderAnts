@@ -36,9 +36,9 @@ public class Logger {
 			if (elapsedTimeMillis > 150) {
 				System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
 			}
-		} else if (elapsedTimeMillis > 500) {
+		} else if (elapsedTimeMillis > 300) {
 			error(ant, turnTooLongMessage(elapsedTimeMillis));
-		} else if (elapsedTimeMillis > 200) {
+		} else if (elapsedTimeMillis > 100) {
 			warn(ant, turnTooLongMessage(elapsedTimeMillis));
 		}
 	}
