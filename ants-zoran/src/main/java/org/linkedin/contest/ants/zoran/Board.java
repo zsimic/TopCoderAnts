@@ -53,13 +53,17 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
+		int consider = 10;		// Number of unknowns to consider before picking one
 		while (cont) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
-				goal = current;					// We found the target
-				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
-				cont = false;
-				break;
+				if (goal == null || current.getF() < goal.getF()) goal = current;
+				consider--;
+				if (consider < 0) {
+					assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
+					cont = false;
+					break;
+				}
 			}
 			opened.remove(current.id);
 			closed.put(current.id, current);
@@ -71,7 +75,7 @@ public class Board {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
 						double g = current.g + 1;							// current g + distance from current to neighbor
-						double h = distanceFromSection(nx, ny, section);	// Heuristic when exploring
+						double h = distanceFromSection(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, section);	// Heuristic when exploring
 						PathNode node = opened.get(key);
 						if (node == null) {
 							// Not in the open set yet
@@ -99,11 +103,15 @@ public class Board {
 			this.a = a;
 			this.b = b;
 		}
+		@Override
+		public String toString() {
+			return String.format("%g %g", a, b);
+		}
 	}
 
 	private static Line[] lines;
 	static {
-		lines = new Line[32];
+		lines = new Line[16];
 		for (int i = 0; i < lines.length; i++) {
 			lines[i] = newLineForSection(i);
 		}
@@ -116,12 +124,12 @@ public class Board {
 	private static Line newLineForSection(int section) {
 		double a, b;
 		int s1 = section % 16;
-		if (s1 == 0) { a = 0; b = 1; }
-		else if (s1 == 8) { a = 1; b = 0; }
+		if (s1 == 0) { a = 0.0; b = 1.0; }
+		else if (s1 == 8) { a = 1.0; b = 0.0; }
 		else { 
-			b = 1;
-			if (s1 < 8) a = -s1 / 4;
-			else a = (s1 - (s1 - 8) * 2) / 4;
+			b = 1.0;
+			if (s1 < 8) a = -s1 / 4.0;
+			else a = (s1 - (s1 - 8.0) * 2.0) / 4.0;
 		}
 		return new Line(a,b);
 	}
@@ -132,7 +140,7 @@ public class Board {
 		return d;
 	}
 
-	public static boolean isLeft(int x, int y, Line line) {
+	private static boolean isLeft(int x, int y, Line line) {
 	     return (line.a * y - line.b * x) > 0;
 	}
 
@@ -142,9 +150,12 @@ public class Board {
 		Line b = lineForSection(section + 1);
 		double distanceToLine = distancePointLine(x, y, a);
 		distanceToLine += distancePointLine(x, y, b);
-		boolean isLeft = isLeft(x, y, lineForSection(section + 8));
-		if ((section > 15 && isLeft) || (section < 16 && !isLeft)) distanceToLine += 10000;
-		double distToNest = Constants.normalDistance(x - Constants.BOARD_SIZE, y - Constants.BOARD_SIZE) / Constants.BOARD_MAX_DISTANCE;
+		boolean isLeft = isLeft(x, y, a);
+		if ((section < 16 && isLeft) || (section > 15 && !isLeft)) distanceToLine += 10000;
+//		if (section == 0) {
+//			System.out.print("");
+//		}
+		double distToNest = Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
 		return distToNest + distanceToLine;
 	}
 
@@ -329,7 +340,6 @@ public class Board {
 			}
 			yEnd--;
 		}
-		Logger.dumpBoard(ant);
 	}
 
 	// Set state of point (x,y) to 'value' (must be one of the non-unknown Constants.STATE_* values)

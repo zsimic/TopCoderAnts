@@ -5,9 +5,11 @@ import java.util.*;
 public class FoodStock {
 
 	protected ArrayList<FoodCoordinates> coordinates;	// Coordinates for food seen
+	protected int totalFood;
 
 	public FoodStock() {
 		coordinates = new ArrayList<FoodCoordinates>();
+		totalFood = 0;
 	}
 
 	// Number of items in stock
@@ -69,10 +71,15 @@ public class FoodStock {
 	public void add(int x, int y, int amount) {
 		for (FoodCoordinates c : coordinates) {
 			if (x == c.x && y == c.y) {
-				if (amount != c.amount) c.amount = amount;
+				if (amount != c.amount) {
+					totalFood -= c.amount;
+					c.amount = amount;
+					totalFood += amount;
+				}
 				return;
 			}
 		}
+		totalFood += amount;
 		coordinates.add(new FoodCoordinates(x, y, amount));
 	}
 

@@ -9,7 +9,7 @@ public class Constants {
 	public final static String compressionEncoding = "US-ASCII";		// Encoding to use when transforming a String to byte[] and vice versa
 	public final static char messageBoard = 'l';						// Multi-part message giving board representation
 
-	private final static int maximumEncodableValueInChar = 64;
+	private final static int maximumEncodableValueInChar = 90;
 	
 	// Decoded integer value for character c
 	public final static int decodedCharInt(char c) {
@@ -20,6 +20,7 @@ public class Constants {
 
 	// Encoded char for integer i
 	public final static char encodedCharInt(int i) {
+		assert i < maximumEncodableValueInChar;
 		char c = '\0';
 		if (i >= 0 && i < maximumEncodableValueInChar) c = (char)(i + ' ');
 		return c;

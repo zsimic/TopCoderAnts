@@ -22,8 +22,8 @@ abstract class CommonAnt implements Ant {
 
 	@Override
 	public String toString() {
-		String rs = role == null ? "" : role.toString();
-		return String.format("%d %d [%d,%d] f=%d xy=[%d,%d] %s", turn, id, board.sizeX(), board.sizeY(), foodStock.size(), x, y, rs);
+		String rs = role == null ? "-no role-" : role.toString();
+		return String.format("%d %d xy=[%d,%d] bs=[%d,%d] f=[%d,%d] %s", turn, id, x, y, board.sizeX(), board.sizeY(), foodStock.size(), foodStock.totalFood, rs);
 	}
 
     /**
@@ -92,7 +92,7 @@ abstract class CommonAnt implements Ant {
 			assert role != null;
 			return new Write(new Long(id));
 		}
-		if (turn % 10000 == 0) Logger.dumpBoard(this);
+		if (turn % 50000 == 0) Logger.dumpBoard(this, Integer.toString(turn));
 		northeast.update(environment);
 		east.update(environment);
 		southeast.update(environment);
@@ -148,8 +148,9 @@ abstract class CommonAnt implements Ant {
 	// Receive event sent by another ant, we communicate board info only...
 	private void receiveEvent(String event) {
 		String message = event;
-		assert message.length() > 10;
+		assert message.length() > 15;
 		if (message.startsWith(Constants.AN_ANT_SAYS)) {
+			Logger.trace(this, "received evt: " + message);
 			message = message.substring(Constants.AN_ANT_SAYS.length());
 			if (message.length() < 10) return;
 			char messageType = message.charAt(0);
@@ -158,17 +159,22 @@ abstract class CommonAnt implements Ant {
 			int totalPages = Constants.decodedCharInt(message.charAt(3));
 			if (antId <= 0 || page <= 0 || totalPages <= 0 || antId > 50 || page > totalPages) return;		// Not sent by us
 			if (messageType == Constants.messageBoard) {
-				if (!here.isNest()) return;
+				if (!here.isNest() && !isNextToNest()) return;
 				message = message.substring(4);
 				String prev = pendingTransmissions.get(antId);
-				if (prev != null) message = message + prev;
-				else if (page != totalPages) return;			// We missed the first part of the message
+				if (prev != null) {
+					message = message + prev;
+				} else if (page != totalPages) {
+					receivalInProgress = false;
+					return;			// We missed the first part of the message
+				} else {
+					receivalInProgress = true;
+				}
 				if (page == 1) {
 					receivalInProgress = false;
 					if (prev != null) pendingTransmissions.remove(antId);
 					interpretReceivedBoardInfo(message);
 				} else {
-					receivalInProgress = true;
 					pendingTransmissions.put(antId, message);
 				}
 			}
@@ -198,6 +204,7 @@ abstract class CommonAnt implements Ant {
 		}
 		foodStock.setFromLines(list);
 		receivedBoardInfos++;
+		Logger.dumpBoard(this, String.format("rec_%02d", receivedBoardInfos));
 	}
 
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)
@@ -213,6 +220,7 @@ abstract class CommonAnt implements Ant {
      */
 	public Action onDeath(WorldEvent cause) {
 //		return sayInAllDirections("Man down " + role.toString());
+		Logger.warn(this, String.format("died! %s",cause.toString()));
 		return new Pass();
 	}
 

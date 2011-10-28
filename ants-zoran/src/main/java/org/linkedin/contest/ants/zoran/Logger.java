@@ -26,61 +26,65 @@ public class Logger {
 		}
 	}
 
-	private static String turnTooLongMessage(CommonAnt ant, long elapsedTimeMillis) {
-		return String.format("Turn %d took %d ms [%s]\n", ant.turn, elapsedTimeMillis, ant.toString());
+	private static String turnTooLongMessage(long elapsedTimeMillis) {
+		return String.format("Turn took %d ms\n", elapsedTimeMillis);
 	}
 
 	// Log how long a turn took to complete
 	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {
 		if (omitLogs) {
 			if (elapsedTimeMillis > 150) {
-				System.err.print(turnTooLongMessage(ant, elapsedTimeMillis));
+				System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
 			}
+		} else if (elapsedTimeMillis > 500) {
+			error(ant, turnTooLongMessage(elapsedTimeMillis));
 		} else if (elapsedTimeMillis > 200) {
-			warn(ant, turnTooLongMessage(ant, elapsedTimeMillis));
-		} else if (elapsedTimeMillis > 400) {
-			error(ant, turnTooLongMessage(ant, elapsedTimeMillis));
+			warn(ant, turnTooLongMessage(elapsedTimeMillis));
 		}
+	}
+
+	private static String message(CommonAnt ant, String info) {
+		String message = ant.toString() + " " + info;
+		if (message.charAt(message.length() - 1) != '\n') message = message +"\n";
+		return message;
 	}
 
 	// Trace progress of 'ant'
 	public static void trace(CommonAnt ant, String info) {
 		if (omitLogs) return;
 		String fileName = getFileName("trace", ant.id);
-		String message = ant.toString() + " " + info;
-		append(fileName, message);
+		append(fileName, message(ant, info));
 	}
 
 	// Output some unusual information on 'ant'
 	public static void inform(CommonAnt ant, String info) {
 		if (omitLogs) return;
 		String fileName = getFileName("info", ant.id);
-		String message = ant.toString() + " " + info;
-		append(fileName, message);
+		append(fileName, message(ant, info));
 	}
 
 	// Output warning message for 'ant', need to check what happened here
 	public static void warn(CommonAnt ant, String info) {
 		if (omitLogs) return;
 		String fileName = "warnings";
-		String message = ant.toString() + " " + info;
+		String message = message(ant, info);
 		append(fileName, message);
-		System.out.print(message + "\n");
+		System.out.print(message);
 	}
 
 	// Output error message for 'ant', need to check what happened here
 	public static void error(CommonAnt ant, String info) {
 		if (omitLogs) return;
 		String fileName = "errors";
-		String message = ant.toString() + " " + info;
+		String message = message(ant, info);
 		append(fileName, message);
 		System.err.print(message);
 	}
 
-	// Dump current board representation for ant
-	public static void dumpBoard(CommonAnt ant) {
+	// Dump current board representation for ant, under log file board_ID_name.txt
+	public static void dumpBoard(CommonAnt ant, String name) {
 		if (omitLogs) return;
-		String fileName = getFileName("board", ant.id, ant.turn);
+		String fileName = getFileName("board", ant.id, name);
 		String representation = String.format("%s\n%s", ant.toString(), ant.board.representation(true));
 		writeAndClose(fileName, representation);
 	}
@@ -88,13 +92,13 @@ public class Logger {
 	// Standard file name
 	private static String getFileName(String prefix, int id) {
 		assert id > 0 && id <= 50;
-		return String.format("%s%02d", prefix, id);
+		return String.format("%s_%02d", prefix, id);
 	}
 
 	// Standard file name with turn number
-	private static String getFileName(String prefix, int id, int turn) {
-		assert id > 0 && id <= 50 && turn > 0;
-		return String.format("%s%02d_%06d", prefix, id, turn);
+	private static String getFileName(String prefix, int id, String suffix) {
+		assert id > 0 && id <= 50 && suffix != null;
+		return String.format("%s_%02d_%s", prefix, id, suffix);
 	}
 
 	// Append message to file with fileName

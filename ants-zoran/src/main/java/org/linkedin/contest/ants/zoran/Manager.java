@@ -13,6 +13,7 @@ public class Manager extends Role {
 	@Override
 	Action effectiveAct() {
 		assert ant.here.isNest();		// Manager stays on nest the whole time
+		if (ant.receivedBoardInfos == 32) Logger.dumpBoard(ant, "done");
 		if (opTransmit.isActive()) return opTransmit.act();
 		if (!ant.receivalInProgress && ant.south.scent.isAwaitingBoardInfo()) {
 			opTransmit.setBoardInfo(ant.south.dir);

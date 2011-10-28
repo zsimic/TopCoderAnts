@@ -35,14 +35,15 @@ public class ScoutBorder extends Role {
 	Action effectiveAct() {
 		if (follower.isActive()) return follower.act();
 		if (state == ScoutState.scanning) {
-			if (turn > 2000) {
+			if (turn > 10000) {
 				state = ScoutState.returning;
+				Logger.dumpBoard(ant, "done");
 			} else {
 				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, section);
 				if (path == null) {
 					state = ScoutState.returning;
 					Logger.error(ant, "no more cells to explore");
-					Logger.dumpBoard(ant);
+					Logger.dumpBoard(ant, "exhausted");
 				} else {
 					follower.setPath(path);
 					return follower.act();
@@ -63,19 +64,19 @@ public class ScoutBorder extends Role {
 			if (opTransmit.messageBody == null) opTransmit.setBoardInfo(ant.north.dir);
 			if (opTransmit.isActive()) return opTransmit.act();
 			opTransmit.clear();
-			if (ant.receivedBoardInfos > 0) {
+			if (ant.receivedBoardInfos >= 0) {
 				state = ScoutState.done;
 			} else {
 				state = ScoutState.waitingForBoardInfo;
-				Scent s = new Scent();
-				s.setAwaitingBoardInfo();
-				return new Write(s.getValue());
+				return writeBoardInfoWriting();
 			}
 		}
 		if (state == ScoutState.waitingForBoardInfo) {
 			if (ant.receivedBoardInfos > 0) {
 				state = ScoutState.done;
 				if (ant.here.scent.isAwaitingBoardInfo()) return new Write(null);
+			} else if (!ant.here.scent.isAwaitingBoardInfo()) {
+				return writeBoardInfoWriting();
 			}
 		}
 		if (state == ScoutState.done) {
@@ -85,6 +86,13 @@ public class ScoutBorder extends Role {
 			return new Pass();
 		}
 		return null;		// confused
+	}
+
+	private Action writeBoardInfoWriting() {
+		assert ant.x == Constants.BOARD_SIZE + 1 && ant.y == Constants.BOARD_SIZE;
+		Scent s = new Scent();
+		s.setAwaitingBoardInfo();
+		return new Write(s.getValue());
 	}
 
 }
