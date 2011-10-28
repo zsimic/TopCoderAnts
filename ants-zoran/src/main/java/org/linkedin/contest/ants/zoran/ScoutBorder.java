@@ -13,6 +13,7 @@ public class ScoutBorder extends Role {
 		scanning,
 		returning,
 		communicatingInfo,
+		waitingForBoardInfo,
 		done
 	}
 
@@ -34,7 +35,7 @@ public class ScoutBorder extends Role {
 	Action effectiveAct() {
 		if (follower.isActive()) return follower.act();
 		if (state == ScoutState.scanning) {
-			if (turn > 2000 || Math.max(ant.board.sizeX(), ant.board.sizeY()) > Constants.BOARD_SIZE * 0.9) {
+			if (turn > 2000) {
 				state = ScoutState.returning;
 			} else {
 				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, section);
@@ -49,22 +50,37 @@ public class ScoutBorder extends Role {
 			}
 		}
 		if (state == ScoutState.returning) {
-			if (ant.here.isNest()) {
+			if (ant.x == Constants.BOARD_SIZE + 1 && ant.y == Constants.BOARD_SIZE) {
 				state = ScoutState.communicatingInfo;
 			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE);
+				Path path = ant.board.bestPath(ant.x, ant.y, Constants.BOARD_SIZE + 1, Constants.BOARD_SIZE);
 				assert path != null;
 				follower.setPath(path);
 				return follower.act();
 			}
 		}
 		if (state == ScoutState.communicatingInfo) {
-			if (opTransmit.message == null) opTransmit.setMessage(String.format("%s----\n%s", ant.board.representation(false), ant.foodStock.representation()));
+			if (opTransmit.messageBody == null) opTransmit.setBoardInfo(ant.north.dir);
 			if (opTransmit.isActive()) return opTransmit.act();
-			opTransmit.setMessage(null);
-			state = ScoutState.done;
+			opTransmit.clear();
+			if (ant.receivedBoardInfos > 0) {
+				state = ScoutState.done;
+			} else {
+				state = ScoutState.waitingForBoardInfo;
+				Scent s = new Scent();
+				s.setAwaitingBoardInfo();
+				return new Write(s.getValue());
+			}
+		}
+		if (state == ScoutState.waitingForBoardInfo) {
+			if (ant.receivedBoardInfos > 0) {
+				state = ScoutState.done;
+				if (ant.here.scent.isAwaitingBoardInfo()) return new Write(null);
+			}
 		}
 		if (state == ScoutState.done) {
+			assert ant.here.isNest() || ant.isNextToNest();
+			if (!ant.here.isNest()) return new Move(ant.north.dir);
 			ant.setRole(new Guard(ant));
 			return new Pass();
 		}

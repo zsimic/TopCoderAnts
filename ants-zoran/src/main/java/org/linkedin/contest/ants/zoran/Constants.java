@@ -6,7 +6,24 @@ public class Constants {
 	public static final int BOARD_SIZE = 512;									// Board size
 	public static final double BOARD_MAX_DISTANCE = Math.sqrt(2)*BOARD_SIZE;	// Max distance on board from nest
 
-	public final static String compressionEncoding = "US-ASCII";
+	public final static String compressionEncoding = "US-ASCII";		// Encoding to use when transforming a String to byte[] and vice versa
+	public final static char messageBoard = 'l';						// Multi-part message giving board representation
+
+	private final static int maximumEncodableValueInChar = 64;
+	
+	// Decoded integer value for character c
+	public final static int decodedCharInt(char c) {
+		int i = 0;
+		if (c >= ' ' && c < (' ' + maximumEncodableValueInChar)) i = c - ' ';
+		return i;
+	}
+
+	// Encoded char for integer i
+	public final static char encodedCharInt(int i) {
+		char c = '\0';
+		if (i >= 0 && i < maximumEncodableValueInChar) c = (char)(i + ' ');
+		return c;
+	}
 
 	// Encoding cell coordinates
 	private final static int xPointMask = 0x000fff;
@@ -60,6 +77,7 @@ public class Constants {
 
 	public final static int NATURE_SCAN = 1;				// Order to scan a region for food
 	public final static int NATURE_FETCH_FOOD = 2;			// Order to go fetch food at given coordinates
+	public final static int NATURE_AWAITING_BOARD_INFO = 3;	// Scout awaiting board info update from manager
 
 	public static boolean isNumber(String s) {
 		for (int i = s.length() - 1; i >= 0; i--) {

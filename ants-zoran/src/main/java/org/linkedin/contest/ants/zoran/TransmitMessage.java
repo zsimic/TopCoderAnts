@@ -8,7 +8,10 @@ import java.util.zip.*;
 
 public class TransmitMessage extends Operation {
 
-	protected String message;
+	protected char messageType;
+	protected String messageBody;
+	private Direction direction;			// Direction in which to transmit message
+	private int totalPages;
 	private Stack<String> stack;
 
 	TransmitMessage(Role role) {
@@ -18,12 +21,19 @@ public class TransmitMessage extends Operation {
 	// Maximum data size to send in one 'Say' action (should be low enough so that the little header we send + this size < 255)
 	private static final int maxSize = 248;
 
-	public void setMessage(String message) {
+	public void setBoardInfo(Direction dir) {
+		setMessage(dir, Constants.messageBoard, String.format("%s----\n%s", ant.board.representation(false), ant.foodStock.representation()));
+	}
+
+	public void setMessage(Direction dir, char type, String msg) {
 		assert !isActive();
-		this.message = message;
-		if (message != null && message.length() > 0) {
+		direction = dir;
+		messageType = type;
+		messageBody = msg;
+		if (msg != null && msg.length() > 0) {
+			assert msg.length() > 10;
 			stack = new Stack<String>();
-			String remaining = compressed(message);
+			String remaining = compressed(msg);
 			String current;
 			while (remaining != null) {
 				if (remaining.length() > maxSize) {
@@ -35,11 +45,19 @@ public class TransmitMessage extends Operation {
 				}
 				stack.add(current);
 			}
+			totalPages = stack.size();
 			activate(true);
 		} else {
-			stack = null;
-			activate(false);
+			clear();
 		}
+	}
+
+	public void clear() {
+		messageType = '\0';
+		messageBody = null;
+		totalPages = 0;
+		stack = null;
+		activate(false);
 	}
 
 	@Override
@@ -52,9 +70,12 @@ public class TransmitMessage extends Operation {
 				activate(false);
 				stack = null;
 			}
-			s = String.format("%d %d %s", ant.id, page, s);
+			char antIdChar = Constants.encodedCharInt(ant.id);
+			char pageChar = Constants.encodedCharInt(page);
+			char totalPagesChar = Constants.encodedCharInt(totalPages);
+			s = String.format("%c%c%c%c%s", messageType, antIdChar, pageChar, totalPagesChar, s);
 			assert s.length() < 255;
-			return new Say(s, Direction.here);
+			return new Say(s, direction);
 		}
 		return null;
 	}
@@ -70,7 +91,7 @@ public class TransmitMessage extends Operation {
 				int count = inflator.inflate(buf);
 				if (count > 0) {
 					bos.write(buf, 0, count);
-				} else if (count == 0) {
+				} else if (count == 0 && inflator.finished()) {
 					break;
 				} else {
 					assert false;

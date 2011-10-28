@@ -46,6 +46,10 @@ public class Scent {
 		return nature == Constants.NATURE_FETCH_FOOD;
 	}
 
+	public boolean isAwaitingBoardInfo() {
+		return nature == Constants.NATURE_AWAITING_BOARD_INFO;
+	}
+
 //--  Basic operations
 //--------------------
 
@@ -65,6 +69,11 @@ public class Scent {
 		this.a = c.x;
 		this.b = c.y;
 		this.c = c.amount;
+	}
+
+	public void setAwaitingBoardInfo() {
+		this.nature = Constants.NATURE_AWAITING_BOARD_INFO;
+		this.turn = 0;
 	}
 
 //-- Implementation

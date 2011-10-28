@@ -132,18 +132,25 @@ public class Board {
 		return d;
 	}
 
+	public static boolean isLeft(int x, int y, Line line) {
+	     return (line.a * y - line.b * x) > 0;
+	}
+
 	private static double distanceFromSection(int x, int y, int section) {
 		assert section >= 0 && section < 32;
 		Line a = lineForSection(section);
 		Line b = lineForSection(section + 1);
 		double distanceToLine = distancePointLine(x, y, a);
 		distanceToLine += distancePointLine(x, y, b);
+		boolean isLeft = isLeft(x, y, lineForSection(section + 8));
+		if ((section > 15 && isLeft) || (section < 16 && !isLeft)) distanceToLine += 10000;
 		double distToNest = Constants.normalDistance(x - Constants.BOARD_SIZE, y - Constants.BOARD_SIZE) / Constants.BOARD_MAX_DISTANCE;
 		return distToNest + distanceToLine;
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
 	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
+		assert xStart != xEnd || yStart != yEnd;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		assert get(xEnd, yEnd) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();

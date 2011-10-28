@@ -9,6 +9,8 @@ abstract class CommonAnt implements Ant {
 	protected int turn;								// Turn being played, acts as an internal timer
 	protected int x;								// Current X coordinate, nest is on Constants.BOARD_SIZE by convention, to make sure all coordinates are > 0
 	protected int y;								// Current Y coordinate, relative to nest
+	protected int receivedBoardInfos;				// Number of times this ant received board info
+	protected boolean receivalInProgress;			// Are we currently receiving a multi-part message
 	protected boolean hasFood;						// Is ant currently carrying food?
 	protected ZSquare here,northeast,east,southeast,south,southwest,west,northwest,north;
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
@@ -32,6 +34,8 @@ abstract class CommonAnt implements Ant {
 	public void init() {
 		id = turn = 0;
 		x = y = Constants.BOARD_SIZE;
+		receivedBoardInfos = 0;
+		receivalInProgress = false;
 		hasFood = false;
 		board = new Board(this);
 		foodStock = new FoodStock();
@@ -137,44 +141,42 @@ abstract class CommonAnt implements Ant {
 			Logger.trace(this, className(act));
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
-		if (elapsedTimeMillis > 200) {
-			Logger.error(this, String.format("Check run-time: %d\n", elapsedTimeMillis));
-		}
+		Logger.logRunTime(this, elapsedTimeMillis);
 		return act;
 	}
 
 	// Receive event sent by another ant, we communicate board info only...
 	private void receiveEvent(String event) {
 		String message = event;
+		assert message.length() > 10;
 		if (message.startsWith(Constants.AN_ANT_SAYS)) {
 			message = message.substring(Constants.AN_ANT_SAYS.length());
-			int i, antId = 0, page = 0;
-			i = message.indexOf(' ');
-			if (i == 0 || i > 2) return;			// Not sent by us, ignore (expecting ant id first)
-			String sn = message.substring(0, i);
-			if (!Constants.isNumber(sn)) return;				// Not sent by us, ignore (expecting a number as ant id)
-			antId = Integer.parseInt(sn);
-			message = message.substring(i + 1);
-			i = message.indexOf(' ');
-			if (i == 0 || i > 2) return;			// Not sent by us, ignore (expecting a page number)
-			sn = message.substring(0, i);
-			if (!Constants.isNumber(sn)) return;				// Not sent by us, ignore (page number expected)
-			page = Integer.parseInt(sn.substring(0, i));
-			message = message.substring(i + 1);
-			if (message.length() == 0) return;		// Not sent by us, ignore (no message body)
-			String prev = pendingTransmissions.get(antId);
-			if (prev != null) message = message + prev;
-			if (page == 1) {
-				if (prev != null) pendingTransmissions.remove(antId);
-				interpret(message);
-			} else {
-				pendingTransmissions.put(antId, message);
+			if (message.length() < 10) return;
+			char messageType = message.charAt(0);
+			int antId = Constants.decodedCharInt(message.charAt(1));
+			int page = Constants.decodedCharInt(message.charAt(2));
+			int totalPages = Constants.decodedCharInt(message.charAt(3));
+			if (antId <= 0 || page <= 0 || totalPages <= 0 || antId > 50 || page > totalPages) return;		// Not sent by us
+			if (messageType == Constants.messageBoard) {
+				if (!here.isNest()) return;
+				message = message.substring(4);
+				String prev = pendingTransmissions.get(antId);
+				if (prev != null) message = message + prev;
+				else if (page != totalPages) return;			// We missed the first part of the message
+				if (page == 1) {
+					receivalInProgress = false;
+					if (prev != null) pendingTransmissions.remove(antId);
+					interpretReceivedBoardInfo(message);
+				} else {
+					receivalInProgress = true;
+					pendingTransmissions.put(antId, message);
+				}
 			}
 		}
 	}
 
 	// Interpret received string (containing board findings)
-	private void interpret(String received) {
+	private void interpretReceivedBoardInfo(String received) {
 		ArrayList<String> list = new ArrayList<String>();
 		String message = TransmitMessage.uncompressed(this, received);
 		String[] lines = message.split("\n");
@@ -195,6 +197,7 @@ abstract class CommonAnt implements Ant {
 			list.add(line);
 		}
 		foodStock.setFromLines(list);
+		receivedBoardInfos++;
 	}
 
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)

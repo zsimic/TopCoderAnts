@@ -1,5 +1,6 @@
 package org.linkedin.contest.ants.zoran;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -8,19 +9,43 @@ import java.util.HashMap;
 
 public class Logger {
 
+	public static boolean omitLogs = false;		// Set to 'false' to enable output
+
 	private static HashMap<String, OutputStreamWriter> streamWriters = new HashMap<String, OutputStreamWriter>();
-	private static boolean isRunningWithoutAssertions = true;
 	static {
-		try {
-			assert false;
-		} catch (AssertionError ex) {
-			isRunningWithoutAssertions = false;
+		if (!omitLogs) {
+			// Clear previous run logs
+			File logDir = new File("logs");
+			if (logDir.exists() && logDir.isDirectory()) {
+				for (File file : logDir.listFiles()) {
+					if (!file.delete()) {
+						System.err.print(String.format("Can't delete %s\n", file.getName()));
+					}
+				}
+			}
+		}
+	}
+
+	private static String turnTooLongMessage(CommonAnt ant, long elapsedTimeMillis) {
+		return String.format("Turn %d took %d ms [%s]\n", ant.turn, elapsedTimeMillis, ant.toString());
+	}
+
+	// Log how long a turn took to complete
+	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {
+		if (omitLogs) {
+			if (elapsedTimeMillis > 150) {
+				System.err.print(turnTooLongMessage(ant, elapsedTimeMillis));
+			}
+		} else if (elapsedTimeMillis > 200) {
+			warn(ant, turnTooLongMessage(ant, elapsedTimeMillis));
+		} else if (elapsedTimeMillis > 400) {
+			error(ant, turnTooLongMessage(ant, elapsedTimeMillis));
 		}
 	}
 
 	// Trace progress of 'ant'
 	public static void trace(CommonAnt ant, String info) {
-		if (isRunningWithoutAssertions) return;
+		if (omitLogs) return;
 		String fileName = getFileName("trace", ant.id);
 		String message = ant.toString() + " " + info;
 		append(fileName, message);
@@ -28,15 +53,24 @@ public class Logger {
 
 	// Output some unusual information on 'ant'
 	public static void inform(CommonAnt ant, String info) {
-		if (isRunningWithoutAssertions) return;
+		if (omitLogs) return;
 		String fileName = getFileName("info", ant.id);
 		String message = ant.toString() + " " + info;
 		append(fileName, message);
 	}
 
+	// Output warning message for 'ant', need to check what happened here
+	public static void warn(CommonAnt ant, String info) {
+		if (omitLogs) return;
+		String fileName = "warnings";
+		String message = ant.toString() + " " + info;
+		append(fileName, message);
+		System.out.print(message + "\n");
+	}
+
 	// Output error message for 'ant', need to check what happened here
 	public static void error(CommonAnt ant, String info) {
-		if (isRunningWithoutAssertions) return;
+		if (omitLogs) return;
 		String fileName = "errors";
 		String message = ant.toString() + " " + info;
 		append(fileName, message);
@@ -45,7 +79,7 @@ public class Logger {
 
 	// Dump current board representation for ant
 	public static void dumpBoard(CommonAnt ant) {
-		if (isRunningWithoutAssertions) return;
+		if (omitLogs) return;
 		String fileName = getFileName("board", ant.id, ant.turn);
 		String representation = String.format("%s\n%s", ant.toString(), ant.board.representation(true));
 		writeAndClose(fileName, representation);
