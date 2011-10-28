@@ -38,12 +38,16 @@ public class ScoutSection extends Role {
 			if (turn > 10000) {
 				state = ScoutState.returning;
 				Logger.dumpBoard(ant, "done");
+				ant.setRole(new Guard(ant));
+				return new Pass();
 			} else {
 				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, section);
 				if (path == null) {
 					state = ScoutState.returning;
 					Logger.error(ant, "no more cells to explore");
-					Logger.dumpBoard(ant, "exhausted");
+					Logger.dumpBoard(ant, "done");
+					ant.setRole(new Guard(ant));
+					return new Pass();
 				} else {
 					follower.setPath(path);
 					return follower.act();

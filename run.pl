@@ -2,6 +2,7 @@
 
 use strict;
 use File::Basename;
+use POSIX qw(strftime);
 use Getopt::Long;
 use Data::Dumper;
 
@@ -40,6 +41,7 @@ my $clfolder = undef;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
+	'c|compile'=>\$clcompile,
 	'r|run=i'=>\$clrun,
 	's|save:s'=>\$clsave,
 	'a|archive'=>\$clarchive,
@@ -47,19 +49,21 @@ GetOptions(
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
-usage("-a can be specified only with -r") if ($clarchive and !$clrun);
-usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
 $clcompile = 1 if ($clcompile);
 $clarchive = 1 if ($clarchive);
+#print "c=[$clcompile] r=[$clrun]\n"; exit;
+usage("-a can be specified only with -r") if ($clarchive and !$clrun);
+usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
 
 if ($clrun) {
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
-		run_game();
+		my $elapsed = run_game();
 		my $folder = $logFolder;
 		$folder = archive_logs() if ($clarchive);
 		my $res = analyze_folder($folder);
+		$res->{gameruntime} = $elapsed;
 		record_analysis($res);
 	}
 } else {
@@ -88,23 +92,37 @@ sub record_analysis {
 		close($fh);
 		logm("done\n");
 	}
+	if ($clrun) {
+		my $fname = "$resultsFolder/runs.txt";
+		my $fh;
+		if (-f $fname) {
+			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
+		} else {
+			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
+			print $fh "date\tmissing\tfill%\tcells\tgameruntime\tfolder\tfail\n";
+		}
+		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}\t$res->{gameruntime}\t$res->{folder}\t$res->{fail}\n";
+		close($fh);
+	}
 }
 
 sub analyze_folder {
 	my ($folder) = @_;
 	logm("Analyzing folder '$folder'\n");
 	fail("No logs folder generated in '$folder'") unless (-d $folder);
+	my $t = 0;
 	for (my $i = 2; $i <= 33; $i++) {
 		my $num = $i;
 		$num = "0$num" unless (length($num)>1);
 		$board->{scout}->{$num} = read_board($folder,"board_${num}_done.txt");
+		$t = $board->{scout}->{$num}->{time} if ($t < $board->{scout}->{$num}->{time});
 		unless (defined $board->{scout}->{$num}->{board}) {
 			$board->{missing}->{count}++;
 			$board->{missing}->{names} .= "$num,";
 		}
 	}
 	logm("Joining ", scalar keys %{$board->{scout}}," boards\n");
-	my $computed = {name=>'computed', board=>{}};
+	my $computed = {name=>'computed', board=>{}, time=>$t};
 	foreach my $num (sort keys %{$board->{scout}}) {
 		join_board($computed, $board->{scout}->{$num});
 	}
@@ -124,6 +142,9 @@ sub analyze_folder {
 	$computed->{state}->{unknown} = $computed->{state}->{max} - $computed->{state}->{cells};
 	my $res = {folder=>$folder, missing=>0, summary=>''};
 	$res->{fail} .= "Missing nest\n" unless ($computed->{state}->{nest} == 1);
+	$res->{time} = $computed->{time};
+	$res->{date} = strftime("%Y-%m-%d %H:%M:%S",localtime($computed->{time}));
+	$res->{summary} .= "$res->{date} $res->{folder}\n";
 	$res->{summary} .= $res->{fail} if (defined $res->{fail});
 	if (defined $board->{missing}->{count}) {
 		$res->{missing} = $board->{missing}->{count};
@@ -158,22 +179,30 @@ sub archive_logs {
 }
 
 sub compile_project {
-	logm("Compiling game ... ");
-	my $cmdCompile = 'javac -d build -cp lib/ants-api.jar:lib/ants-server.jar ants-zoran/src/main/java/org/linkedin/contest/ants/zoran/*.java';
-	my $cmdBuild = 'jar cf lib/ants-zoran.jar build/org/';
+	my $cmdCompile = 'gradle build';
 	run_command($cmdCompile);
-	run_command($cmdBuild);
-	logm("done\n")
+#	my $cmdCompile = 'javac -d build -cp lib/ants-api.jar:lib/ants-server.jar ants-zoran/src/main/java/org/linkedin/contest/ants/zoran/*.java';
+#	my $cmdBuild = 'jar cf lib/ants-zoran.jar build/org/';
+#	run_command($cmdCompile);
+#	run_command($cmdBuild);
 }
 
 sub run_game {
-	logm("Running game ... ");
+	my @t0 = times();
 	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
 	run_command($cmdRun);
-	logm("done, times: [".join(' ',times)."]\n");
+	my @t1 = times();
+	my $elapsed = actual_times(\@t0,\@t1);
+	logm("Run time: $elapsed\n");
+	return $elapsed;
+}
+
+sub actual_times {
+	my ($t0,$t1) = @_;
+	return $t1->[0] - $t0->[0] + $t1->[1] - $t0->[1] + $t1->[2] - $t0->[2] + $t1->[3] - $t0->[3];
 }
 
 sub logm {
@@ -255,9 +284,11 @@ sub can_replace_cell {
 
 sub read_board {
 	my ($folder,$name) = @_;
-	my $res = {name=>$name};
+	my $res = {name=>$name, time=>0};
 	my $fname = "$folder/$name";
 	return $res unless (-f $fname);
+	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($fname);
+	$res->{time} = $mtime;
 	open(my $fh, "<$fname") or fail("Can't read file $fname");
 	my $line = <$fh>;
 	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+)\] f=\[([0-9]+),([0-9]+)\]/o) {
