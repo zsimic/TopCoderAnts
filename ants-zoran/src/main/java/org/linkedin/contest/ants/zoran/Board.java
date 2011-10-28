@@ -43,7 +43,7 @@ public class Board {
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
 	public Path pathToClosestUnexplored(int xStart, int yStart, int section) {
-		assert section >= 0 && section <= 32;
+		assert section >= 0 && section < 32;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
@@ -92,9 +92,54 @@ public class Board {
 		return pathFromNode(goal);
 	}
 
-	private double distanceFromSection(int x, int y, int section) {
-		double d = Constants.normalDistance(x - Constants.BOARD_SIZE, y - Constants.BOARD_SIZE) / Constants.BOARD_MAX_DISTANCE;
+	private static class Line {
+		public double a;
+		public double b;
+		Line (double a, double b) {
+			this.a = a;
+			this.b = b;
+		}
+	}
+
+	private static Line[] lines;
+	static {
+		lines = new Line[32];
+		for (int i = 0; i < lines.length; i++) {
+			lines[i] = newLineForSection(i);
+		}
+	}
+	
+	private static Line lineForSection(int section) {
+		return lines[section % lines.length];
+	}
+
+	private static Line newLineForSection(int section) {
+		double a, b;
+		int s1 = section % 16;
+		if (s1 == 0) { a = 0; b = 1; }
+		else if (s1 == 8) { a = 1; b = 0; }
+		else { 
+			b = 1;
+			if (s1 < 8) a = -s1 / 4;
+			else a = (s1 - (s1 - 8) * 2) / 4;
+		}
+		return new Line(a,b);
+	}
+
+	private static double distancePointLine(int x, int y, Line line) {
+		double d = Math.abs(x * line.a + y * line.b);
+		d = d / (line.a * line.a + line.b * line.b);
 		return d;
+	}
+
+	private static double distanceFromSection(int x, int y, int section) {
+		assert section >= 0 && section < 32;
+		Line a = lineForSection(section);
+		Line b = lineForSection(section + 1);
+		double distanceToLine = distancePointLine(x, y, a);
+		distanceToLine += distancePointLine(x, y, b);
+		double distToNest = Constants.normalDistance(x - Constants.BOARD_SIZE, y - Constants.BOARD_SIZE) / Constants.BOARD_MAX_DISTANCE;
+		return distToNest + distanceToLine;
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)

@@ -37,7 +37,7 @@ public class Logger {
 	// Output error message for 'ant', need to check what happened here
 	public static void error(CommonAnt ant, String info) {
 		if (isRunningWithoutAssertions) return;
-		String fileName = getFileName("error", ant.id);
+		String fileName = "errors";
 		String message = ant.toString() + " " + info;
 		append(fileName, message);
 		System.err.print(message);
