@@ -5,10 +5,12 @@ use File::Basename;
 use POSIX qw(strftime);
 use Getopt::Long;
 use Data::Dumper;
+use GD;
 
 my $boardSize = 512;
 my $logFolder = 'logs';
 my $resultsFolder = 'results';
+my $htmlPlaceholder = '<!--__ITEM__-->';
 my $scriptName = $0;
 if ($scriptName=~/^(.+)\/([^\/]+)$/o) {
 	$scriptName = $2;
@@ -36,7 +38,6 @@ my $board = {};
 my $clcompile = 0;
 my $clrun = 0;
 my $clsave = undef;
-my $clarchive = 0;
 my $clfolder = undef;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
@@ -44,15 +45,12 @@ GetOptions(
 	'c|compile'=>\$clcompile,
 	'r|run=i'=>\$clrun,
 	's|save:s'=>\$clsave,
-	'a|archive'=>\$clarchive,
 	'f|folder=s'=>\$clfolder,
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
 $clcompile = 1 if ($clcompile);
-$clarchive = 1 if ($clarchive);
 #print "c=[$clcompile] r=[$clrun]\n"; exit;
-usage("-a can be specified only with -r") if ($clarchive and !$clrun);
 usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
 
 if ($clrun) {
@@ -61,7 +59,7 @@ if ($clrun) {
 	while ($n--) {
 		my $elapsed = run_game();
 		my $folder = $logFolder;
-		$folder = archive_logs() if ($clarchive);
+		$folder = archive_logs();
 		my $res = analyze_folder($folder);
 		$res->{gameruntime} = $elapsed;
 		record_analysis($res);
@@ -73,37 +71,156 @@ if ($clrun) {
 
 sub record_analysis {
 	my ($res) = @_;
-	if (!defined $clsave) {
-		print $res->{summary};
-		print "--------\n" if ($clrun);
-	} else {
-		my $name = $clsave;
-		$name = $res->{folder} unless (length($name));
-		if ($name eq $logFolder) {
-			$name = 'adhoc';
+	if ($clrun || defined $clsave) {
+		# Save summary in archive.txt or adhoc.txt
+		my $fname = $clsave;
+		$fname = $res->{folder} unless (length($fname));
+		if ($fname eq $logFolder) {
+			$fname = 'adhoc';
 		} else {
-			$name = basename($name);
+			$fname = basename($fname);
 		}
-		$name = "$resultsFolder/$name.txt";
-		logm("Recording analysis to $name ... ");
-		open (my $fh, ">>$name");
+		$fname = "$resultsFolder/$fname.txt";
+		logm("Saving overview to $fname ... ");
+		open (my $fh, ">>$fname");
 		print $fh $res->{summary};
 		print $fh "--------\n";
 		close($fh);
 		logm("done\n");
-	}
-	if ($clrun) {
-		my $fname = "$resultsFolder/runs.txt";
-		my $fh;
+		# runs.txt
+		$fname = "$resultsFolder/runs.txt";
+		logm("Recording results to $fname\n");
 		if (-f $fname) {
 			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
 		} else {
 			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
-			print $fh "date\tmissing\tfill%\tcells\tgameruntime\tfolder\tfail\n";
+			print $fh "date\t\tmissing\tfill%\tcells\tgameruntime\tfolder\t\t\t\tfail\n";
 		}
-		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}\t$res->{gameruntime}\t$res->{folder}\t$res->{fail}\n";
+		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}\t$res->{gameruntime}\t$res->{fail}\n";
 		close($fh);
+		# run.html
+		$fname = "$resultsFolder/runs.html";
+		logm("Recording results to $fname\n");
+		my $html = '';
+		if (-f $fname) {
+			open ($fh, "<$fname") or fail("Can't read results html '$fname'");
+			local $/ = undef;
+			$html = <$fh>;
+			close($fh);
+		} else {
+			$html = new_run_html();
+		}
+		# full board html
+		my $fullBoardFile = "full_board_$res->{time}";
+		my $newRow = "<tr>";
+		$newRow .= new_td($res->{date},undef);
+		$newRow .= new_td($res->{missing},undef);
+		$newRow .= new_td($res->{cells}->{percent}.'%',undef);
+		$newRow .= new_td(new_href($res->{cells}->{n},"file:$fullBoardFile.png"),undef);
+		$newRow .= new_td($res->{gameruntime},undef);
+		$newRow .= new_td($res->{folder},undef);
+		$newRow .= new_td($res->{fail},'red');
+		$newRow .= "</tr>\n";
+		$html=~s/$htmlPlaceholder/$newRow  $htmlPlaceholder/go;
+		open ($fh, ">$fname") or fail("Can't write results html '$fname'");
+		print $fh $html;
+		close($fh);
+		create_png($res,"$resultsFolder/$fullBoardFile.png");
+	} else {
+		print $res->{summary};
+		print "--------\n" if ($clrun);
 	}
+}
+
+sub create_png {
+	my ($stat,$fname) = @_;
+	GD::Image->trueColor(1);
+	my $cellSizeX = 3;
+	my $cellSizeY = 2;
+	my $im = new GD::Image($boardSize * $cellSizeX, $boardSize * $cellSizeY);
+	my $white = $im->colorAllocate(255, 255, 255);
+	my $lightYellow = $im->colorAllocate(255, 245, 220);
+	my $lightGreen = $im->colorAllocate(150, 255, 150);
+	my $red = $im->colorAllocate(255, 0, 0);
+	my $darkBlue = $im->colorAllocate(0, 0, 180);
+	my $green = $im->colorAllocate(0, 255, 0);
+	my $black = $im->colorAllocate(0, 0, 0);
+	# make the background transparent and interlaced
+	$im->transparent($white);
+	$im->interlaced('true');
+	$im->alphaBlending(0);
+	$im->saveAlpha(1);
+	my $x0 = $stat->{board}->{bx0};
+	my $x1 = $stat->{board}->{bx1};
+	my $y0 = $stat->{board}->{by0};
+	my $y1 = $stat->{board}->{by1};
+	my ($xnest,$ynest);
+	my $color;
+	for (my $y = $y0; $y <= $y1; $y++) {
+		for (my $x = $x0; $x <= $x1; $x++) {
+			my $px = $x - $x0;
+			my $py = $y - $y0;
+			my $c = ' ';
+			$c = $stat->{board}->{board}->{$x}->{$y}->{v} if (defined $stat->{board}->{board}->{$x}->{$y});
+			if ($c eq ' ') { $color = $white; }
+			elsif ($c eq '.') { $color = $lightYellow; }
+			elsif ($c eq '#') { $color = $black; }
+			elsif ($c eq '%') { $color = $lightGreen; }
+			elsif ($c eq '^') { $color = $green; }
+			elsif ($c eq 'N') { $color = $red; $xnest = $px; $ynest = $py; }
+			else { fail("check PNG color for '$c'") }
+			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
+		}
+	}
+	$im->stringFT($darkBlue, "a-ttf-font.ttf", 12, 0, 1000, 20, "$stat->{cells}->{percent}%% $stat->{date}");
+	$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
+	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
+	binmode $fh;
+	print $fh $im->png;
+	close($fh);
+}
+
+sub represented_html_game_cell {
+	my ($b,$x,$y) = @_;
+	return ' ' unless (defined $b->{$x}->{$y});
+	my $c = $b->{$x}->{$y}->{v};
+	my $color;
+	if ($c eq '#') { $color = '#000000'; }
+	elsif ($c eq 'N') { $color = '#FF0000'; }
+	elsif (($c eq '%') or ($c eq '^')) { $color = '#00FF00'; }
+	elsif ($c eq '.') { $color = '#F7E477'; }
+	else { fail("check character '$c' in board rep"); }
+	return "<span style=\"color: $color;\">&#x25A0;</span>";
+}
+
+sub new_href {
+	my ($text,$url) = @_;
+	my $str = "";
+	$str .= "<a href=\"$url\">";
+	$str .= $text;
+	$str .= "</a>";
+	return $str;
+}
+
+sub new_td {
+	my ($text,$color) = @_;
+	my $str = "<td";
+	$str .= " style=\"color: $color;\"" if (defined $color);
+	$str .= '>';
+	$str .= $text;
+	$str .= "</td>";
+	return $str;
+}
+
+sub new_run_html {
+	return <<EOT;
+<html><head><title>Run results</title></head><body>
+<table>
+  <tr><th>Date</th><th align="center">Missing</th><th>Fill%</th><th>Cells</th><th>Run time</th><th>Note</th></tr>
+  $htmlPlaceholder
+</table>
+</body></html>
+EOT
 }
 
 sub analyze_folder {
@@ -141,6 +258,7 @@ sub analyze_folder {
 	$computed->{state}->{max} = ($boardSize - 2) * ($boardSize - 1);
 	$computed->{state}->{unknown} = $computed->{state}->{max} - $computed->{state}->{cells};
 	my $res = {folder=>$folder, missing=>0, summary=>''};
+	$res->{board} = $computed;
 	$res->{fail} .= "Missing nest\n" unless ($computed->{state}->{nest} == 1);
 	$res->{time} = $computed->{time};
 	$res->{date} = strftime("%Y-%m-%d %H:%M:%S",localtime($computed->{time}));
@@ -209,30 +327,34 @@ sub logm {
 
 sub join_board {
 	my ($b1,$b2) = @_;
+	return unless (defined $b2->{bx0});
+	return unless (defined $b2->{board});
+	set_value($b1,$b2,'bx0',-1);
+	set_value($b1,$b2,'bx1',1);
+	set_value($b1,$b2,'by0',-1);
+	set_value($b1,$b2,'by1',1);
+	set_value($b1,$b2,'turn',1);
+	set_value($b1,$b2,'bsizeX',1);
+	set_value($b1,$b2,'bsizeY',1);
 	foreach my $x (keys %{$b2->{board}}) {
 		foreach my $y (keys %{$b2->{board}->{$x}}) {
 			my $c = $b2->{board}->{$x}->{$y}->{v};
 			set_cell($b1,$x,$y,$c,$b2->{name}) if ($c ne ' ');
-			set_value($b1,$b2,'bx0',-1);
-			set_value($b1,$b2,'bx1',1);
-			set_value($b1,$b2,'by0',-1);
-			set_value($b1,$b2,'by1',1);
-			set_value($b1,$b2,'turn',1);
-			set_value($b1,$b2,'bsizeX',1);
-			set_value($b1,$b2,'bsizeY',1);
 		}
 	}
 }
 
 sub set_value {
 	my ($b1,$b2,$key,$direction) = @_;
-	return unless (defined $b2->{key});
-	if ($direction == 0) {
-		$b1->{$key} = $b2->{key} if ($b1->{key} ne $b2->{key});
-	} else {
-		my $old = $direction * $boardSize * 2;
-		$old = $b1->{$key} if (defined $b1->{key});
-		$b1->{$key} = $b2->{key} if ($old * $direction < $b2->{key} * $direction);
+	fail("No key '$key' in $b2->{name}") unless (defined $b2->{$key});
+	if (!defined $b1->{$key}) {
+		$b1->{$key} = $b2->{$key};
+	} elsif ($direction == 0) {
+		$b1->{$key} = $b2->{$key} if ($b1->{$key} ne $b2->{$key});
+	} elsif ($direction == 1) {
+		$b1->{$key} = $b2->{$key} if ($b1->{$key} < $b2->{$key});
+	} elsif ($direction == -1) {
+		$b1->{$key} = $b2->{$key} if ($b1->{$key} > $b2->{$key});
 	}
 }
 

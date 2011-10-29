@@ -220,8 +220,9 @@ abstract class CommonAnt implements Ant {
      */
 	public Action onDeath(WorldEvent cause) {
 //		return sayInAllDirections("Man down " + role.toString());
-		Logger.warn(this, String.format("died! %s",cause.toString()));
-		return new Pass();
+		if (cause==null) Logger.error(this, String.format("died after trying to attack"));
+		else Logger.error(this, String.format("died %s",cause.toString()));
+		return null;
 	}
 
 	// 'Say' action in all directions
