@@ -118,7 +118,6 @@ sub record_analysis {
 		$newRow .= new_td($res->{cells}->{percent}.'%',undef);
 		$newRow .= new_td(new_href($res->{cells}->{n},"file:$fullBoardFile.png"),undef);
 		$newRow .= new_td($res->{gameruntime},undef);
-		$newRow .= new_td($res->{folder},undef);
 		$newRow .= new_td($res->{fail},'red');
 		$newRow .= "</tr>\n";
 		$html=~s/$htmlPlaceholder/$newRow  $htmlPlaceholder/go;
@@ -135,15 +134,13 @@ sub record_analysis {
 sub create_png {
 	my ($stat,$fname) = @_;
 	GD::Image->trueColor(1);
-	my $cellSizeX = 3;
-	my $cellSizeY = 2;
+	my $cellSizeX = 6;
+	my $cellSizeY = 4;
 	my $im = new GD::Image($boardSize * $cellSizeX, $boardSize * $cellSizeY);
 	my $white = $im->colorAllocate(255, 255, 255);
 	my $lightYellow = $im->colorAllocate(255, 245, 220);
-	my $lightGreen = $im->colorAllocate(150, 255, 150);
 	my $red = $im->colorAllocate(255, 0, 0);
 	my $darkBlue = $im->colorAllocate(0, 0, 180);
-	my $green = $im->colorAllocate(0, 255, 0);
 	my $black = $im->colorAllocate(0, 0, 0);
 	# make the background transparent and interlaced
 	$im->transparent($white);
@@ -165,20 +162,32 @@ sub create_png {
 			if ($c eq ' ') { $color = $white; }
 			elsif ($c eq '.') { $color = $lightYellow; }
 			elsif ($c eq '#') { $color = $black; }
-			elsif ($c eq '%') { $color = $lightGreen; }
-			elsif ($c eq '^') { $color = $green; }
 			elsif ($c eq 'N') { $color = $red; $xnest = $px; $ynest = $py; }
 			else { fail("check PNG color for '$c'") }
 			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
 		}
 	}
-	$im->string(gdMediumBoldFont, 10, 2, "$stat->{board}->{name}", $darkBlue);
-	$im->string(gdSmallFont, 10, 16, "$stat->{cells}->{n} [$stat->{cells}->{percent}%%] $stat->{date}", $darkBlue);
+	my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
+	draw_title($im,4,2,$lightYellow,$red,gdMediumBoldFont,$title);
 	$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
 	binmode $fh;
 	print $fh $im->png;
 	close($fh);
+}
+
+sub draw_title {
+	my ($im,$x,$y,$bg,$fg,$font,$title) = @_;
+	my $font = gdLargeFont;
+	$im->string($font, $x-2, $y-2, $title, $bg);
+	$im->string($font, $x-2, $y+2, $title, $bg);
+	$im->string($font, $x+2, $y+2, $title, $bg);
+	$im->string($font, $x+2, $y-2, $title, $bg);
+	$im->string($font, $x-1, $y-1, $title, $bg);
+	$im->string($font, $x-1, $y+1, $title, $bg);
+	$im->string($font, $x+1, $y+1, $title, $bg);
+	$im->string($font, $x+1, $y-1, $title, $bg);
+	$im->string($font, $x, $y, $title, $fg);
 }
 
 sub represented_html_game_cell {
@@ -188,7 +197,6 @@ sub represented_html_game_cell {
 	my $color;
 	if ($c eq '#') { $color = '#000000'; }
 	elsif ($c eq 'N') { $color = '#FF0000'; }
-	elsif (($c eq '%') or ($c eq '^')) { $color = '#00FF00'; }
 	elsif ($c eq '.') { $color = '#F7E477'; }
 	else { fail("check character '$c' in board rep"); }
 	return "<span style=\"color: $color;\">&#x25A0;</span>";
@@ -250,7 +258,6 @@ sub analyze_folder {
 			my $c = $computed->{board}->{$x}->{$y}->{v};
 			$computed->{state}->{cells}++;
 			if ($c eq '.') { $computed->{state}->{empty}++; }
-			elsif ($c eq '%' || $c eq '^') { $computed->{state}->{empty}++, $computed->{state}->{food}++, ; }
 			elsif ($c eq 'N') { $computed->{state}->{empty}++, $computed->{state}->{nest}++; }
 			elsif ($c eq '#') { $computed->{state}->{obstacle}++; }
 			else { fail("Add support for cell type '$c'"); }
@@ -273,7 +280,6 @@ sub analyze_folder {
 	add_stat($res,$computed,'unknown','max');
 	add_stat($res,$computed,'empty','cells');
 	add_stat($res,$computed,'obstacle','cells');
-	add_stat($res,$computed,'food','empty');
 	$res->{summary} .= "all good, times: [".join(' ',times)."]\n";
 	return $res;
 }
@@ -383,6 +389,8 @@ sub compare_boards {
 
 sub set_cell {
 	my ($b,$x,$y,$char,$comingFrom) = @_;
+	$char = '.' if ($char eq '%');
+	$char = '.' if ($char eq '^');
 	my $old = '';
 	my $prev = '';
 	if (defined defined $b->{board}->{$x}->{$y}) {
@@ -404,7 +412,7 @@ sub can_replace_cell {
 }
 
 sub read_board {
-	my ($folder,$num) = @_;$name
+	my ($folder,$num) = @_;
 	my $res = {name=>$num, time=>0};
 	my $fname = "$folder/board_${num}_100000.txt";
 	$fname = "$folder/board_${num}_50000.txt" unless (-f $fname);
@@ -461,7 +469,7 @@ sub read_board {
 				fail("Malformed line $n in $fname");
 			}
 			for (my $i = 0; $i<length($rep); $i++) {
-				set_cell($res,$res->{bx0}+$i,$y,substr($rep,$i,1),$name);
+				set_cell($res,$res->{bx0}+$i,$y,substr($rep,$i,1),$res->{name});
 			}
 		} else {
 			fail("Malformed line $n in $fname: $line");

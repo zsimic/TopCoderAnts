@@ -22,7 +22,8 @@ public class ScoutSection extends Role {
 	@Override
 	public String toString() {
 		String mode;
-		if (follower.isActive()) mode = "following path";
+		if (isHauling) mode = (skipSteps > 0) ? "hauling+skip" : "hauling";
+		else if (follower.isActive()) mode = "following path";
 		else mode = "";
 		return String.format("Scout slice %d %s", slice, mode);
 	}
@@ -49,6 +50,7 @@ public class ScoutSection extends Role {
 	@Override
 	Action effectiveAct() {
 		ZSquare sfood;
+		if (turn % 50000 == 0) Logger.dumpBoard(ant, Integer.toString(turn));
 		if (isHauling) {
 			if (ant.here.isNest() || ant.isNextToNest()) {
 				if (ant.hasFood) return new DropFood(ant.nest().dir);

@@ -90,7 +90,6 @@ abstract class CommonAnt implements Ant {
 			assert role != null;
 			return new Write(new Long(id));
 		}
-		if (turn % 50000 == 0) Logger.dumpBoard(this, Integer.toString(turn));
 		northeast.update(environment);
 		east.update(environment);
 		southeast.update(environment);
