@@ -235,10 +235,7 @@ public class Board {
 				} else if (i == iNest && j == jNest) {
 					line += 'N';
 				} else {
-					int food = decorate ? ant.foodStock.foodAmount(px, py) : 0;
-					if (food == 0) line += '.';
-					else if (food > 10) line += '^';
-					else line += '%';
+					line += '.';
 				}
 			}
 			s += line + '\n';

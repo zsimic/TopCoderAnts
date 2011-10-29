@@ -16,14 +16,13 @@ abstract class CommonAnt implements Ant {
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
 	protected List<ZSquare> cells;					// All cells (including 'here')
 	protected Board board;							// Board as discovered so far
-	protected FoodStock foodStock;					// Coordinates of points where food was seen
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	private HashMap<Integer, String> pendingTransmissions;		// Pending transmissions from other ants
 
 	@Override
 	public String toString() {
 		String rs = role == null ? "-no role-" : role.toString();
-		return String.format("%d %d xy=[%d,%d] bs=[%d,%d,%d] f=[%d,%d] %s", turn, id, x, y, board.sizeX(), board.sizeY(), board.knownCells, foodStock.size(), foodStock.totalFood, rs);
+		return String.format("%d %d xy=[%d,%d] bs=[%d,%d,%d] %s", turn, id, x, y, board.sizeX(), board.sizeY(), board.knownCells, rs);
 	}
 
     /**
@@ -38,7 +37,6 @@ abstract class CommonAnt implements Ant {
 		receivalInProgress = false;
 		hasFood = false;
 		board = new Board(this);
-		foodStock = new FoodStock();
 		north = new ZSquare(this, Direction.north);
 		northeast = new ZSquare(this, Direction.northeast);
 		east = new ZSquare(this, Direction.east);
@@ -109,7 +107,6 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(west);
 		board.updateCell(northwest);
 		board.updateCell(north);
-		sniffFood();
 		for (WorldEvent event : events) {
 			receiveEvent(event.getEvent());
 		}
@@ -189,22 +186,10 @@ abstract class CommonAnt implements Ant {
 		int i = 0;
 		for (; i < lines.length; i++) {
 			String line = lines[i];
-			if (line.startsWith("----")) {
-				i++;
-				break;
-			}
 			list.add(line);
 		}
 		board.setFromLines(list);
-		if (i >= lines.length) return; 
-		list.clear();
-		for (; i < lines.length; i++) {
-			String line = lines[i];
-			list.add(line);
-		}
-		foodStock.setFromLines(list);
 		receivedBoardInfos++;
-		Logger.dumpBoard(this, String.format("rec_%02d", receivedBoardInfos));
 	}
 
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)
@@ -368,15 +353,6 @@ abstract class CommonAnt implements Ant {
 		assert role != null;
 		this.role = role;
 		Logger.trace(this, "changed role");
-	}
-
-	// Sniff for nearby food (for squares excluding nest and immediate nest neighbors)
-	private void sniffFood() {
-		for (ZSquare s : cells) {
-			if (s.hasFood() && !here.isNest() && !isNextToNest()) {
-				foodStock.add(s.x, s.y, s.getAmountOfFood());
-			}
-		}
 	}
 
 //--  Ant implementation

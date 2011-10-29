@@ -22,7 +22,7 @@ public class TransmitMessage extends Operation {
 	private static final int maxSize = 248;
 
 	public void setBoardInfo(Direction dir) {
-		setMessage(dir, Constants.messageBoard, String.format("%s----\n%s", ant.board.representation(false), ant.foodStock.representation()));
+		setMessage(dir, Constants.messageBoard, ant.board.representation(false));
 	}
 
 	public void setMessage(Direction dir, char type, String msg) {

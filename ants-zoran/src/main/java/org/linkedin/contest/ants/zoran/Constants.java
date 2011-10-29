@@ -5,15 +5,17 @@ public class Constants {
 	public static final String AN_ANT_SAYS = "An ant says ";
 	public static final int BOARD_SIZE = 512;									// Board size
 	public static final double BOARD_MAX_DISTANCE = Math.sqrt(2)*BOARD_SIZE;	// Max distance on board from nest
+	public final static int totalSlices = 32;									// Number of slices to use when scanning the board
+	public static final int BOARD_MAX_SCOUT = BOARD_SIZE * BOARD_SIZE * 3 / totalSlices;	// Stop scouting when this number of cells have been discovered by the scout
 
 	public final static String compressionEncoding = "US-ASCII";		// Encoding to use when transforming a String to byte[] and vice versa
 	public final static char messageBoard = 'l';						// Multi-part message giving board representation
 
-	public final static int totalSlices = 32;							// Number of slices to use when scanning the board
-	private final static RotationCoordinates rotationCoordinatesArray[] = new RotationCoordinates[totalSlices];
 	public final static RotationCoordinates rotationCoordinates(int slice) {
 		return rotationCoordinatesArray[slice % totalSlices];
 	}
+
+	private final static RotationCoordinates rotationCoordinatesArray[] = new RotationCoordinates[totalSlices];
 	static {
 		for (int i = 0; i < totalSlices; i++) {
 			double cosf = Math.cos(2.0*i/totalSlices*Math.PI);
@@ -24,7 +26,7 @@ public class Constants {
 	}
 	
 	private final static int maximumEncodableValueInChar = 90;
-	
+
 	// Decoded integer value for character c
 	public final static int decodedCharInt(char c) {
 		int i = 0;
@@ -44,15 +46,12 @@ public class Constants {
 	private final static int xPointMask = 0x000fff;
 	private final static int yPointMask = 0xfff000;
 	private final static int pointBitOffset = Integer.bitCount(xPointMask);
-
 	public final static int encodedXY(int x, int y) {
 		return (y << pointBitOffset) | x;
 	}
-
 	public final static int decodedX(int key) {
 		return key & xPointMask;
 	}
-
 	public final static int decodedY(int key) {
 		return (key & yPointMask) >>> pointBitOffset;
 	}
@@ -90,9 +89,7 @@ public class Constants {
 	public final static int dBitOffset = cBitOffset + argBitCount;				// Offset of argument 'd' in the scent
 	public final static int checksumBitOffset = valueBitCount;
 
-	public final static int NATURE_AWAITING_BOARD_INFO = 1;	// Scout awaiting board info update from manager
-	public final static int NATURE_FETCH_FOOD = 2;			// Order to go fetch food at given coordinates
-	public final static int NATURE_SCAN = 3;				// Order to go fetch food at given coordinates
+	public final static int NATURE_SCAN = 1;				// Order to go fetch food at given coordinates
 
 	public static boolean isNumber(String s) {
 		for (int i = s.length() - 1; i >= 0; i--) {

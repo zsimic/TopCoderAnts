@@ -33,7 +33,7 @@ public class Scent {
 	@Override
 	public String toString() {
 		if (stinky) return String.format("stinky %x", rawValue);
-		else if (nature == Constants.NATURE_FETCH_FOOD) return String.format("fetch food x=%d y=%d amt=%d [%x]", a, b, c, rawValue);
+		else if (nature == Constants.NATURE_SCAN) return String.format("scan x=%d-%d y=%d-%d [%x]", a, b, c, d, rawValue);
 		return String.format("nature %d: %d %d %d %d %x", nature, a, b, c, d, rawValue);
 	}
 
@@ -47,15 +47,6 @@ public class Scent {
 		return nature == Constants.NATURE_SCAN;
 	}
 
-	// Scent giving an order to a gatherer to go fetch food at coordinates 'xa', 'xb'
-	public boolean isFetchFood() {
-		return nature == Constants.NATURE_FETCH_FOOD;
-	}
-
-	public boolean isAwaitingBoardInfo() {
-		return nature == Constants.NATURE_AWAITING_BOARD_INFO;
-	}
-
 //--  Basic operations
 //--------------------
 
@@ -67,19 +58,6 @@ public class Scent {
 		this.b = x1;
 		this.c = y0;
 		this.d = y1;
-	}
-
-	public void setFetchFood(FoodCoordinates c) {
-		this.nature = Constants.NATURE_FETCH_FOOD;
-		this.turn = 0;
-		this.a = c.x;
-		this.b = c.y;
-		this.c = c.amount;
-	}
-
-	public void setAwaitingBoardInfo() {
-		this.nature = Constants.NATURE_AWAITING_BOARD_INFO;
-		this.turn = 0;
 	}
 
 //-- Implementation

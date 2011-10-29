@@ -48,7 +48,6 @@ public class ScoutSection extends Role {
 
 	@Override
 	Action effectiveAct() {
-		if (turn == 90000) Logger.dumpBoard(ant, "done");
 		ZSquare sfood;
 		if (isHauling) {
 			if (ant.here.isNest() || ant.isNextToNest()) {
@@ -79,6 +78,12 @@ public class ScoutSection extends Role {
 		if (sfood != null) {
 			startHauling();
 			return new GetFood(sfood.dir);
+		}
+		if (ant.board.knownCells > Constants.BOARD_MAX_SCOUT) {
+			// Stop scouting for unexplored cells, we get close to hitting the VM heap space limit
+			Logger.dumpBoard(ant, "done");
+			ant.setRole(new Guard(ant));
+			return new Pass();
 		}
 		if (follower.isActive()) {
 			Action act = follower.act();
