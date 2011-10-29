@@ -44,8 +44,8 @@ public class Board {
 	};
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
-	public Path pathToClosestUnexplored(int xStart, int yStart, int section) {
-		assert section >= 0 && section < 32;
+	public Path pathToClosestUnexplored(int xStart, int yStart, RotationCoordinates slice1, RotationCoordinates slice2, int avoidX, int avoidY) {
+		assert slice1 != null && slice2 != null;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
@@ -73,11 +73,11 @@ public class Board {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
 				byte state = get(nx, ny);
-				if (state != Constants.STATE_OBSTACLE) {
+				if (state != Constants.STATE_OBSTACLE && !(current.x == avoidX && current.y == avoidY)) {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
 						double g = current.g + 1;							// current g + distance from current to neighbor
-						double h = distanceFromSection(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, section);	// Heuristic when exploring
+						double h = distanceFromSlices(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, slice1, slice2);	// Heuristic when exploring
 						PathNode node = opened.get(key);
 						if (node == null) {
 							// Not in the open set yet
@@ -98,67 +98,13 @@ public class Board {
 		return pathFromNode(goal);
 	}
 
-	private static class Line {
-		public double a;
-		public double b;
-		Line (double a, double b) {
-			this.a = a;
-			this.b = b;
-		}
-		@Override
-		public String toString() {
-			return String.format("%g %g", a, b);
-		}
-	}
-
-	private static Line[] lines;
-	static {
-		lines = new Line[16];
-		for (int i = 0; i < lines.length; i++) {
-			lines[i] = newLineForSection(i);
-		}
-	}
-	
-	private static Line lineForSection(int section) {
-		return lines[section % lines.length];
-	}
-
-	private static Line newLineForSection(int section) {
-		double a, b;
-		int s1 = section % 16;
-		if (s1 == 0) { a = 0.0; b = 1.0; }
-		else if (s1 == 8) { a = 1.0; b = 0.0; }
-		else { 
-			b = 1.0;
-			if (s1 < 8) a = -s1 / 4.0;
-			else a = (s1 - (s1 - 8.0) * 2.0) / 4.0;
-		}
-		return new Line(a,b);
-	}
-
-	private static double distancePointLine(int x, int y, Line line) {
-		double d = Math.abs(x * line.a + y * line.b);
-		d = d / (line.a * line.a + line.b * line.b);
-		return d;
-	}
-
-	private static boolean isLeft(int x, int y, Line line) {
-	     return (line.a * y - line.b * x) > 0;
-	}
-
-	private static double distanceFromSection(int x, int y, int section) {
-		assert section >= 0 && section < 32;
-		Line a = lineForSection(section);
-		Line b = lineForSection(section + 1);
-		double distanceToLine = distancePointLine(x, y, a);
-		distanceToLine += distancePointLine(x, y, b);
-		boolean isLeft = isLeft(x, y, a);
-		if ((section < 16 && isLeft) || (section > 15 && !isLeft)) distanceToLine += 10000;
-//		if (section == 0) {
-//			System.out.print("");
-//		}
-		double distToNest = Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
-		return distToNest + distanceToLine;
+	private static double distanceFromSlices(int x, int y, RotationCoordinates slice1, RotationCoordinates slice2) {
+		double px = slice1.projectedX(x, y);
+		double py1 = slice1.projectedY(x, y);
+		double py2 = slice2.projectedY(x, y);
+		double distance = Math.abs(py1) + Math.abs(py2) + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
+		if (px < 0) distance *= -px + 1; 
+		return distance;
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)

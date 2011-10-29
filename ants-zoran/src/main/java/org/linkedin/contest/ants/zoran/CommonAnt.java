@@ -244,8 +244,34 @@ abstract class CommonAnt implements Ant {
 		return null;
 	}
 
+	// Are we relatively close to the nest?
+	protected boolean isAroundNest() {
+		return here.isAroundNest();
+	}
+
 	protected boolean isNextToNest() {
 		return !here.isNest() && Math.abs(x - Constants.BOARD_SIZE) <= 1 && Math.abs(y - Constants.BOARD_SIZE) <= 1;
+	}
+
+	protected ZSquare bestSquareToAvoidConflict(ZSquare target) {
+		if (isAroundNest()) return null;			// Don't avoid conflict when nearby own nest
+		double dist = 0;
+		ZSquare best = null;
+		for (ZSquare s : neighbors) {
+			if (s.getNumberOfAnts() == 0) {
+				double d = Constants.normalDistance(target.x - s.x, target.y - s.y);
+				if (d > dist) best = s;
+			}
+		}
+		return best;
+	}
+
+	// Square target by given action
+	protected ZSquare square(Action act) {
+		if (act instanceof Move) {
+			return square(((Move)act).getDirection());
+		}
+		return here;
 	}
 
 	// Square in given direction number (0: north, 1: northeast, ...)

@@ -4,99 +4,58 @@ import org.linkedin.contest.ants.api.*;
 
 public class ScoutSection extends Role {
 
-	ScoutSection(CommonAnt ant, int section) {
+	ScoutSection(CommonAnt ant, int slice) {
 		super(ant);
-		this.section = section;
+		assert slice >= 0 && slice < Constants.totalSlices;
+		this.slice = slice;
+		this.slice1 = Constants.rotationCoordinates(slice);
+		this.slice2 = Constants.rotationCoordinates(slice + 1);
 	}
 
-	private enum ScoutState {
-		scanning,
-		returning,
-		communicatingInfo,
-		waitingForBoardInfo,
-		done
-	}
-
-	protected int section;
+	protected int slice;							// The slice we want to explore (from 0 to totalSlices)
+	private RotationCoordinates slice1, slice2;		// The ant will be encouraged to stay within these 2 slices of the board
+	private int avoidX = 0, avoidY = 0;
 	private FollowPath follower = new FollowPath(this);
-	private TransmitMessage opTransmit = new TransmitMessage(this);
-	private ScoutState state = ScoutState.scanning;
 
 	@Override
 	public String toString() {
 		String mode;
 		if (follower.isActive()) mode = "following path";
-		else if (opTransmit.isActive()) mode = "transmitting";
 		else mode = "";
-		return String.format("Scout section %d %s %s", section, state.toString(), mode);
+		return String.format("Scout slice %d %s", slice, mode);
 	}
 
 	@Override
 	Action effectiveAct() {
-		if (follower.isActive()) return follower.act();
-		if (state == ScoutState.scanning) {
-			if (turn > 10000) {
-				state = ScoutState.returning;
-				Logger.dumpBoard(ant, "done");
-				ant.setRole(new Guard(ant));
-				return new Pass();
-			} else {
-				Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, section);
-				if (path == null) {
-					state = ScoutState.returning;
-					Logger.error(ant, "no more cells to explore");
-					Logger.dumpBoard(ant, "done");
-					ant.setRole(new Guard(ant));
+		if (follower.isActive()) {
+			Action act = follower.act();
+			if (act != null) {
+				ZSquare s = ant.square(act);
+				if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
+					avoidX = s.x;
+					avoidY = s.y;
+					follower.setPath(null);
+					s = ant.bestSquareToAvoidConflict(s);
+					if (s != null) return new Move(s.dir);
 					return new Pass();
-				} else {
-					follower.setPath(path);
-					return follower.act();
 				}
+				return act;
 			}
 		}
-		if (state == ScoutState.returning) {
-			if (ant.x == Constants.BOARD_SIZE + 1 && ant.y == Constants.BOARD_SIZE) {
-				state = ScoutState.communicatingInfo;
-			} else {
-				Path path = ant.board.bestPath(ant.x, ant.y, Constants.BOARD_SIZE + 1, Constants.BOARD_SIZE);
-				assert path != null;
-				follower.setPath(path);
-				return follower.act();
-			}
-		}
-		if (state == ScoutState.communicatingInfo) {
-			if (opTransmit.messageBody == null) opTransmit.setBoardInfo(ant.north.dir);
-			if (opTransmit.isActive()) return opTransmit.act();
-			opTransmit.clear();
-			if (ant.receivedBoardInfos >= 0) {
-				state = ScoutState.done;
-			} else {
-				state = ScoutState.waitingForBoardInfo;
-				return writeBoardInfoWriting();
-			}
-		}
-		if (state == ScoutState.waitingForBoardInfo) {
-			if (ant.receivedBoardInfos > 0) {
-				state = ScoutState.done;
-				if (ant.here.scent.isAwaitingBoardInfo()) return new Write(null);
-			} else if (!ant.here.scent.isAwaitingBoardInfo()) {
-				return writeBoardInfoWriting();
-			}
-		}
-		if (state == ScoutState.done) {
-			assert ant.here.isNest() || ant.isNextToNest();
-			if (!ant.here.isNest()) return new Move(ant.north.dir);
-			ant.setRole(new Guard(ant));
+		if (turn > 10000) {
+			Logger.dumpBoard(ant, "done");
+			ant.setRole(new Gatherer(ant));
 			return new Pass();
 		}
-		return null;		// confused
-	}
-
-	private Action writeBoardInfoWriting() {
-		assert ant.x == Constants.BOARD_SIZE + 1 && ant.y == Constants.BOARD_SIZE;
-		Scent s = new Scent();
-		s.setAwaitingBoardInfo();
-		return new Write(s.getValue());
+		Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, slice1, slice2, avoidX, avoidY);
+		avoidX = 0;
+		avoidY = 0;
+		if (path == null) {
+			Logger.error(ant, "can't find path to explore");
+			return new Pass();
+		}
+		follower.setPath(path);
+		return follower.act();
 	}
 
 }

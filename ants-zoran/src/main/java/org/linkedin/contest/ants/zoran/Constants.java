@@ -9,6 +9,20 @@ public class Constants {
 	public final static String compressionEncoding = "US-ASCII";		// Encoding to use when transforming a String to byte[] and vice versa
 	public final static char messageBoard = 'l';						// Multi-part message giving board representation
 
+	public final static int totalSlices = 32;							// Number of slices to use when scanning the board
+	private final static RotationCoordinates rotationCoordinatesArray[] = new RotationCoordinates[totalSlices];
+	public final static RotationCoordinates rotationCoordinates(int slice) {
+		return rotationCoordinatesArray[slice % totalSlices];
+	}
+	static {
+		for (int i = 0; i < totalSlices; i++) {
+			double cosf = Math.cos(2.0*i/totalSlices*Math.PI);
+			double sinf = Math.sin(2.0*i/totalSlices*Math.PI);
+			RotationCoordinates rc = new RotationCoordinates(cosf, sinf);
+			rotationCoordinatesArray[i] = rc;
+		}
+	}
+	
 	private final static int maximumEncodableValueInChar = 90;
 	
 	// Decoded integer value for character c

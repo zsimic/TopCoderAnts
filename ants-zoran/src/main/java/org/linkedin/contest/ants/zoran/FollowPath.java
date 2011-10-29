@@ -26,7 +26,7 @@ public class FollowPath extends Operation {
 
 	public void setPath(Path path) {
 		this.path = path;
-		activate(true);
+		activate(path != null && path.size() > 0);
 	}
 	
 }
