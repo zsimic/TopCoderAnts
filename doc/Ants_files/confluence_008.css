@@ -1,0 +1,23 @@
+.recently-updated-sidebar div.update-item {
+    padding: 5px 0;
+}
+
+.recently-updated-sidebar div.update-item .icon-container {
+    padding-left: 1.75em;
+    display: block;
+    color: #666;
+}
+
+.recently-updated-sidebar .update-item-desc-and-date {
+    color: #666;
+    padding-left: 1.944em;
+    padding-top: 2px;
+    font-size: 0.85em;
+}
+
+.recently-updated-sidebar .additional-info a:link,
+.recently-updated-sidebar .additional-info a:hover,
+.recently-updated-sidebar .additional-info a:visited,
+.recently-updated-sidebar .additional-info a:active {
+    color: #333;
+}

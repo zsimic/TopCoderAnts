@@ -1,0 +1,289 @@
+.ajs-content-hover {
+    font-size: 13px;
+    position: absolute;
+    display: none;
+    z-index: 100;
+    text-align: left;
+}
+
+.ajs-content-hover .contents {
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    border: 1px solid #bbb;
+    background: white;
+    float: left;
+}
+
+.ajs-content-hover .vcard {
+    padding: 7px;
+    border-bottom: 1px solid #eee;
+}
+
+.greybox #peoplelist .profile-macro {
+    width: 300px;
+    float: left;
+    margin: 20px;
+    height: 5em;
+}
+
+.profile-macro .vcard {
+    position: relative;
+    overflow: hidden;
+    min-height: 48px;
+    white-space:nowrap;
+}
+
+.profile-macro .vcard .user-status {
+    white-space:normal;
+}
+
+.profile-macro .vcard .email,
+.profile-macro .vcard .email:link,
+.profile-macro .vcard .email:visited {
+    color: #666;
+    font-size: 12px;
+}
+
+.profile-macro .vcard .userLogo {
+    float: left;
+    margin-right: 10px;
+}
+
+.profile-macro .vcard .values {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    width: 225px;
+}
+
+.profile-macro .vcard .notloggedin {
+    white-space: normal;
+}
+
+.profile-macro .vcard h4 {
+    padding: 0;
+    margin: 0;
+    font-size: 120%;
+    height: 1em;
+}
+
+.profile-macro .vcard a.email {
+    padding: 0;
+    margin: 0;
+    text-decoration: underline;
+    height: 1em;
+}
+
+.profile-macro .vcard h4 a:link,
+.profile-macro .vcard h4 a:visited {
+    text-decoration: none;
+}
+
+.profile-macro .user-status {
+    padding-top: 7px;
+    display: block;
+    clear: both;
+}
+
+.profile-macro .profile-info {
+    border-spacing: 0;
+}
+.profile-macro .profile-info tr,
+.profile-macro .profile-info td,
+.profile-macro .profile-info th {
+    font-size: 13px;
+    padding: 0 0 2px;
+}
+.profile-macro .profile-info th {
+    padding-right: 10px;
+}
+
+.ajs-content-hover .actions {
+    clear: both;
+    _width: 300px;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .section-secondary li a {
+    font-size: .95em;
+    padding-left: 7px;
+}
+.ajs-content-hover .actions .ajs-drop-down li a {
+    padding: 0 1em 0 29px;
+}
+.ajs-content-hover .actions .ajs-menu-bar .ajs-drop-down a.email-user {
+    background-image: url(../../../images/icons/mail_content_16.gif);
+    background-position: 8px .3em;
+}
+.ajs-content-hover .actions .popup-follow a,
+.ajs-content-hover .actions ul li a.user-popup-more {
+    display: block;
+    text-align: center;
+    background-color: #f7f7f7;
+    color: #333;
+    line-height: 2;
+}
+
+.ajs-content-hover .actions ul {
+    _zoom:1;
+}
+
+.ajs-content-hover .actions ul li {
+    width: 150px;
+    float: left;
+}
+
+.ajs-content-hover .actions ul.single-item li {
+    width: 300px;
+}
+
+.ajs-content-hover .actions ul.single-item li a.user-popup-more {
+    text-align: left; padding-left: 0.5em;
+}
+
+.ajs-content-hover .actions ul li div.ajs-drop-down ul li {
+    width: auto;
+    float: none;
+    text-align: left;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar {
+    float: none;
+}
+
+.ajs-content-hover .actions ul.ajs-menu-bar .popup-follow {
+    width: 149px;
+}
+
+.ajs-content-hover .ajs-drop-down {
+    width: 150px;
+    margin-left: -1px;
+
+}
+
+.ajs-content-hover ul.single-item .ajs-drop-down {
+    width: 299px;
+}
+
+.ajs-content-hover .actions ul.ajs-menu-bar .popup-follow {
+    border-right: 1px solid #eee;
+}
+
+.ajs-content-hover .actions .ajs-button a {
+    border-radius: 0;
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+}
+.ajs-content-hover .actions ul.ajs-menu-bar .ajs-menu-item a span,
+.ajs-content-hover .actions ul.ajs-menu-bar .ajs-menu-item a span span {
+    display: inline;
+}
+
+.ajs-content-hover .actions ul.ajs-menu-bar .ajs-menu-item.opened a span span {
+    background: none;
+}
+
+.ajs-content-hover .popup-icon span {
+    padding-left: 20px;
+    background-repeat: no-repeat;
+    background-position: center left;
+}
+
+.ajs-content-hover .follow-icon span {
+    background-image: url( ../../../images/icons/fol_off_16.png );
+}
+
+.ajs-content-hover .unfollow-icon span {
+    background-image: url( ../../../images/icons/fol_on_16.png );
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .ajs-drop-down .favourite-personal-space-icon span {
+    background: url(../../../images/icons/fav_off_16.png) no-repeat -1px 2px;
+    padding-left: 20px;
+    padding-top: 4px;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .ajs-drop-down .unfavourite-personal-space-icon span {
+    background: url( ../../../images/icons/fav_on_16.png ) no-repeat -1px 2px;
+    padding-left: 20px;
+    padding-top: 4px;
+}
+
+.ajs-content-hover .waiting span {
+    background-image: url(../../../images/icons/wait.gif);
+}
+
+#content-hover-shadow {
+    z-index: -1;
+    position: absolute;
+    width: 0;
+    height: 0;
+    top: 0;
+    left: -16px;
+}
+#content-hover-shadow * {
+    position: absolute;
+}
+#content-hover-shadow .tl {
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 17px;
+    background: url(../../../images/shadow-light/lt.png);
+}
+#content-hover-shadow .tr {
+    right: 0;
+    top: 0;
+    width: 16px;
+    height: 17px;
+    background: url(../../../images/shadow-light/rt.png);
+}
+#content-hover-shadow .br {
+    right: 0;
+    bottom: 0;
+    width: 29px;
+    height: 29px;
+    background: url(../../../images/shadow-light/rb.png);
+}
+#content-hover-shadow .bl {
+    left: 0;
+    bottom: 0;
+    width: 29px;
+    height: 29px;
+    background: url(../../../images/shadow-light/lb.png);
+}
+#content-hover-shadow .b {
+    left: 29px;
+    bottom: 0;
+    height: 29px;
+    width: 29px;
+    background: url(../../../images/shadow-light/b.png);
+}
+#content-hover-shadow .l {
+    left: 0;
+    top: 17px;
+    width: 16px;
+    background: url(../../../images/shadow-light/l.png);
+}
+#content-hover-shadow .r {
+    right: 0;
+    top: 17px;
+    width: 16px;
+    background: url(../../../images/shadow-light/r.png);
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .follow-item a.unfollow-icon {
+    display: none;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .follow-item a.follow-icon{
+    display: block;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .unfollow-item a.unfollow-icon {
+    display: block;
+}
+
+.ajs-content-hover .actions .ajs-menu-bar .unfollow-item a.follow-icon {
+    display: none;
+}

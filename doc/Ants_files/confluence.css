@@ -1,0 +1,74 @@
+.network-macro ul {
+    margin: 0;
+    padding: 0;
+}
+
+.network-macro ul li {
+    display: inline;
+}
+
+.network-macro .userLogo {
+    height: 36px;
+    -ms-interpolation-mode: bicubic;
+}
+
+.network-macro form.follow-user {
+    margin: 10px 0;
+}
+
+.network-macro form.follow-user span.container {
+    position: relative;
+    color: black;
+    font-weight: normal;
+}
+
+.network-macro ol.autocompleter {
+    margin: 0 !important;
+    left: 0;
+    top: 1.6em;
+}
+
+.follow-tiny.network-macro .tabletitle {
+    border: none;
+    color: #333;
+    font-weight: normal;
+}
+
+.follow-tiny.network-macro .userLogo {
+    height: 24px;
+}
+
+.follow-tiny.network-macro .tabletitle .subtitle{
+    color: #666;
+}
+
+.network-macro .avatars {
+    width: 250px; 
+}
+
+.description {
+    color: #666;
+    margin: 5px 0;
+}
+
+.follow-user-box {
+    color: #666;
+}
+
+.network-macro a.show-all {
+    color: #666;
+}
+
+.network-macro .follow-user-result {
+    padding-top: 8px;
+    color: #666;
+    display: none; 
+}
+
+.network-macro .follow-user-result div {
+    padding-left: 20px;
+}
+
+.network-macro .follow-user-result img {
+    margin-left: -20px;
+}

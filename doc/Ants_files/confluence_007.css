@@ -1,0 +1,63 @@
+a.search-for span {
+    background-image: url(../../../images/icons/classic/16/70.png);
+}
+
+ul.ajs-drop-down li.error {
+    color: #535353;
+    display: block;
+    outline: none;
+    position: relative;
+    text-decoration: none;
+    text-align: left;
+    background-color:#FFFFFF;
+    background-image: url(../../../images/icons/classic/16/10.png);
+    background-repeat: no-repeat;
+    background-position: 7px 50%;
+    padding-left: 2.5em;
+}
+
+ul.ajs-drop-down.quick-nav-drop-down {
+    width: 25em;
+    font-size: 0.9em;
+    top: 2em;
+}
+
+#main .quick-search {
+    position: relative;
+}
+
+#main .quick-search-query {
+    margin: 0;
+    padding: 0;
+}
+
+#main ul.quick-nav-drop-down {
+	top: auto;
+    right: auto;
+    border-style: solid;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+
+#main #sidebar .quick-search {
+    text-align: right;
+}
+#main #sidebar .quick-search-query {
+    width: 15.5em;
+}
+#main #sidebar ul.quick-nav-drop-down {
+    right: 0;
+    text-align: left;
+}
+
+ul.quick-nav-drop-down li,
+ul.quick-nav-drop-down li span {
+    height: 2.2em;
+    line-height: 2.2;
+}
+
+ul.quick-nav-drop-down li span em {
+    font-style: normal;
+    cursor: pointer; 
+}

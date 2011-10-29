@@ -1,0 +1,167 @@
+#update-user-status-dialog {
+    text-align: left;
+}
+
+#update-user-status-dialog .panel-body {
+    overflow: hidden;
+}
+
+#update-user-status-dialog h2 {
+    font-weight: bold;
+}
+
+#update-user-status-dialog .update-status {
+    padding-left: 8px;
+    padding-right: 10px;
+}
+
+#update-user-status-dialog .update-status #status-text {
+    width: 99%;
+    margin-top: 2px;
+    padding: .1em;
+    height: 2.4em;
+    font-size: 16px;
+}
+
+#update-user-status-dialog #dialog-current-status {
+    font-size: 13px;
+    margin-top: 8px;
+    font-weight: bold;
+    color: #999;
+    display: inline-block;
+    width: 550px;
+    overflow: hidden;
+}
+
+#update-user-status-dialog #dialog-current-status .status-text {
+    font-weight: normal;
+}
+
+#update-user-status-dialog #update-status-chars-left {
+    margin-top: 8px;
+    font-weight: bold;
+    color: #999;
+    float: right;
+    font-size: 1.2em;
+    text-align: right;
+}
+
+#update-user-status-dialog #update-status-chars-left.over-limit {
+    color: red;
+}
+
+#update-user-status-dialog #update-status-chars-left.close-to-limit {
+    color: maroon;
+}
+
+#update-user-status-dialog .button-panel {
+    position: relative;
+}
+
+#update-user-status-dialog .error-message {
+    position: absolute;
+    top: 10px;
+    left: 18px;
+    color: red;
+    font-size: 13px;
+}
+
+#update-user-status-dialog .button-panel button {
+    margin-right: 10px;
+}
+
+.statuslist {    
+    margin-top: 0;
+}
+
+.statuslist ul,
+.wiki-content .statuslist ul {
+    padding: 0;
+    /*margin: 0 10px 0 10px;*/
+    margin-top: 0;
+}
+
+.statuslist li.focused,
+.wiki-content .statuslist li.focused {
+    background-color: #ffffd7;
+}
+
+.statuslist li ,
+.wiki-content .statuslist li {
+    border: 0 solid #ccc;
+    border-bottom-width: 1px;
+
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background: url( ../../../images/icons/quotes.png ) no-repeat 2px 9px;
+    padding-left: 22px;
+    list-style: none;
+}
+
+.status-actions,
+.status-actions a:link,
+.status-actions a:visited,
+.status-actions a:active,
+.status-actions a:hover {
+    color: #666666;
+}
+
+div.status-actions {
+    margin: 5px 0 0 0;
+}
+
+.status-actions ul,
+.wiki-content .status-actions ul {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.status-actions li,
+.wiki-content .status-actions li {
+    list-style-type: none;
+    background: none;
+    border: none;
+    display: inline;
+    border-left: 1px solid #aaa;
+    padding: 0 5px;
+    margin: 0; /* for IE */
+    color: #aaa;
+}
+
+.status-actions li:first-child,
+li.first-status-action,
+.wiki-content .status-actions li:first-child,
+.wiki-content li.first-status-action {
+    border-left: none;
+    padding-left: 0;
+}
+
+.status-block {
+    margin-bottom: 10px;
+    padding: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    background: #f0f0f0 url( ../../../images/icons/quotes.png ) no-repeat 10px 8px;
+    text-indent: 25px;
+}
+
+.status-block .status-text {
+    font-size: 16px;
+    background: url( ../../../images/icons/quotes_flipped.png ) no-repeat top right;
+    padding-top: 5px;
+    padding-right: 25px;
+    line-height: 24px;
+}
+
+.status-block .status-actions {
+    text-align: right;
+}
+
+.status-block .status-actions ul {
+    margin: 0;
+}
+
+.status-global-actions {
+    padding: 10px;
+}
