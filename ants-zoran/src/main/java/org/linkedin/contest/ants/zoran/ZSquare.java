@@ -62,7 +62,11 @@ public class ZSquare {
 
 	// Is this square currently relatively close to the nest?
 	protected boolean isAroundNest() {
-		return Math.abs(x) <= 5 && Math.abs(y) <= 5;
+		return Math.abs(x - Constants.BOARD_SIZE) <= 5 && Math.abs(y - Constants.BOARD_SIZE) <= 5;
+	}
+
+	protected boolean isNextToNest() {
+		return !isNest() && Math.abs(x - Constants.BOARD_SIZE) <= 1 && Math.abs(y - Constants.BOARD_SIZE) <= 1;
 	}
 
 	// Is this square passable, meaning that it is possible to move onto it?

@@ -172,7 +172,8 @@ sub create_png {
 			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
 		}
 	}
-	$im->stringFT($darkBlue, "a-ttf-font.ttf", 12, 0, 1000, 20, "$stat->{cells}->{percent}%% $stat->{date}");
+	$im->string(gdMediumBoldFont, 10, 2, "$stat->{board}->{name}", $darkBlue);
+	$im->string(gdSmallFont, 10, 16, "$stat->{cells}->{n} [$stat->{cells}->{percent}%%] $stat->{date}", $darkBlue);
 	$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
 	binmode $fh;
@@ -231,7 +232,7 @@ sub analyze_folder {
 	for (my $i = 2; $i <= 33; $i++) {
 		my $num = $i;
 		$num = "0$num" unless (length($num)>1);
-		$board->{scout}->{$num} = read_board($folder,"board_${num}_done.txt");
+		$board->{scout}->{$num} = read_board($folder,$num);
 		$t = $board->{scout}->{$num}->{time} if ($t < $board->{scout}->{$num}->{time});
 		unless (defined $board->{scout}->{$num}->{board}) {
 			$board->{missing}->{count}++;
@@ -403,10 +404,18 @@ sub can_replace_cell {
 }
 
 sub read_board {
-	my ($folder,$name) = @_;
-	my $res = {name=>$name, time=>0};
-	my $fname = "$folder/$name";
-	return $res unless (-f $fname);
+	my ($folder,$num) = @_;$name
+	my $res = {name=>$num, time=>0};
+	my $fname = "$folder/board_${num}_100000.txt";
+	$fname = "$folder/board_${num}_50000.txt" unless (-f $fname);
+	$fname = "$folder/board_${num}_done.txt" unless (-f $fname);
+	unless (-f $fname) {
+		return $res ;
+	}
+	$res->{name} = substr($fname,length("$folder/board_"));
+	$res->{name}=~s/\.txt$//o;
+	$res->{name}=~s/_/ /go;
+	$res->{name}=~s/000$/K/go;
 	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($fname);
 	$res->{time} = $mtime;
 	open(my $fh, "<$fname") or fail("Can't read file $fname");

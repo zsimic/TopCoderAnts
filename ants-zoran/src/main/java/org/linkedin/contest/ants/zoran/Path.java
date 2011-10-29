@@ -29,6 +29,10 @@ public class Path {
 		return s;
 	}
 
+	public Integer peek() {
+		return points.peek();
+	}
+	
 	// Pop first point out of this path
 	public Integer pop() {
 		assert !isEmpty();

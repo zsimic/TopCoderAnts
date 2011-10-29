@@ -14,9 +14,8 @@ public class Guard extends Role {
 		if (ant.hasFood) {
 			return new DropFood(ant.here.dir);
 		}
-		ZSquare s = ant.squareWithFood(ant.here);
-		if (s != null) {
-			return new GetFood(s.dir);
+		for (ZSquare s : ant.neighbors) {
+			if (s.hasFood()) return new GetFood(s.dir);
 		}
 		return new Pass();
 	}

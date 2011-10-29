@@ -14,7 +14,9 @@ public class ScoutSection extends Role {
 
 	protected int slice;							// The slice we want to explore (from 0 to totalSlices)
 	private RotationCoordinates slice1, slice2;		// The ant will be encouraged to stay within these 2 slices of the board
-	private int avoidX = 0, avoidY = 0;
+	private int avoidX = 0, avoidY = 0;				// Square to avoid because of possible enemy ants
+	private boolean isHauling = false;
+	private int skipSteps = 0;
 	private FollowPath follower = new FollowPath(this);
 
 	@Override
@@ -25,8 +27,59 @@ public class ScoutSection extends Role {
 		return String.format("Scout slice %d %s", slice, mode);
 	}
 
+	private void ensureHasPathToNest() {
+		if (follower.isActive()) return;
+		Path path = ant.board.bestPathToNest();
+		follower.setPath(path);
+	}
+
+	private void stopHauling() {
+		isHauling = false;
+		skipSteps = 0;
+		follower.setPath(null);
+	}
+
+	private void startHauling() {
+		isHauling = true;
+		skipSteps = 0;
+		follower.setPath(null);
+		ensureHasPathToNest();
+	}
+
 	@Override
 	Action effectiveAct() {
+		if (turn == 90000) Logger.dumpBoard(ant, "done");
+		ZSquare sfood;
+		if (isHauling) {
+			if (ant.here.isNest() || ant.isNextToNest()) {
+				if (ant.hasFood) return new DropFood(ant.nest().dir);
+				sfood = ant.squareWithFood(ant.here);
+				if (sfood != null) return new GetFood(sfood.dir);
+				stopHauling();
+			} else if (skipSteps > 0) {
+				assert follower.isActive();
+				skipSteps--;
+				return follower.act();
+			} else {
+				ensureHasPathToNest();
+				ZSquare dropZone = ant.squareTo(follower.peek());
+				if (dropZone != null) {
+					if (ant.hasFood) return new DropFood(dropZone.dir);
+					sfood = ant.squareWithFood(dropZone);
+					if (sfood != null) return new GetFood(sfood.dir);
+					if (dropZone.hasFood()) {
+						skipSteps = 1;
+						return new Move(dropZone.dir);
+					}
+				}
+				stopHauling();
+			}
+		}
+		sfood = ant.squareWithFood(null);
+		if (sfood != null) {
+			startHauling();
+			return new GetFood(sfood.dir);
+		}
 		if (follower.isActive()) {
 			Action act = follower.act();
 			if (act != null) {
@@ -42,12 +95,7 @@ public class ScoutSection extends Role {
 				return act;
 			}
 		}
-		if (turn > 10000) {
-			Logger.dumpBoard(ant, "done");
-			ant.setRole(new Gatherer(ant));
-			return new Pass();
-		}
-		Path path = ant.board.pathToClosestUnexplored(ant.x, ant.y, slice1, slice2, avoidX, avoidY);
+		Path path = ant.board.pathToClosestUnexplored(slice1, slice2, avoidX, avoidY);
 		avoidX = 0;
 		avoidY = 0;
 		if (path == null) {

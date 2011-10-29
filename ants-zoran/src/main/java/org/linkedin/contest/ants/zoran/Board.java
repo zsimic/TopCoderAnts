@@ -44,14 +44,14 @@ public class Board {
 	};
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
-	public Path pathToClosestUnexplored(int xStart, int yStart, RotationCoordinates slice1, RotationCoordinates slice2, int avoidX, int avoidY) {
+	public Path pathToClosestUnexplored(RotationCoordinates slice1, RotationCoordinates slice2, int avoidX, int avoidY) {
 		assert slice1 != null && slice2 != null;
-		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
+		assert get(ant.x, ant.y) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
 		PriorityQueue<PathNode> pQueue = new PriorityQueue<PathNode>(20, new PathNodeComparator());
-		PathNode start = new PathNode(xStart, yStart, 0, 0, null);
-		opened.put(Constants.encodedXY(xStart, yStart), start);
+		PathNode start = new PathNode(ant.x, ant.y, 0, 0, null);
+		opened.put(Constants.encodedXY(ant.x, ant.y), start);
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
@@ -103,8 +103,13 @@ public class Board {
 		double py1 = slice1.projectedY(x, y);
 		double py2 = slice2.projectedY(x, y);
 		double distance = Math.abs(py1) + Math.abs(py2) + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
-		if (px < 0) distance *= -px + 1; 
+		if (px < 0) distance *= -px + 10.0; 
 		return distance;
+	}
+
+	// Best path back to nest
+	public Path bestPathToNest() {
+		return bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE);
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)

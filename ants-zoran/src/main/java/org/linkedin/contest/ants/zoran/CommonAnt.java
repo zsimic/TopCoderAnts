@@ -117,7 +117,7 @@ abstract class CommonAnt implements Ant {
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
 		if (act instanceof Move) {
-			ZSquare square = square(((Move)act).getDirection());
+			ZSquare square = square(act);
 			assert square.isPassable();
 			x += square.deltaX;
 			y += square.deltaY;
@@ -131,10 +131,10 @@ abstract class CommonAnt implements Ant {
 			hasFood = false;
 			Logger.trace(this, "drops food");
 		} else if (act instanceof Write) {
-			Scent s = new Scent(((Write)act).getWriting());
+			Scent s = new Scent(act);
 			Logger.trace(this, String.format("writing value: %s", s.toString()));
 		} else if (act instanceof Say) {
-			Logger.trace(this, String.format("Say: '%s'", ((Say)act).getMessage()));
+			Logger.trace(this, String.format("Say: '%s'", act.toString()));
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
@@ -236,10 +236,24 @@ abstract class CommonAnt implements Ant {
 //--  Properties, queries
 //-----------------------
 
-	// Neighboring square with food on it, if any
+	protected ZSquare nest() {
+		assert here.isNest() || isNextToNest();
+		if (here.isNest()) return here;
+		return squareTo(Constants.BOARD_SIZE, Constants.BOARD_SIZE);
+	}
+
+	// Neighboring square with food on it, if any (but only "far enough" from the nest)
 	protected ZSquare squareWithFood(ZSquare excluded) {
-		for (ZSquare s : neighbors) {
-			if (s != excluded && s.hasFood()) return s;
+		for (ZSquare s : cells) {
+			if (!s.isNest() && !s.isAroundNest() && s != excluded && s.hasFood()) return s;
+		}
+		return null;
+	}
+
+	// Neighboring square with food on it, if any (but only "far enough" from the nest)
+	protected ZSquare squareWithFood(ZSquare excluded1, ZSquare excluded2) {
+		for (ZSquare s : cells) {
+			if (!s.isNest() && !s.isNextToNest() && s != excluded1 && s != excluded2 && s.hasFood()) return s;
 		}
 		return null;
 	}
@@ -250,7 +264,7 @@ abstract class CommonAnt implements Ant {
 	}
 
 	protected boolean isNextToNest() {
-		return !here.isNest() && Math.abs(x - Constants.BOARD_SIZE) <= 1 && Math.abs(y - Constants.BOARD_SIZE) <= 1;
+		return here.isNextToNest();
 	}
 
 	protected ZSquare bestSquareToAvoidConflict(ZSquare target) {
@@ -289,6 +303,11 @@ abstract class CommonAnt implements Ant {
 		default:
 			return here;
 		}
+	}
+
+	protected ZSquare squareTo(Integer key) {
+		assert key != null;
+		return squareTo(Constants.decodedX(key), Constants.decodedY(key));
 	}
 
 	// Square on given x,y (which must a neighbor of current ant position)

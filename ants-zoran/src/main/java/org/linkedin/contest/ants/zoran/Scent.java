@@ -1,6 +1,6 @@
 package org.linkedin.contest.ants.zoran;
 
-//import org.linkedin.contest.ants.api.*;
+import org.linkedin.contest.ants.api.*;
 
 public class Scent {
 
@@ -19,6 +19,12 @@ public class Scent {
 
 	public Scent(Long val) {
 		update(val);
+	}
+
+	public Scent(Action act) {
+		if (act instanceof Write) {
+			update(((Write)act).getWriting());
+		}
 	}
 
 //--  Properties, queries

@@ -10,6 +10,11 @@ public class FollowPath extends Operation {
 		super(role);
 	}
 
+	public Integer peek() {
+		if (path == null || path.isEmpty()) return null;
+		return path.peek();
+	}
+
 	@Override
 	public Action effectiveAct() {
 		assert path != null;
