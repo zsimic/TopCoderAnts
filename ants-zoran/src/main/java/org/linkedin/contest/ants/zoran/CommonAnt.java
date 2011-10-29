@@ -18,6 +18,7 @@ abstract class CommonAnt implements Ant {
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	private HashMap<Integer, String> pendingTransmissions;		// Pending transmissions from other ants
+	private long totalRunTime = 0;
 
 	@Override
 	public String toString() {
@@ -79,6 +80,7 @@ abstract class CommonAnt implements Ant {
 		long elapsedTimeMillis = System.currentTimeMillis();
 		Action act = null;
 		turn++;
+		if (turn == 99999) Logger.inform(this, String.format("Average run-time: %g", totalRunTime / 99999));
 		here.update(environment);
 		if (role==null) {
 			assert id==0;
@@ -113,19 +115,23 @@ abstract class CommonAnt implements Ant {
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
 		if (act instanceof Move) {
-			ZSquare square = square(act);
-			assert square.isPassable();
-			x += square.deltaX;
-			y += square.deltaY;
-			Logger.trace(this, "move " + square.dir.name());
+			ZSquare s = square(act);
+			assert s.isPassable();
+			x += s.deltaX;
+			y += s.deltaY;
+			Logger.trace(this, "move " + s.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
+			ZSquare s = square(act);
+			assert s.isPassable() && s.hasFood();
 			hasFood = true;
-			Logger.trace(this, "takes food");
+			Logger.trace(this, String.format("takes food from %d,%d", s.x, s.y));
 		} else if (act instanceof DropFood) {
 			assert hasFood;
+			ZSquare s = square(act);
+			assert s.isPassable();
 			hasFood = false;
-			Logger.trace(this, "drops food");
+			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
 		} else if (act instanceof Write) {
 			Scent s = new Scent(act);
 			Logger.trace(this, String.format("writing value: %s", s.toString()));
@@ -134,10 +140,12 @@ abstract class CommonAnt implements Ant {
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
-			Logger.trace(this, className(act));
+			Logger.trace(this, "check action " + className(act));
+			assert false;
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
 		Logger.logRunTime(this, elapsedTimeMillis);
+		totalRunTime += elapsedTimeMillis;
 		return act;
 	}
 
@@ -229,7 +237,7 @@ abstract class CommonAnt implements Ant {
 	// Neighboring square with food on it, if any (but only "far enough" from the nest)
 	protected ZSquare squareWithFood(ZSquare excluded) {
 		for (ZSquare s : cells) {
-			if (!s.isNest() && !s.isAroundNest() && s != excluded && s.hasFood()) return s;
+			if (!s.isNest() && !s.isNextToNest() && s != excluded && s.hasFood()) return s;
 		}
 		return null;
 	}
@@ -256,20 +264,22 @@ abstract class CommonAnt implements Ant {
 		double dist = 0;
 		ZSquare best = null;
 		for (ZSquare s : neighbors) {
-			if (s.getNumberOfAnts() == 0) {
+			if (s.isPassable() && s.getNumberOfAnts() == 0) {
 				double d = Constants.normalDistance(target.x - s.x, target.y - s.y);
 				if (d > dist) best = s;
 			}
 		}
+		if (best != null) assert best.isPassable();
 		return best;
 	}
 
 	// Square target by given action
 	protected ZSquare square(Action act) {
-		if (act instanceof Move) {
-			return square(((Move)act).getDirection());
-		}
-		return here;
+		Direction dir = Direction.here;
+		if (act instanceof Move) dir = ((Move)act).getDirection();
+		else if (act instanceof GetFood) dir = ((GetFood)act).getDirection();
+		else if (act instanceof DropFood) dir = ((DropFood)act).getDirection();
+		return square(dir);
 	}
 
 	// Square in given direction number (0: north, 1: northeast, ...)
@@ -291,7 +301,9 @@ abstract class CommonAnt implements Ant {
 
 	protected ZSquare squareTo(Integer key) {
 		assert key != null;
-		return squareTo(Constants.decodedX(key), Constants.decodedY(key));
+		ZSquare s = squareTo(Constants.decodedX(key), Constants.decodedY(key));
+		assert s != null;
+		return s;
 	}
 
 	// Square on given x,y (which must a neighbor of current ant position)

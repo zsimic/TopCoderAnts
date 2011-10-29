@@ -5,26 +5,18 @@ public class Constants {
 	public static final String AN_ANT_SAYS = "An ant says ";
 	public static final int BOARD_SIZE = 512;									// Board size
 	public static final double BOARD_MAX_DISTANCE = Math.sqrt(2)*BOARD_SIZE;	// Max distance on board from nest
-	public final static int totalSlices = 32;									// Number of slices to use when scanning the board
-	public static final int BOARD_MAX_SCOUT = BOARD_SIZE * BOARD_SIZE * 3 / totalSlices;	// Stop scouting when this number of cells have been discovered by the scout
 
 	public final static String compressionEncoding = "US-ASCII";		// Encoding to use when transforming a String to byte[] and vice versa
 	public final static char messageBoard = 'l';						// Multi-part message giving board representation
 
-	public final static RotationCoordinates rotationCoordinates(int slice) {
-		return rotationCoordinatesArray[slice % totalSlices];
+	public final static RotationCoordinates rotationCoordinates(int slice, int totalSlices) {
+		int i = slice % totalSlices;
+		double cosf = Math.cos(2.0*i/totalSlices*Math.PI);
+		double sinf = Math.sin(2.0*i/totalSlices*Math.PI);
+		RotationCoordinates rc = new RotationCoordinates(cosf, sinf);
+		return rc;
 	}
 
-	private final static RotationCoordinates rotationCoordinatesArray[] = new RotationCoordinates[totalSlices];
-	static {
-		for (int i = 0; i < totalSlices; i++) {
-			double cosf = Math.cos(2.0*i/totalSlices*Math.PI);
-			double sinf = Math.sin(2.0*i/totalSlices*Math.PI);
-			RotationCoordinates rc = new RotationCoordinates(cosf, sinf);
-			rotationCoordinatesArray[i] = rc;
-		}
-	}
-	
 	private final static int maximumEncodableValueInChar = 90;
 
 	// Decoded integer value for character c

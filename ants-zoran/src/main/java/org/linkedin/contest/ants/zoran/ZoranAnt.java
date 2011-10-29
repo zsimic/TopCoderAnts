@@ -11,12 +11,15 @@ package org.linkedin.contest.ants.zoran;
  */
 public class ZoranAnt extends CommonAnt {
 
+	private static final int scouts = 32;
+	private static final int guards = 8;
+
 	@Override
 	public void initializeState() {
 //		testScent();
-		if (id<=Constants.totalSlices) setRole(new ScoutSection(this, id - 1));	// 32 scouts, they become gatherers after they're done finding the game board limits
-		else if (id<=Constants.totalSlices + 8) setRole(new Guard(this));		// 8 guards, they stay on nest and do nothing (just gather food immediately next to nest)
-		else setRole (new Soldier(this));										// the rest are soldiers
+		if (id<=scouts) setRole(new ScoutSection(this, id - 1, scouts));	// 32 scouts, they become gatherers after they're done finding the game board limits
+		else if (id<=scouts + guards) setRole(new Guard(this));				// 8 guards, they stay on nest and do nothing (just gather food immediately next to nest)
+		else setRole (new Soldier(this));									// the rest are soldiers
 	}
 
 	private static void testScent(int turn, int x0, int y0, int x1, int y1) {

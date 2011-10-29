@@ -4,12 +4,14 @@ import org.linkedin.contest.ants.api.*;
 
 public class ScoutSection extends Role {
 
-	ScoutSection(CommonAnt ant, int slice) {
+	ScoutSection(CommonAnt ant, int slice, int totalSlices) {
 		super(ant);
-		assert slice >= 0 && slice < Constants.totalSlices;
+		assert slice >= 0 && slice < totalSlices;
 		this.slice = slice;
-		this.slice1 = Constants.rotationCoordinates(slice);
-		this.slice2 = Constants.rotationCoordinates(slice + 1);
+		this.slice1 = Constants.rotationCoordinates(slice, totalSlices);
+		this.slice2 = Constants.rotationCoordinates(slice + 1, totalSlices);
+//		maxScout = Constants.BOARD_SIZE * Constants.BOARD_SIZE * 3 / totalSlices;	// Stop scouting when this number of cells have been discovered by the scout
+		maxScout = 26000;	// Stop scouting when this number of cells have been discovered by the scout
 	}
 
 	protected int slice;							// The slice we want to explore (from 0 to totalSlices)
@@ -17,6 +19,7 @@ public class ScoutSection extends Role {
 	private int avoidX = 0, avoidY = 0;				// Square to avoid because of possible enemy ants
 	private boolean isHauling = false;
 	private int skipSteps = 0;
+	private int maxScout;
 	private FollowPath follower = new FollowPath(this);
 
 	@Override
@@ -32,6 +35,7 @@ public class ScoutSection extends Role {
 		if (follower.isActive()) return;
 		Path path = ant.board.bestPathToNest();
 		follower.setPath(path);
+		assert follower.isActive();
 	}
 
 	private void stopHauling() {
@@ -47,10 +51,17 @@ public class ScoutSection extends Role {
 		ensureHasPathToNest();
 	}
 
+	private Action nextFollowerMove(boolean requirePassable) {
+		assert follower.isActive();
+		Action act = follower.act();
+		if (requirePassable) assert ant.square(act).isPassable();
+		return act;
+	}
+
 	@Override
 	Action effectiveAct() {
 		ZSquare sfood;
-		if (turn % 50000 == 0) Logger.dumpBoard(ant, Integer.toString(turn));
+		if (ant.turn % 50000 == 0) Logger.dumpBoard(ant, Integer.toString(ant.turn));
 		if (isHauling) {
 			if (ant.here.isNest() || ant.isNextToNest()) {
 				if (ant.hasFood) return new DropFood(ant.nest().dir);
@@ -58,20 +69,18 @@ public class ScoutSection extends Role {
 				if (sfood != null) return new GetFood(sfood.dir);
 				stopHauling();
 			} else if (skipSteps > 0) {
-				assert follower.isActive();
 				skipSteps--;
-				return follower.act();
+				return nextFollowerMove(true);
 			} else {
 				ensureHasPathToNest();
 				ZSquare dropZone = ant.squareTo(follower.peek());
-				if (dropZone != null) {
-					if (ant.hasFood) return new DropFood(dropZone.dir);
-					sfood = ant.squareWithFood(dropZone);
-					if (sfood != null) return new GetFood(sfood.dir);
-					if (dropZone.hasFood()) {
-						skipSteps = 1;
-						return new Move(dropZone.dir);
-					}
+				assert dropZone != null;
+				if (ant.hasFood) return new DropFood(dropZone.dir);
+				sfood = ant.squareWithFood(dropZone);
+				if (sfood != null) return new GetFood(sfood.dir);
+				if (dropZone.hasFood()) {
+					skipSteps = 1;
+					return nextFollowerMove(true);		// Will move to 'dropZone'
 				}
 				stopHauling();
 			}
@@ -81,36 +90,45 @@ public class ScoutSection extends Role {
 			startHauling();
 			return new GetFood(sfood.dir);
 		}
-		if (ant.board.knownCells > Constants.BOARD_MAX_SCOUT) {
+		if (ant.board.knownCells > maxScout) {
 			// Stop scouting for unexplored cells, we get close to hitting the VM heap space limit
 			Logger.dumpBoard(ant, "done");
 			ant.setRole(new Guard(ant));
 			return new Pass();
 		}
-		if (follower.isActive()) {
-			Action act = follower.act();
-			if (act != null) {
-				ZSquare s = ant.square(act);
-				if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
-					avoidX = s.x;
-					avoidY = s.y;
-					follower.setPath(null);
-					s = ant.bestSquareToAvoidConflict(s);
-					if (s != null) return new Move(s.dir);
-					return new Pass();
-				}
-				return act;
-			}
+		if (!follower.isActive()) {
+			findNewPathToExplore();
 		}
+		Action act = nextFollowerMove(false);
+		if (act == null) {
+			Logger.error(ant, "no next move, check why");
+			return new Pass();
+		}
+		ZSquare s = ant.square(act);
+		if (!s.isPassable()) {		// Happens when we explore
+			follower.setPath(null);
+			return new Pass();
+		}
+		if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
+			Logger.inform(ant, String.format("avoiding %d ants on %d,%d", s.getNumberOfAnts(), s.x, s.y));
+			avoidX = s.x;
+			avoidY = s.y;
+			follower.setPath(null);
+			s = ant.bestSquareToAvoidConflict(s);
+			if (s != null) return new Move(s.dir);
+			return new Pass();
+		}
+		return act;
+	}
+
+	private void findNewPathToExplore() {
 		Path path = ant.board.pathToClosestUnexplored(slice1, slice2, avoidX, avoidY);
 		avoidX = 0;
 		avoidY = 0;
 		if (path == null) {
 			Logger.error(ant, "can't find path to explore");
-			return new Pass();
 		}
 		follower.setPath(path);
-		return follower.act();
 	}
 
 }

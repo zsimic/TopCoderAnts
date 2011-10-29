@@ -299,8 +299,7 @@ public class Board {
 		int px = x - minX;
 		int py = y - minY;
 		assert !obstacleRows.get(py).get(px) || state == Constants.STATE_OBSTACLE;
-		if (knownRows.get(py).get(px)) return;
-		knownCells++;
+		if (!knownRows.get(py).get(px)) knownCells++;
 		knownRows.get(py).set(px, true);
 		obstacleRows.get(py).set(px, state==Constants.STATE_OBSTACLE);
 		if (x < actualMinX) actualMinX = x;

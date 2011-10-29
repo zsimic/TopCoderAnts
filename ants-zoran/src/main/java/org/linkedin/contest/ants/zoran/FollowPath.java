@@ -16,6 +16,13 @@ public class FollowPath extends Operation {
 	}
 
 	@Override
+	public String toString() {
+		if (!isActive()) return "inactive";
+		if (path != null) return path.toString();
+		return "empty";
+	}
+
+	@Override
 	public Action effectiveAct() {
 		assert path != null;
 		int n = path.size();
@@ -23,8 +30,7 @@ public class FollowPath extends Operation {
 			Integer key = path.pop();
 			if (n == 1) activate(false);
 			ZSquare sq = ant.squareTo(Constants.decodedX(key), Constants.decodedY(key));
-			if (sq.isPassable()) return new Move(sq.dir);		// Squares can be marked as unpassable dynamically by other ants (closing)
-			activate(false);
+			return new Move(sq.dir);
 		}
 		return null;
 	}

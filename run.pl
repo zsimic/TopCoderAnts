@@ -142,11 +142,13 @@ sub create_png {
 	my $red = $im->colorAllocate(255, 0, 0);
 	my $darkBlue = $im->colorAllocate(0, 0, 180);
 	my $black = $im->colorAllocate(0, 0, 0);
+	my $emptyBg = $im->colorAllocate(204, 222, 216);
 	# make the background transparent and interlaced
-	$im->transparent($white);
+#	$im->transparent($white);
 	$im->interlaced('true');
-	$im->alphaBlending(0);
-	$im->saveAlpha(1);
+#	$im->alphaBlending(0);
+#	$im->saveAlpha(1);
+	$im->fill(2,2,$emptyBg);
 	my $x0 = $stat->{board}->{bx0};
 	my $x1 = $stat->{board}->{bx1};
 	my $y0 = $stat->{board}->{by0};
@@ -428,7 +430,7 @@ sub read_board {
 	$res->{time} = $mtime;
 	open(my $fh, "<$fname") or fail("Can't read file $fname");
 	my $line = <$fh>;
-	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+),([0-9]+)\] f=\[([0-9]+),([0-9]+)\]/o) {
+	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+),([0-9]+)\]/o) {
 		$res->{turn} = $1;
 		$res->{id} = $2;
 		$res->{posX} = $3;
@@ -436,8 +438,6 @@ sub read_board {
 		$res->{bsizeX} = $5;
 		$res->{bsizeY} = $6;
 		$res->{known} = $7;
-		$res->{foodCells} = $8;
-		$res->{foodTotal} = $9;
 	} else {
 		fail("Malformed line 1 in $fname: $line");
 	}

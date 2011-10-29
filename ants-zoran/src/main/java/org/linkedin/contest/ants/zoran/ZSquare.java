@@ -53,6 +53,13 @@ public class ZSquare {
 		scent.update(square.getWriting());
 		x = ant.x + deltaX;
 		y = ant.y + deltaY;
+		if (square.getNumberOfAnts() >= 10 && !isAroundNest()) {
+			if (ant.board.get(x, y) == Constants.STATE_PASSABLE) {
+				// This looks suspiciously like enemy's nest, mark it as non passable.
+				ant.board.setObstacle(x, y);
+				Logger.inform(ant, String.format("avoiding %d,%d probably enemy nest", x, y));
+			}
+		}
 	}
 
 	// Is this square a nest, meaning that food here is counted toward the final score?
@@ -62,7 +69,7 @@ public class ZSquare {
 
 	// Is this square currently relatively close to the nest?
 	protected boolean isAroundNest() {
-		return Math.abs(x - Constants.BOARD_SIZE) <= 5 && Math.abs(y - Constants.BOARD_SIZE) <= 5;
+		return Math.abs(x - Constants.BOARD_SIZE) <= 60 && Math.abs(y - Constants.BOARD_SIZE) <= 60;
 	}
 
 	protected boolean isNextToNest() {
