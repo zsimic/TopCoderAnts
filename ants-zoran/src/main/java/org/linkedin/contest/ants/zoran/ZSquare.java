@@ -53,7 +53,7 @@ public class ZSquare {
 		scent.update(square.getWriting());
 		x = ant.x + deltaX;
 		y = ant.y + deltaY;
-		if (square.getNumberOfAnts() >= 10 && !isAroundNest()) {
+		if (square.getNumberOfAnts() >= 5 && Math.abs(x - Constants.BOARD_SIZE) > 170 && Math.abs(y - Constants.BOARD_SIZE) > 170) {
 			if (ant.board.get(x, y) == Constants.STATE_PASSABLE) {
 				// This looks suspiciously like enemy's nest, mark it as non passable.
 				ant.board.setObstacle(x, y);

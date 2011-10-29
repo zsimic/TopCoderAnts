@@ -55,7 +55,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
-		int consider = 10;		// Number of unknowns to consider before picking one
+		int consider = 30;		// Number of unknowns to consider before picking one
 		while (cont) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {

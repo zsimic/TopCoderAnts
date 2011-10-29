@@ -80,7 +80,7 @@ abstract class CommonAnt implements Ant {
 		long elapsedTimeMillis = System.currentTimeMillis();
 		Action act = null;
 		turn++;
-		if (turn == 99999) Logger.inform(this, String.format("Average run-time: %g", totalRunTime / 99999));
+		if (turn == 99999) Logger.inform(this, String.format("Average run-time: %g", totalRunTime / 99999.0));
 		here.update(environment);
 		if (role==null) {
 			assert id==0;

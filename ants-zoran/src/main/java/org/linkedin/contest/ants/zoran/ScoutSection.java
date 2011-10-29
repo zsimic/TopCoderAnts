@@ -11,7 +11,7 @@ public class ScoutSection extends Role {
 		this.slice1 = Constants.rotationCoordinates(slice, totalSlices);
 		this.slice2 = Constants.rotationCoordinates(slice + 1, totalSlices);
 //		maxScout = Constants.BOARD_SIZE * Constants.BOARD_SIZE * 3 / totalSlices;	// Stop scouting when this number of cells have been discovered by the scout
-		maxScout = 26000;	// Stop scouting when this number of cells have been discovered by the scout
+		maxScout = 35000;	// Stop scouting when this number of cells have been discovered by the scout
 	}
 
 	protected int slice;							// The slice we want to explore (from 0 to totalSlices)

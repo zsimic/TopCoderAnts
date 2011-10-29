@@ -57,11 +57,12 @@ if ($clrun) {
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
-		my $elapsed = run_game();
+		my $gameResult = run_game();
 		my $folder = $logFolder;
 		$folder = archive_logs();
 		my $res = analyze_folder($folder);
-		$res->{gameruntime} = $elapsed;
+		$res->{gameruntime} = $gameResult->{gameruntime};
+		$res->{player} = $gameResult->{player};
 		record_analysis($res);
 	}
 } else {
@@ -94,9 +95,10 @@ sub record_analysis {
 			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
 		} else {
 			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
-			print $fh "date\t\tmissing\tfill%\tcells\tgameruntime\tfolder\t\t\t\tfail\n";
+			print $fh "date\t\tmissing\tfill%\tcells\tfood\tants\tgameruntime\tfolder\t\t\t\tfail\n";
 		}
-		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}\t$res->{gameruntime}\t$res->{fail}\n";
+		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}";
+		print $fh "\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}\t$res->{gameruntime}\t$res->{fail}\n";
 		close($fh);
 		# run.html
 		$fname = "$resultsFolder/runs.html";
@@ -313,16 +315,36 @@ sub compile_project {
 }
 
 sub run_game {
+	my $gameResult = {};
 	my @t0 = times();
 	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
-	run_command($cmdRun);
+	logm("Running game $cmdRun ... ");
+	my $s = `$cmdRun`;
+	if ($?) {
+		fail("Game crashed:\n\nexit code $?\n$!");
+	}
+	logm("done\n");
 	my @t1 = times();
-	my $elapsed = actual_times(\@t0,\@t1);
-	logm("Run time: $elapsed\n");
-	return $elapsed;
+	$gameResult->{gameruntime} = actual_times(\@t0,\@t1);
+	logm("Run time: $gameResult->{gameruntime}\n");
+	my $player = 0;
+	foreach my $line (split(/\n/,$s)) {
+		if ($line=~m/^Player ([0-9]):/o) {
+			$player = $1;
+		} elsif ($line=~m/^\s+Food: ([0-9]+)/o) {
+			my $n = $1;
+			fail("Check results parsing, no player for food count $n") unless ($player > 0);
+			$gameResult->{player}->{$player}->{food} = $n;
+		} elsif ($line=~m/^\s+Ants: ([0-9]+)/o) {
+			my $n = $1;
+			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
+			$gameResult->{player}->{$player}->{ants} = $n;
+		}
+	}
+	return $gameResult;
 }
 
 sub actual_times {
