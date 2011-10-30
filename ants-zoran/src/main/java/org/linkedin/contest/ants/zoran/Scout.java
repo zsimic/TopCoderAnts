@@ -6,8 +6,7 @@ public class Scout extends Role {
 
 	Scout(CommonAnt ant, int sliceNumber, int totalSlices) {
 		super(ant);
-		assert sliceNumber >= 0 && sliceNumber < totalSlices;
-		this.sliceNumber = sliceNumber;
+		this.sliceNumber = sliceNumber % totalSlices;
 		this.totalSlices = totalSlices;
 		this.slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 	}
@@ -107,12 +106,13 @@ public class Scout extends Role {
 		if (changeSlice) {
 			changeSlice = false;
 			sliceSwitchCount++;
-			if (sliceSwitchCount > totalSlices / 2) {	// Give up, we're hitting a wall in all directions looks like
+			if (sliceSwitchCount > totalSlices) {		// Give up, we're hitting a wall in all directions looks like
+				Logger.inform(ant, "giving up exploration, turning into a guard");
 				ant.setRole(new Guard(ant));
 				return new Pass();
 			}
-			sliceNumber = (sliceNumber + 3) % totalSlices;
-			Logger.inform(ant, String.format("switching to slice %d", sliceNumber));
+			sliceNumber = (sliceNumber + 1) % totalSlices;
+			Logger.inform(ant, "switched to new slice");
 			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 			follower.setPath(null);
 			if (!ant.here.isNest() && !ant.isNextToNest()) ensureHasPathToNest();
@@ -153,7 +153,7 @@ public class Scout extends Role {
 		long elapsedTimeMillis = System.currentTimeMillis();
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
-		if (elapsedTimeMillis > 50) {
+		if (elapsedTimeMillis > 4) {
 			changeSlice = true;
 			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
 		}

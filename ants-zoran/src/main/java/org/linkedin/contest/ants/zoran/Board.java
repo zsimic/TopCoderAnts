@@ -121,7 +121,6 @@ public class Board {
 		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
 		PathNode goal = null;
-		PathNode closest = null;
 		while (true) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
@@ -135,7 +134,7 @@ public class Board {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
 				byte state = get(nx, ny);
-				if (state != Constants.STATE_OBSTACLE) {
+				if (state == Constants.STATE_PASSABLE) {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
 						double h = Constants.normalDistance(nx - xEnd, ny - yEnd);	// distance to target used as heuristic
@@ -144,33 +143,19 @@ public class Board {
 						if (node == null) {
 							// Not in the open set yet
 							node = new PathNode(nx, ny, g, h, current);
-							if (state == Constants.STATE_UNKNOWN) {
-								// We haven't explored 'node' yet, put it in 'closed' immediately (its heuristic won't change)
-								closed.put(key, node);
-							} else {
-								opened.put(key, node);
-								pQueue.add(node);
-							}
+							opened.put(key, node);
+							pQueue.add(node);
 						} else if (g < node.g) {
 							// Have a better route to the current node, change its parent
 							node.parent = current;
 							node.g = g;
 							node.h = h;
 						}
-						if (state == Constants.STATE_UNKNOWN) {
-							if (goal == null || goal.getF() > node.getF()) {
-								// Mark best not-yet-explored node as the goal (unless we reach the real goal)
-								goal = node;
-							}
-						} else if (closest == null || closest.h > node.getF()) {
-							closest = node;
-						}
 					}
 				}
 			}
 			if (opened.isEmpty()) break;
 		}
-		if (goal == null) goal = closest;
 		return pathFromNode(goal);
 	}
 
