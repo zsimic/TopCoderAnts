@@ -33,6 +33,7 @@ public class Logger {
 	}
 
 	public static void logAverageRunTime(CommonAnt ant) {
+		if (omitLogs) return;
 		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));
 		if (omitLogs) {
 			System.err.print(message(ant, msg));

@@ -70,6 +70,7 @@ if ($clrun) {
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
+		logm("--------------------------------\n") if ($clrun > 1);
 		my $gameResult = run_game($n);
 		my $folder = $logFolder;
 		$folder = archive_logs();
