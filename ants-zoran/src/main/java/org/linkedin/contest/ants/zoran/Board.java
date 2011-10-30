@@ -54,16 +54,14 @@ public class Board {
 		opened.put(Constants.encodedXY(ant.x, ant.y), start);
 		pQueue.add(start);
 		PathNode goal = null;
-		boolean cont = true;
 		int consider = 8;		// Number of unknowns to consider before picking one
-		while (cont) {
+		while (true) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
 				if (goal == null || current.getF() < goal.getF()) goal = current;
 				consider--;
 				if (consider < 0) {
 					assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
-					cont = false;
 					break;
 				}
 			}
@@ -93,7 +91,7 @@ public class Board {
 					}
 				}
 			}
-			if (opened.isEmpty()) cont = false;
+			if (opened.isEmpty()) break;
 		}
 		return pathFromNode(goal);
 	}
@@ -101,7 +99,7 @@ public class Board {
 	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
 		double px = slice.projectedX(x, y);
 		double py = slice.projectedY(x, y);
-		double distance = Math.abs(py);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
+		double distance = 2 * Math.abs(py);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
 		if (px < 0) distance *= -px + 10.0; 
 		return distance;
 	}
@@ -124,14 +122,12 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		PathNode closest = null;
-		boolean cont = true;
-		while (cont) {
+		while (true) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
 			if (current.x == xEnd && current.y == yEnd) {
 				goal = current;					// We found the target
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
-				cont = false;
 				break;
 			}
 			closed.put(current.id, current);
@@ -172,7 +168,7 @@ public class Board {
 					}
 				}
 			}
-			if (opened.isEmpty()) cont = false;
+			if (opened.isEmpty()) break;
 		}
 		if (goal == null) goal = closest;
 		return pathFromNode(goal);

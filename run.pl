@@ -141,10 +141,10 @@ sub record_analysis {
 
 sub new_run_html {
 	return <<EOT;
-<html><head><title>Run results</title></head><body>
-<table>
+<html><head><title>Run results</title></head>
+<body><table border="1" cellspacing="0" cellpadding="3">
   <tr>
-    <th>Date</th><th align="center">Missing</th><th>Fill%</th><th>Cells</th>
+    <th>Date</th><th>Missing</th><th>Fill%</th><th>Cells</th>
     <th>Rounds</th><th>Food</th><th>Ants</th>
     <th>Run time</th><th>Turn time</th><th>Note</th></tr>
   $htmlPlaceholder
