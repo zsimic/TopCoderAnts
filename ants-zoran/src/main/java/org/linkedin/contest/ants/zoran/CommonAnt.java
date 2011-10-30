@@ -128,8 +128,7 @@ abstract class CommonAnt implements Ant {
 			hasFood = false;
 			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
 		} else if (act instanceof Write) {
-			Scent s = new Scent(act);
-			Logger.trace(this, String.format("writing value: %s", s.toString()));
+			Logger.trace(this, String.format("writing value: %s", (new Scent(act)).toString()));
 		} else if (act instanceof Say) {
 			Logger.trace(this, String.format("Say: '%s'", act.toString()));
 		} else if (act instanceof Pass) {

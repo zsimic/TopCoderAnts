@@ -6,6 +6,7 @@ use POSIX qw(strftime);
 use Getopt::Long;
 use Data::Dumper;
 use GD;
+use File::Find;
 
 my $boardSize = 512;
 my $logFolder = 'logs';
@@ -29,6 +30,8 @@ Options:
    -a --archive      Archive generated log files (applicable only with -r)
    -s --save FILE    Save analysis results in FILE (under '$resultsFolder' subfolder)
    -f --folder PATH  Analyze given folder (instead of '$logFolder')
+      --nolog        Comment all logging in program (to make it faster)
+      --log          Turn on all logging in program
    -h -? --help      This help message
 EOM
 	exit 1;
@@ -39,6 +42,8 @@ my $clcompile = 0;
 my $clrun = 0;
 my $clsave = undef;
 my $clfolder = undef;
+my $clnolog = 0;
+my $cllog = 0;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
@@ -46,12 +51,20 @@ GetOptions(
 	'r|run=i'=>\$clrun,
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
+	'nolog'=>\$clnolog, 'log'=>\$cllog,
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
 $clcompile = 1 if ($clcompile);
 #print "c=[$clcompile] r=[$clrun]\n"; exit;
 usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
+usage("--nolog must be specified alone when specified") if ($clnolog and ($cllog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
+usage("--log must be specified alone when specified") if ($cllog and ($clnolog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
+
+if ($clnolog || $cllog) {
+	modify_source_code();
+	exit;
+}
 
 if ($clrun) {
 	compile_project() if ($clcompile);
@@ -69,6 +82,37 @@ if ($clrun) {
 } else {
 	my $res = analyze_folder($clfolder || $logFolder);
 	record_analysis($res);
+}
+
+sub modify_source_code {
+	find({ wanted => \&process_file, no_chdir => 1 }, 'ants-zoran/src');
+}
+
+sub process_file {
+	my $fpath = $_;
+	return if (-d $fpath);
+	return unless ($fpath=~m/\.java$/o);
+	my $contents = '';
+	open(my $fh, "<$fpath") or fail("Can't read $fpath");
+	while (my $line = <$fh>) {
+		if ($clnolog) {
+			if ($line=~m/^[^\/].*Logger\./o) {
+				$contents .= "//L$line";
+			} else {
+				$contents .= $line;
+			}
+		} else {
+			if ($line=~m/^\/\/L(.*)$/o) {
+				$contents .= "$1\n";
+			} else {
+				$contents .= $line;
+			}
+		}
+	}
+	close($fh);
+	open($fh, ">$fpath") or fail("Can't write $fpath");
+	print $fh $contents;
+	close($fh);
 }
 
 sub record_analysis {
@@ -359,16 +403,13 @@ sub run_game {
 			my $n = $1;
 			fail("Check results parsing, no player for food count $n") unless ($player > 0);
 			$gameResult->{player}->{$player}->{food} = $n;
-			print "--> food: $n\n";
 		} elsif ($line=~m/^\s+Ants: ([0-9]+)/o) {
 			my $n = $1;
 			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
 			$gameResult->{player}->{$player}->{ants} = $n;
-			print "--> ants: $n\n";
 		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
 			my $n = $1;
 			$gameResult->{rounds} = $n;
-			print "--> rounds played: $n\n";
 		}
 	}
 	if (open (my $fh, ">$logFolder/output_$gameNumber.txt")) {
