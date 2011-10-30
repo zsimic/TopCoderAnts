@@ -44,7 +44,7 @@ public abstract class Operation {
 
 	@Override
 	public String toString() {
-		return CommonAnt.className(this);
+		return Constants.className(this);
 	}
 
 }

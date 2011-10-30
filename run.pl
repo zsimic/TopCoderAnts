@@ -57,7 +57,7 @@ if ($clrun) {
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
-		my $gameResult = run_game();
+		my $gameResult = run_game($n);
 		my $folder = $logFolder;
 		$folder = archive_logs();
 		my $res = analyze_folder($folder);
@@ -292,7 +292,8 @@ sub add_stat {
 	my ($res,$computed,$key,$totKey) = @_;
 	my $n = $computed->{state}->{$key};
 	my $tot = $computed->{state}->{$totKey};
-	my $p = sprintf("%.2g", $n/$tot*100);
+	my $p = '0';
+	$p = sprintf("%.2g", $n/$tot*100) if ($tot > 0);
 	$res->{$key}->{n} = $n;
 	$res->{$key}->{percent} = $p;
 	$res->{summary} .= "$key: $n / $tot [$p%]\n";
@@ -315,6 +316,7 @@ sub compile_project {
 }
 
 sub run_game {
+	my ($gameNumber) = @_;
 	my $gameResult = {};
 	my @t0 = times();
 	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
@@ -343,6 +345,10 @@ sub run_game {
 			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
 			$gameResult->{player}->{$player}->{ants} = $n;
 		}
+	}
+	if (open (my $fh, ">$logFolder/output_$gameNumber.txt")) {
+		print $fh $s;
+		close($fh);
 	}
 	return $gameResult;
 }

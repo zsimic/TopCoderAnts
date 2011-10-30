@@ -4,19 +4,18 @@ import org.linkedin.contest.ants.api.*;
 
 public class ScoutSection extends Role {
 
-	ScoutSection(CommonAnt ant, int slice, int totalSlices) {
+	ScoutSection(CommonAnt ant, int sliceNumber, int totalSlices) {
 		super(ant);
-		assert slice >= 0 && slice < totalSlices;
-		this.slice = slice;
-		this.slice1 = Constants.rotationCoordinates(slice, totalSlices);
-		this.slice2 = Constants.rotationCoordinates(slice + 1, totalSlices);
-//		maxScout = Constants.BOARD_SIZE * Constants.BOARD_SIZE * 3 / totalSlices;	// Stop scouting when this number of cells have been discovered by the scout
-		maxScout = 35000;	// Stop scouting when this number of cells have been discovered by the scout
+		assert sliceNumber >= 0 && sliceNumber < totalSlices;
+		this.sliceNumber = sliceNumber;
+		this.slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
+		maxScout = 100000;		// Stop scouting when this number of cells have been discovered by the scout
 	}
 
-	protected int slice;							// The slice we want to explore (from 0 to totalSlices)
-	private RotationCoordinates slice1, slice2;		// The ant will be encouraged to stay within these 2 slices of the board
-	private int avoidX = 0, avoidY = 0;				// Square to avoid because of possible enemy ants
+	protected int sliceNumber;					// The slice we want to explore (from 0 to totalSlices)
+	private RotationCoordinates slice;			// The ant will be encouraged to stay in the direction of its given slice to explore
+	private int avoidX = 0, avoidY = 0;			// Square to avoid because of possible enemy ants
+	private int resumeX = 0, resumeY = 0;		// Where to resume exploring after hauling food back to nest
 	private boolean isHauling = false;
 	private int skipSteps = 0;
 	private int maxScout;
@@ -28,7 +27,7 @@ public class ScoutSection extends Role {
 		if (isHauling) mode = (skipSteps > 0) ? "hauling+skip" : "hauling";
 		else if (follower.isActive()) mode = "following path";
 		else mode = "";
-		return String.format("Scout slice %d %s", slice, mode);
+		return String.format("Scout slice %d %s", sliceNumber, mode);
 	}
 
 	private void ensureHasPathToNest() {
@@ -42,6 +41,12 @@ public class ScoutSection extends Role {
 		isHauling = false;
 		skipSteps = 0;
 		follower.setPath(null);
+		if (resumeX != 0 && resumeY != 0 && resumeX != ant.x && resumeY != ant.y) {
+			Path path = ant.board.bestPath(ant.x, ant.y, resumeX, resumeY);
+			follower.setPath(path);
+			resumeX = 0;
+			resumeY = 0;
+		}
 	}
 
 	private void startHauling() {
@@ -49,6 +54,10 @@ public class ScoutSection extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		ensureHasPathToNest();
+		if (!ant.here.isNest() && !ant.isNextToNest()) {
+			resumeX = ant.x;
+			resumeY = ant.y;
+		}
 	}
 
 	private Action nextFollowerMove(boolean requirePassable) {
@@ -70,7 +79,8 @@ public class ScoutSection extends Role {
 				stopHauling();
 			} else if (skipSteps > 0) {
 				skipSteps--;
-				return nextFollowerMove(true);
+				if (ant.here.hasFood()) return nextFollowerMove(true);
+				stopHauling();
 			} else {
 				ensureHasPathToNest();
 				ZSquare dropZone = ant.squareTo(follower.peek());
@@ -122,7 +132,7 @@ public class ScoutSection extends Role {
 	}
 
 	private void findNewPathToExplore() {
-		Path path = ant.board.pathToClosestUnexplored(slice1, slice2, avoidX, avoidY);
+		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
 		avoidX = 0;
 		avoidY = 0;
 		if (path == null) {

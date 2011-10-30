@@ -140,7 +140,7 @@ abstract class CommonAnt implements Ant {
 		} else if (act instanceof Pass) {
 			// Do nothing
 		} else {
-			Logger.trace(this, "check action " + className(act));
+			Logger.trace(this, "check action " + Constants.className(act));
 			assert false;
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
@@ -378,13 +378,6 @@ abstract class CommonAnt implements Ant {
 			return 0;
 		}
 		return w.intValue();
-	}
-
-	public final static String className(Object obj) {
-		String s = obj.getClass().getName();
-		int i = s.lastIndexOf('.');
-		if (i>0) return s.substring(i+1);
-		return s;
 	}
 
 }

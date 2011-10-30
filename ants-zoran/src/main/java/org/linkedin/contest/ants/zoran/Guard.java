@@ -14,6 +14,8 @@ public class Guard extends Role {
 	@Override
 	Action effectiveAct() {
 		if (ant.here.isNest()) {
+			// When on nest, just stay there (to make it difficult for enemy to pillage food),
+			// and gather food deposited by other ants right next to nest
 			if (follower != null) follower = null;
 			if (ant.hasFood) {
 				return new DropFood(ant.here.dir);
@@ -23,6 +25,7 @@ public class Guard extends Role {
 			}
 			return new Pass();
 		}
+		// Return back to nest otherwise
 		if (follower == null) follower = new FollowPath(this);
 		if (!follower.isActive()) follower.setPath(ant.board.bestPathToNest());
 		return follower.act();

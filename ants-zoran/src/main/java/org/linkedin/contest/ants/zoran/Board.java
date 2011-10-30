@@ -44,8 +44,8 @@ public class Board {
 	};
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
-	public Path pathToClosestUnexplored(RotationCoordinates slice1, RotationCoordinates slice2, int avoidX, int avoidY) {
-		assert slice1 != null && slice2 != null;
+	public Path pathToClosestUnexplored(RotationCoordinates slice, int avoidX, int avoidY) {
+		assert slice != null;
 		assert get(ant.x, ant.y) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
 		HashMap<Integer, PathNode> closed = new HashMap<Integer, PathNode>();
@@ -55,7 +55,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
-		int consider = 30;		// Number of unknowns to consider before picking one
+		int consider = 20;		// Number of unknowns to consider before picking one
 		while (cont) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
@@ -77,7 +77,7 @@ public class Board {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
 						double g = current.g + 1;							// current g + distance from current to neighbor
-						double h = distanceFromSlices(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, slice1, slice2);	// Heuristic when exploring
+						double h = distanceFromSlice(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, slice);	// Heuristic when exploring
 						PathNode node = opened.get(key);
 						if (node == null) {
 							// Not in the open set yet
@@ -98,11 +98,10 @@ public class Board {
 		return pathFromNode(goal);
 	}
 
-	private static double distanceFromSlices(int x, int y, RotationCoordinates slice1, RotationCoordinates slice2) {
-		double px = slice1.projectedX(x, y);
-		double py1 = slice1.projectedY(x, y);
-		double py2 = slice2.projectedY(x, y);
-		double distance = Math.abs(py1) + Math.abs(py2) + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
+	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
+		double px = slice.projectedX(x, y);
+		double py = slice.projectedY(x, y);
+		double distance = Math.abs(py) + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
 		if (px < 0) distance *= -px + 10.0; 
 		return distance;
 	}
