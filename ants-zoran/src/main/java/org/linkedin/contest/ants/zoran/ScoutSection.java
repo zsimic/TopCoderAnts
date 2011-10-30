@@ -19,19 +19,19 @@ public class ScoutSection extends Role {
 	private boolean isHauling = false;
 	private int skipSteps = 0;
 	private int maxScout;
+	private String mode = "starting";
 	private FollowPath follower = new FollowPath(this);
 
 	@Override
 	public String toString() {
-		String mode;
-		if (isHauling) mode = (skipSteps > 0) ? "hauling+skip" : "hauling";
-		else if (follower.isActive()) mode = "following path";
-		else mode = "";
-		return String.format("Scout slice %d %s", sliceNumber, mode);
+		String s = mode;
+		if (skipSteps > 0) s += "+skip";
+		return String.format("Scout slice %d %s", sliceNumber, s);
 	}
 
 	private void ensureHasPathToNest() {
 		if (follower.isActive()) return;
+		mode = "going to nest";
 		Path path = ant.board.bestPathToNest();
 		follower.setPath(path);
 		assert follower.isActive();
@@ -42,10 +42,13 @@ public class ScoutSection extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		if (resumeX != 0 && resumeY != 0 && resumeX != ant.x && resumeY != ant.y) {
+			mode = String.format("returning to %d,%d", resumeX, resumeY);
 			Path path = ant.board.bestPath(ant.x, ant.y, resumeX, resumeY);
 			follower.setPath(path);
 			resumeX = 0;
 			resumeY = 0;
+		} else {
+			mode = "exploring";
 		}
 	}
 
@@ -103,6 +106,7 @@ public class ScoutSection extends Role {
 		if (ant.board.knownCells > maxScout) {
 			// Stop scouting for unexplored cells, we get close to hitting the VM heap space limit
 			Logger.dumpBoard(ant, "done");
+			mode = "switching to Guard";
 			ant.setRole(new Guard(ant));
 			return new Pass();
 		}
@@ -112,11 +116,13 @@ public class ScoutSection extends Role {
 		Action act = nextFollowerMove(false);
 		if (act == null) {
 			Logger.error(ant, "no next move, check why");
+			mode = "confused";
 			return new Pass();
 		}
 		ZSquare s = ant.square(act);
 		if (!s.isPassable()) {		// Happens when we explore
 			follower.setPath(null);
+			mode = "hit wall";
 			return new Pass();
 		}
 		if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
@@ -132,6 +138,11 @@ public class ScoutSection extends Role {
 	}
 
 	private void findNewPathToExplore() {
+		if (avoidX != 0 && avoidY != 0) {
+//			mode = "exploring";
+//		} else {
+			mode += String.format(", avoiding %d,%d", avoidX, avoidY);
+		}
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
 		avoidX = 0;
 		avoidY = 0;
