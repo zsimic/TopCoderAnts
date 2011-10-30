@@ -31,7 +31,6 @@ public class ScoutSection extends Role {
 
 	private void ensureHasPathToNest() {
 		if (follower.isActive()) return;
-		mode = "going to nest";
 		Path path = ant.board.bestPathToNest();
 		follower.setPath(path);
 		assert follower.isActive();
@@ -57,6 +56,7 @@ public class ScoutSection extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		ensureHasPathToNest();
+		mode = "hauling";
 		if (!ant.here.isNest() && !ant.isNextToNest()) {
 			resumeX = ant.x;
 			resumeY = ant.y;
@@ -139,9 +139,9 @@ public class ScoutSection extends Role {
 
 	private void findNewPathToExplore() {
 		if (avoidX != 0 && avoidY != 0) {
-//			mode = "exploring";
-//		} else {
 			mode += String.format(", avoiding %d,%d", avoidX, avoidY);
+		} else {
+			mode = "exploring";
 		}
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
 		avoidX = 0;
