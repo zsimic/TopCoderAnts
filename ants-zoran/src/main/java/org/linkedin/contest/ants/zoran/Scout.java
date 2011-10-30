@@ -34,7 +34,7 @@ public class Scout extends Role {
 		if (follower.isActive()) return;
 		Path path = ant.board.bestPathToNest();
 		follower.setPath(path);
-		assert follower.isActive();
+//		assert follower.isActive();
 	}
 
 	private void stopHauling() {

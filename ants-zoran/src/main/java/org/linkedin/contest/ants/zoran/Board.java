@@ -55,6 +55,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		int consider = 8;		// Number of unknowns to consider before picking one
+		long timeLimit = System.currentTimeMillis() + 5;
 		while (true) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
@@ -91,7 +92,9 @@ public class Board {
 					}
 				}
 			}
-			if (opened.isEmpty()) break;
+			if (opened.isEmpty() || timeLimit < System.currentTimeMillis()) {
+				break;
+			}
 		}
 		return pathFromNode(goal);
 	}

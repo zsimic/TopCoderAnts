@@ -45,12 +45,12 @@ public class Logger {
 	// Log how long a turn took to complete
 	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {
 		if (omitLogs) {
-			if (elapsedTimeMillis > 200) {
+			if (elapsedTimeMillis > 50) {
 				System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
 			}
-		} else if (elapsedTimeMillis > 600) {
-			error(ant, turnTooLongMessage(elapsedTimeMillis));
 		} else if (elapsedTimeMillis > 200) {
+			error(ant, turnTooLongMessage(elapsedTimeMillis));
+		} else if (elapsedTimeMillis > 100) {
 			warn(ant, turnTooLongMessage(elapsedTimeMillis));
 		}
 	}
