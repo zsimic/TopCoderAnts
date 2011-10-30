@@ -55,7 +55,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
-		int consider = 16;		// Number of unknowns to consider before picking one
+		int consider = 8;		// Number of unknowns to consider before picking one
 		while (cont) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
@@ -101,7 +101,7 @@ public class Board {
 	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
 		double px = slice.projectedX(x, y);
 		double py = slice.projectedY(x, y);
-		double distance = Math.abs(py) + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
+		double distance = Math.abs(py);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
 		if (px < 0) distance *= -px + 10.0; 
 		return distance;
 	}

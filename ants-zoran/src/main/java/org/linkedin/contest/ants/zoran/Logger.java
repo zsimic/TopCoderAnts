@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class Logger {
 
-	public static boolean omitLogs = true;		// Set to 'false' to enable output
+	private static boolean omitLogs = false;		// Set to 'false' to enable output
 
 	private static HashMap<String, OutputStreamWriter> streamWriters = new HashMap<String, OutputStreamWriter>();
 	static {
@@ -44,12 +44,12 @@ public class Logger {
 	// Log how long a turn took to complete
 	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {
 		if (omitLogs) {
-			if (elapsedTimeMillis > 150) {
+			if (elapsedTimeMillis > 200) {
 				System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
 			}
-		} else if (elapsedTimeMillis > 300) {
+		} else if (elapsedTimeMillis > 600) {
 			error(ant, turnTooLongMessage(elapsedTimeMillis));
-		} else if (elapsedTimeMillis > 100) {
+		} else if (elapsedTimeMillis > 200) {
 			warn(ant, turnTooLongMessage(elapsedTimeMillis));
 		}
 	}

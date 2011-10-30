@@ -141,7 +141,7 @@ abstract class CommonAnt implements Ant {
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
 		Logger.logRunTime(this, elapsedTimeMillis);
 		totalRunTime += elapsedTimeMillis;
-		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
+		if (turn % 2000 == 0) Logger.logAverageRunTime(this);
 		return act;
 	}
 

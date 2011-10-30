@@ -294,7 +294,7 @@ sub analyze_folder {
 	$res->{summary} .= "all good, times: [".join(' ',times)."]\n";
 	$res->{avgturntime} = 0;
 	if (open (my $fh, "<$logFolder/info.txt")) {
-		while (my $s = <$fh>) {
+		while (my $line = <$fh>) {
 			if ($line=~m/Average run-time: ([0-9]+)$/o) {
 				my $t = $1;
 				$res->{avgturntime} = $t if ($res->{avgturntime} < $t);
