@@ -121,6 +121,8 @@ public class Board {
 		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
 		PathNode goal = null;
+		PathNode closest = null;
+		long timeLimit = System.currentTimeMillis() + 5;
 		while (true) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
@@ -129,6 +131,7 @@ public class Board {
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				break;
 			}
+			if (closest == null || closest.getF() > current.getF()) closest = current;
 			closed.put(current.id, current);
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
@@ -154,14 +157,17 @@ public class Board {
 					}
 				}
 			}
-			if (opened.isEmpty()) break;
+			if (opened.isEmpty() || timeLimit < System.currentTimeMillis()) {
+				break;
+			}
 		}
+		if (goal == null) return pathFromNode(closest);
 		return pathFromNode(goal);
 	}
 
 	private static Path pathFromNode(PathNode goal) {
-		if (goal == null) return null;
-		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
+		if (goal == null || goal.parent == null) return null;
+//		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 		Path p = new Path();
 		int prevX = goal.x;
 		int prevY = goal.y;
