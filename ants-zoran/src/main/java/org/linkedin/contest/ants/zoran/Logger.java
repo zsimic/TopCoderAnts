@@ -77,18 +77,18 @@ public class Logger {
 	// Output warning message for 'ant', need to check what happened here
 	public static void warn(CommonAnt ant, String info) {
 		if (omitLogs) return;
-		String fileName = "warnings";
+		String fileName = "info";
 		String message = message(ant, info);
-		append(fileName, message);
+		append(fileName, "warning: " + message);
 		System.out.print(message);
 	}
 
 	// Output error message for 'ant', need to check what happened here
 	public static void error(CommonAnt ant, String info) {
 		if (omitLogs) return;
-		String fileName = "errors";
+		String fileName = "info";
 		String message = message(ant, info);
-		append(fileName, message);
+		append(fileName, "error: " + message);
 		System.err.print(message);
 	}
 

@@ -63,6 +63,7 @@ if ($clrun) {
 		my $res = analyze_folder($folder);
 		$res->{gameruntime} = $gameResult->{gameruntime};
 		$res->{player} = $gameResult->{player};
+		$res->{rounds} = $gameResult->{rounds};
 		record_analysis($res);
 	}
 } else {
@@ -95,10 +96,10 @@ sub record_analysis {
 			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
 		} else {
 			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
-			print $fh "date\t\tmissing\tfill%\tcells\tfood\tants\tgame time\tturn time\tfolder\t\t\t\tfail\n";
+			print $fh "date\t\tmissing\tfill%\tcells\trounds\tfood\tants\tgame time\tturn time\tfolder\t\t\t\tfail\n";
 		}
 		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}";
-		print $fh "\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}";
+		print $fh "\t$res->{rounds}\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}";
 		print $fh "\t$res->{gameruntime}\t$res->{avgturntime}\t$res->{fail}\n";
 		close($fh);
 		# run.html
@@ -120,6 +121,7 @@ sub record_analysis {
 		$newRow .= new_td($res->{missing},undef);
 		$newRow .= new_td($res->{cells}->{percent}.'%',undef);
 		$newRow .= new_td(new_href($res->{cells}->{n},"file:$fullBoardFile.png"),undef);
+		$newRow .= new_td($res->{rounds}, undef);
 		$newRow .= new_td($res->{player}->{1}->{food}, undef);
 		$newRow .= new_td($res->{player}->{1}->{ants}, undef);
 		$newRow .= new_td($res->{gameruntime},undef);
@@ -143,7 +145,7 @@ sub new_run_html {
 <table>
   <tr>
     <th>Date</th><th align="center">Missing</th><th>Fill%</th><th>Cells</th>
-    <th>Food</th><th>Ants</th>
+    <th>Rounds</th><th>Food</th><th>Ants</th>
     <th>Run time</th><th>Turn time</th><th>Note</th></tr>
   $htmlPlaceholder
 </table>
@@ -293,7 +295,7 @@ sub analyze_folder {
 	add_stat($res,$computed,'obstacle','cells');
 	$res->{summary} .= "all good, times: [".join(' ',times)."]\n";
 	$res->{avgturntime} = 0;
-	if (open (my $fh, "<$logFolder/info.txt")) {
+	if (open (my $fh, "<$folder/info.txt")) {
 		while (my $line = <$fh>) {
 			if ($line=~m/Average run-time: ([0-9]+)$/o) {
 				my $t = $1;
@@ -357,10 +359,16 @@ sub run_game {
 			my $n = $1;
 			fail("Check results parsing, no player for food count $n") unless ($player > 0);
 			$gameResult->{player}->{$player}->{food} = $n;
+			print "--> food: $n\n";
 		} elsif ($line=~m/^\s+Ants: ([0-9]+)/o) {
 			my $n = $1;
 			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
 			$gameResult->{player}->{$player}->{ants} = $n;
+			print "--> ants: $n\n";
+		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
+			my $n = $1;
+			$gameResult->{rounds} = $n;
+			print "--> rounds played: $n\n";
 		}
 	}
 	if (open (my $fh, ">$logFolder/output_$gameNumber.txt")) {
