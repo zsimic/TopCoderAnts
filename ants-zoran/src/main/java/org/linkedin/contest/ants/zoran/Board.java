@@ -109,11 +109,16 @@ public class Board {
 
 	// Best path back to nest
 	public Path bestPathToNest() {
-		return bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE);
+		assert !ant.here.isNest() && !ant.isNextToNest();
+		Path path = bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE, false);
+		if (path == null) {
+			path = new Path(ant.trail);
+		}
+		return path;
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd) {
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, boolean useClosest) {
 		assert xStart != xEnd || yStart != yEnd;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		assert get(xEnd, yEnd) == Constants.STATE_PASSABLE;
@@ -134,7 +139,7 @@ public class Board {
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				break;
 			}
-			if (closest == null || closest.getF() > current.getF()) closest = current;
+			if (useClosest && (closest == null || closest.getF() > current.getF())) closest = current;
 			closed.put(current.id, current);
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor

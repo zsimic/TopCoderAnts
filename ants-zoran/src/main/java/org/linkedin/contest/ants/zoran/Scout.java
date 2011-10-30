@@ -31,10 +31,9 @@ public class Scout extends Role {
 	}
 
 	private void ensureHasPathToNest() {
-		if (follower.isActive()) return;
-		Path path = ant.board.bestPathToNest();
-		follower.setPath(path);
-//		assert follower.isActive();
+		if (follower.isActive() || ant.here.isNest() || ant.isNextToNest()) return;
+		follower.setPath(ant.board.bestPathToNest());
+		assert follower.isActive();
 	}
 
 	private void stopHauling() {
@@ -43,7 +42,7 @@ public class Scout extends Role {
 		follower.setPath(null);
 		if (resumeX != 0 && resumeY != 0 && resumeX != ant.x && resumeY != ant.y) {
 			mode = String.format("returning to %d,%d", resumeX, resumeY);
-			Path path = ant.board.bestPath(ant.x, ant.y, resumeX, resumeY);
+			Path path = ant.board.bestPath(ant.x, ant.y, resumeX, resumeY, true);
 			follower.setPath(path);
 			resumeX = 0;
 			resumeY = 0;
@@ -65,9 +64,9 @@ public class Scout extends Role {
 	}
 
 	private Action nextFollowerMove(boolean requirePassable) {
-		assert follower.isActive();
-		Action act = follower.act();
-		if (requirePassable) assert ant.square(act).isPassable();
+//		assert follower.isActive();
+		Action act = follower.isActive() ? follower.act() : null;
+		if (requirePassable) assert act != null && ant.square(act).isPassable();
 		return act;
 	}
 
@@ -82,7 +81,8 @@ public class Scout extends Role {
 				stopHauling();
 			} else if (skipSteps > 0) {
 				skipSteps--;
-				if (ant.here.hasFood()) return nextFollowerMove(true);
+				Action act = nextFollowerMove(true);
+				if (act != null || ant.here.hasFood()) return act;
 				stopHauling();
 			} else {
 				ensureHasPathToNest();
@@ -93,7 +93,8 @@ public class Scout extends Role {
 				if (sfood != null) return new GetFood(sfood.dir);
 				if (dropZone.hasFood()) {
 					skipSteps = 1;
-					return nextFollowerMove(true);		// Will move to 'dropZone'
+					Action act = nextFollowerMove(true);
+					if (act != null) return act;		// Will move to 'dropZone'
 				}
 				stopHauling();
 			}

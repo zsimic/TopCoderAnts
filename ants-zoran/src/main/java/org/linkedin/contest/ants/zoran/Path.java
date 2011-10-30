@@ -11,6 +11,13 @@ public class Path {
 		points = new Stack<Integer>();
 	}
 
+	Path(Trail trail) {
+		points = new Stack<Integer>();
+		for (Integer key : trail.list) {
+			add(key);
+		}
+	}
+
 	public int size() {
 		return points.size();
 	}

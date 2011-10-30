@@ -29,7 +29,9 @@ public class Guard extends Role {
 		}
 		// Return back to nest otherwise
 		if (follower == null) follower = new FollowPath(this);
-		if (!follower.isActive()) follower.setPath(ant.board.bestPathToNest());
+		if (!follower.isActive()) {
+			follower.setPath(ant.board.bestPathToNest());
+		}
 		return follower.act();
 	}
 

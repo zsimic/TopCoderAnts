@@ -39,5 +39,10 @@ public class FollowPath extends Operation {
 		this.path = path;
 		activate(path != null && path.size() > 0);
 	}
-	
+
+	public void setFromTrail(Trail trail) {
+		Path path = new Path(trail);
+		setPath(path);
+	}
+
 }

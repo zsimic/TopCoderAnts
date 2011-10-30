@@ -15,6 +15,7 @@ abstract class CommonAnt implements Ant {
 	protected List<ZSquare> cells;					// All cells (including 'here')
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
+	protected Trail trail;							// Trail leading back to nest
 	protected long totalRunTime = 0;
 
 	@Override
@@ -33,6 +34,7 @@ abstract class CommonAnt implements Ant {
 		x = y = Constants.BOARD_SIZE;
 		hasFood = false;
 		board = new Board(this);
+		trail = new Trail();
 		north = new ZSquare(this, Direction.north);
 		northeast = new ZSquare(this, Direction.northeast);
 		east = new ZSquare(this, Direction.east);
@@ -106,6 +108,7 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(west);
 		board.updateCell(northwest);
 		board.updateCell(north);
+		trail.add(here);
 		if (here.scent.stinky) act = new Write(null);		// Erase opponent's writing
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
