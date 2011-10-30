@@ -2,14 +2,13 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
-public class ScoutSection extends Role {
+public class Scout extends Role {
 
-	ScoutSection(CommonAnt ant, int sliceNumber, int totalSlices) {
+	Scout(CommonAnt ant, int sliceNumber, int totalSlices) {
 		super(ant);
 		assert sliceNumber >= 0 && sliceNumber < totalSlices;
 		this.sliceNumber = sliceNumber;
 		this.slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
-		maxScout = 100000;		// Stop scouting when this number of cells have been discovered by the scout
 	}
 
 	protected int sliceNumber;					// The slice we want to explore (from 0 to totalSlices)
@@ -18,7 +17,6 @@ public class ScoutSection extends Role {
 	private int resumeX = 0, resumeY = 0;		// Where to resume exploring after hauling food back to nest
 	private boolean isHauling = false;
 	private int skipSteps = 0;
-	private int maxScout;
 	private String mode = "starting";
 	private FollowPath follower = new FollowPath(this);
 
@@ -73,7 +71,6 @@ public class ScoutSection extends Role {
 	@Override
 	Action effectiveAct() {
 		ZSquare sfood;
-		if (ant.turn % 50000 == 0) Logger.dumpBoard(ant, Integer.toString(ant.turn));
 		if (isHauling) {
 			if (ant.here.isNest() || ant.isNextToNest()) {
 				if (ant.hasFood) return new DropFood(ant.nest().dir);
@@ -102,13 +99,6 @@ public class ScoutSection extends Role {
 		if (sfood != null) {
 			startHauling();
 			return new GetFood(sfood.dir);
-		}
-		if (ant.board.knownCells > maxScout) {
-			// Stop scouting for unexplored cells, we get close to hitting the VM heap space limit
-			Logger.dumpBoard(ant, "done");
-			mode = "switching to Guard";
-			ant.setRole(new Guard(ant));
-			return new Pass();
 		}
 		if (!follower.isActive()) {
 			findNewPathToExplore();

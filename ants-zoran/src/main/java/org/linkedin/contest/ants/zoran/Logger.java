@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class Logger {
 
-	public static boolean omitLogs = false;		// Set to 'false' to enable output
+	public static boolean omitLogs = true;		// Set to 'false' to enable output
 
 	private static HashMap<String, OutputStreamWriter> streamWriters = new HashMap<String, OutputStreamWriter>();
 	static {
@@ -30,6 +30,15 @@ public class Logger {
 
 	private static String turnTooLongMessage(long elapsedTimeMillis) {
 		return String.format("Turn took %d ms\n", elapsedTimeMillis);
+	}
+
+	public static void logAverageRunTime(CommonAnt ant) {
+		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));
+		if (omitLogs) {
+			System.err.print(message(ant, msg));
+		} else {
+			inform(ant, msg);
+		}
 	}
 
 	// Log how long a turn took to complete
@@ -61,7 +70,7 @@ public class Logger {
 	// Output some unusual information on 'ant'
 	public static void inform(CommonAnt ant, String info) {
 		if (omitLogs) return;
-		String fileName = getFileName("info", ant.id);
+		String fileName = "info";
 		append(fileName, message(ant, info));
 	}
 
@@ -84,9 +93,9 @@ public class Logger {
 	}
 
 	// Dump current board representation for ant, under log file board_ID_name.txt
-	public static void dumpBoard(CommonAnt ant, String name) {
+	public static void dumpBoard(CommonAnt ant) {
 		if (omitLogs) return;
-		String fileName = getFileName("board", ant.id, name);
+		String fileName = getFileName("board", ant.id);
 		String representation = String.format("%s\n%s", ant.toString(), ant.board.representation(true));
 		writeAndClose(fileName, representation);
 	}
@@ -95,12 +104,6 @@ public class Logger {
 	private static String getFileName(String prefix, int id) {
 		assert id > 0 && id <= 50;
 		return String.format("%s_%02d", prefix, id);
-	}
-
-	// Standard file name with turn number
-	private static String getFileName(String prefix, int id, String suffix) {
-		assert id > 0 && id <= 50 && suffix != null;
-		return String.format("%s_%02d_%s", prefix, id, suffix);
 	}
 
 	// Append message to file with fileName

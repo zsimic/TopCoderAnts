@@ -9,16 +9,13 @@ abstract class CommonAnt implements Ant {
 	protected int turn;								// Turn being played, acts as an internal timer
 	protected int x;								// Current X coordinate, nest is on Constants.BOARD_SIZE by convention, to make sure all coordinates are > 0
 	protected int y;								// Current Y coordinate, relative to nest
-	protected int receivedBoardInfos;				// Number of times this ant received board info
-	protected boolean receivalInProgress;			// Are we currently receiving a multi-part message
 	protected boolean hasFood;						// Is ant currently carrying food?
 	protected ZSquare here,northeast,east,southeast,south,southwest,west,northwest,north;
 	protected List<ZSquare> neighbors;				// All neighboring cells (all except 'here')
 	protected List<ZSquare> cells;					// All cells (including 'here')
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
-	private HashMap<Integer, String> pendingTransmissions;		// Pending transmissions from other ants
-	private long totalRunTime = 0;
+	protected long totalRunTime = 0;
 
 	@Override
 	public String toString() {
@@ -34,8 +31,6 @@ abstract class CommonAnt implements Ant {
 	public void init() {
 		id = turn = 0;
 		x = y = Constants.BOARD_SIZE;
-		receivedBoardInfos = 0;
-		receivalInProgress = false;
 		hasFood = false;
 		board = new Board(this);
 		north = new ZSquare(this, Direction.north);
@@ -49,7 +44,6 @@ abstract class CommonAnt implements Ant {
 		here = new ZSquare(this, Direction.here);
 		neighbors = new ArrayList<ZSquare>();
 		cells = new ArrayList<ZSquare>();
-		pendingTransmissions = new HashMap<Integer, String>();
 		neighbors.add(north);
 		neighbors.add(northeast);
 		neighbors.add(east);
@@ -80,17 +74,21 @@ abstract class CommonAnt implements Ant {
 		long elapsedTimeMillis = System.currentTimeMillis();
 		Action act = null;
 		turn++;
-		if (turn == 99999) Logger.inform(this, String.format("Average run-time: %g", totalRunTime / 99999.0));
+		if (turn % 1000 == 0) {
+			Logger.dumpBoard(this);
+		}
 		here.update(environment);
 		if (role==null) {
 			assert id==0;
 			assert turn==1;
 			assert here.isNest();
 			board.updateCell(here);
-			id = intValueOnNest() + 1;
+			id = here.scent.a + 1;
+			Scent s = new Scent();
+			s.a = id;
 			initializeState();
 			assert role != null;
-			return new Write(new Long(id));
+			return new Write(s.getValue());
 		}
 		northeast.update(environment);
 		east.update(environment);
@@ -108,9 +106,6 @@ abstract class CommonAnt implements Ant {
 		board.updateCell(west);
 		board.updateCell(northwest);
 		board.updateCell(north);
-		for (WorldEvent event : events) {
-			receiveEvent(event.getEvent());
-		}
 		if (here.scent.stinky) act = new Write(null);		// Erase opponent's writing
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
@@ -146,57 +141,8 @@ abstract class CommonAnt implements Ant {
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
 		Logger.logRunTime(this, elapsedTimeMillis);
 		totalRunTime += elapsedTimeMillis;
+		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
 		return act;
-	}
-
-	// Receive event sent by another ant, we communicate board info only...
-	private void receiveEvent(String event) {
-		String message = event;
-		assert message.length() > 15;
-		if (message.startsWith(Constants.AN_ANT_SAYS)) {
-			Logger.trace(this, "received evt: " + message);
-			message = message.substring(Constants.AN_ANT_SAYS.length());
-			if (message.length() < 10) return;
-			char messageType = message.charAt(0);
-			int antId = Constants.decodedCharInt(message.charAt(1));
-			int page = Constants.decodedCharInt(message.charAt(2));
-			int totalPages = Constants.decodedCharInt(message.charAt(3));
-			if (antId <= 0 || page <= 0 || totalPages <= 0 || antId > 50 || page > totalPages) return;		// Not sent by us
-			if (messageType == Constants.messageBoard) {
-				if (!here.isNest() && !isNextToNest()) return;
-				message = message.substring(4);
-				String prev = pendingTransmissions.get(antId);
-				if (prev != null) {
-					message = message + prev;
-				} else if (page != totalPages) {
-					receivalInProgress = false;
-					return;			// We missed the first part of the message
-				} else {
-					receivalInProgress = true;
-				}
-				if (page == 1) {
-					receivalInProgress = false;
-					if (prev != null) pendingTransmissions.remove(antId);
-					interpretReceivedBoardInfo(message);
-				} else {
-					pendingTransmissions.put(antId, message);
-				}
-			}
-		}
-	}
-
-	// Interpret received string (containing board findings)
-	private void interpretReceivedBoardInfo(String received) {
-		ArrayList<String> list = new ArrayList<String>();
-		String message = TransmitMessage.uncompressed(this, received);
-		String[] lines = message.split("\n");
-		int i = 0;
-		for (; i < lines.length; i++) {
-			String line = lines[i];
-			list.add(line);
-		}
-		board.setFromLines(list);
-		receivedBoardInfos++;
 	}
 
 	// Initialize ant's state (called on first turn, and should assign a role here, based on id)
@@ -356,28 +302,11 @@ abstract class CommonAnt implements Ant {
 		return n;
 	}
 
-//--  Basic operations
-//--------------------
-
 	// Set 'role'
 	protected void setRole(Role role) {
 		assert role != null;
 		this.role = role;
 		Logger.trace(this, "changed role");
-	}
-
-//--  Ant implementation
-//----------------------
-
-	// We store a raw integer value on nest initially to assign roles to ants on startup
-	private int intValueOnNest() {
-		assert here.isNest();
-		Long w = here.square.getWriting();
-		if (w==null) return 0;
-		if (w < Integer.MIN_VALUE || w > Integer.MAX_VALUE) {
-			return 0;
-		}
-		return w.intValue();
 	}
 
 }

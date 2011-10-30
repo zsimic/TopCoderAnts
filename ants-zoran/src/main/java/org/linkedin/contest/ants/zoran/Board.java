@@ -55,7 +55,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		boolean cont = true;
-		int consider = 20;		// Number of unknowns to consider before picking one
+		int consider = 16;		// Number of unknowns to consider before picking one
 		while (cont) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
@@ -225,7 +225,7 @@ public class Board {
 			if (decorate) line += String.format("%4d ", py);
 			BitSet known = knownRows.get(i);
 			BitSet obs = obstacleRows.get(i);
-			for (int j = jStart; j < jEnd; j++) {
+			for (int j = jStart; j <= jEnd; j++) {
 				px = j + minX;
 				if (!known.get(j)) {
 					line += ' ';

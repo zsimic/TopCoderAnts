@@ -95,10 +95,11 @@ sub record_analysis {
 			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
 		} else {
 			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
-			print $fh "date\t\tmissing\tfill%\tcells\tfood\tants\tgameruntime\tfolder\t\t\t\tfail\n";
+			print $fh "date\t\tmissing\tfill%\tcells\tfood\tants\tgame time\tturn time\tfolder\t\t\t\tfail\n";
 		}
 		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}";
-		print $fh "\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}\t$res->{gameruntime}\t$res->{fail}\n";
+		print $fh "\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}";
+		print $fh "\t$res->{gameruntime}\t$res->{avgturntime}\t$res->{fail}\n";
 		close($fh);
 		# run.html
 		$fname = "$resultsFolder/runs.html";
@@ -119,7 +120,10 @@ sub record_analysis {
 		$newRow .= new_td($res->{missing},undef);
 		$newRow .= new_td($res->{cells}->{percent}.'%',undef);
 		$newRow .= new_td(new_href($res->{cells}->{n},"file:$fullBoardFile.png"),undef);
+		$newRow .= new_td($res->{player}->{1}->{food}, undef);
+		$newRow .= new_td($res->{player}->{1}->{ants}, undef);
 		$newRow .= new_td($res->{gameruntime},undef);
+		$newRow .= new_td($res->{avgturntime},undef);
 		$newRow .= new_td($res->{fail},'red');
 		$newRow .= "</tr>\n";
 		$html=~s/$htmlPlaceholder/$newRow  $htmlPlaceholder/go;
@@ -131,6 +135,20 @@ sub record_analysis {
 		print $res->{summary};
 		print "--------\n" if ($clrun);
 	}
+}
+
+sub new_run_html {
+	return <<EOT;
+<html><head><title>Run results</title></head><body>
+<table>
+  <tr>
+    <th>Date</th><th align="center">Missing</th><th>Fill%</th><th>Cells</th>
+    <th>Food</th><th>Ants</th>
+    <th>Run time</th><th>Turn time</th><th>Note</th></tr>
+  $htmlPlaceholder
+</table>
+</body></html>
+EOT
 }
 
 sub create_png {
@@ -225,17 +243,6 @@ sub new_td {
 	return $str;
 }
 
-sub new_run_html {
-	return <<EOT;
-<html><head><title>Run results</title></head><body>
-<table>
-  <tr><th>Date</th><th align="center">Missing</th><th>Fill%</th><th>Cells</th><th>Run time</th><th>Note</th></tr>
-  $htmlPlaceholder
-</table>
-</body></html>
-EOT
-}
-
 sub analyze_folder {
 	my ($folder) = @_;
 	logm("Analyzing folder '$folder'\n");
@@ -285,6 +292,16 @@ sub analyze_folder {
 	add_stat($res,$computed,'empty','cells');
 	add_stat($res,$computed,'obstacle','cells');
 	$res->{summary} .= "all good, times: [".join(' ',times)."]\n";
+	$res->{avgturntime} = 0;
+	if (open (my $fh, "<$logFolder/info.txt")) {
+		while (my $s = <$fh>) {
+			if ($line=~m/Average run-time: ([0-9]+)$/o) {
+				my $t = $1;
+				$res->{avgturntime} = $t if ($res->{avgturntime} < $t);
+			}
+		}
+		close($fh);
+	}
 	return $res;
 }
 
@@ -319,7 +336,7 @@ sub run_game {
 	my ($gameNumber) = @_;
 	my $gameResult = {};
 	my @t0 = times();
-	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
+	my $cmdRun = 'java -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
@@ -444,12 +461,8 @@ sub can_replace_cell {
 sub read_board {
 	my ($folder,$num) = @_;
 	my $res = {name=>$num, time=>0};
-	my $fname = "$folder/board_${num}_100000.txt";
-	$fname = "$folder/board_${num}_50000.txt" unless (-f $fname);
-	$fname = "$folder/board_${num}_done.txt" unless (-f $fname);
-	unless (-f $fname) {
-		return $res ;
-	}
+	my $fname = "$folder/board_${num}.txt";
+	return $res unless (-f $fname);
 	$res->{name} = substr($fname,length("$folder/board_"));
 	$res->{name}=~s/\.txt$//o;
 	$res->{name}=~s/_/ /go;
