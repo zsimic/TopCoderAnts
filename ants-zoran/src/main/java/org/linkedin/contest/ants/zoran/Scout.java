@@ -8,10 +8,14 @@ public class Scout extends Role {
 		super(ant);
 		assert sliceNumber >= 0 && sliceNumber < totalSlices;
 		this.sliceNumber = sliceNumber;
+		this.totalSlices = totalSlices;
 		this.slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 	}
 
 	protected int sliceNumber;					// The slice we want to explore (from 0 to totalSlices)
+	private int totalSlices;
+	private boolean changeSlice = false;		// When we spend too much time on a slice, we switch to the next one
+	private int sliceSwitchCount = 0;			// After changing slices a certain number of times, we give up
 	private RotationCoordinates slice;			// The ant will be encouraged to stay in the direction of its given slice to explore
 	private int avoidX = 0, avoidY = 0;			// Square to avoid because of possible enemy ants
 	private int resumeX = 0, resumeY = 0;		// Where to resume exploring after hauling food back to nest
@@ -100,6 +104,19 @@ public class Scout extends Role {
 			startHauling();
 			return new GetFood(sfood.dir);
 		}
+		if (changeSlice) {
+			changeSlice = false;
+			sliceSwitchCount++;
+			if (sliceSwitchCount > totalSlices / 2) {	// Give up, we're hitting a wall in all directions looks like
+				ant.setRole(new Guard(ant));
+				return new Pass();
+			}
+			sliceNumber = (sliceNumber + 3) % totalSlices;
+			Logger.inform(ant, String.format("switching to slice %d", sliceNumber));
+			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
+			follower.setPath(null);
+			if (!ant.here.isNest() && !ant.isNextToNest()) ensureHasPathToNest();
+		}
 		if (!follower.isActive()) {
 			findNewPathToExplore();
 		}
@@ -133,7 +150,13 @@ public class Scout extends Role {
 		} else {
 			mode = "exploring";
 		}
+		long elapsedTimeMillis = System.currentTimeMillis();
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
+		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
+		if (elapsedTimeMillis > 50) {
+			changeSlice = true;
+			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
+		}
 		avoidX = 0;
 		avoidY = 0;
 		if (path == null) {
