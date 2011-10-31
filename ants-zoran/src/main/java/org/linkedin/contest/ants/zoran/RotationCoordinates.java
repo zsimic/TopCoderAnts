@@ -1,10 +1,12 @@
 package org.linkedin.contest.ants.zoran;
 
+import org.linkedin.contest.ants.api.Direction;
+
 public class RotationCoordinates {
 
 	public int slice;
 	public int totalSlices;
-	public int bestFirstDirection;
+	public Direction bestFirstDirection;
 	public double cosf;
 	public double sinf;
 
@@ -14,14 +16,14 @@ public class RotationCoordinates {
 		cosf = Math.cos(2.0 * this.slice / totalSlices * Math.PI);
 		sinf = Math.sin(2.0 * this.slice / totalSlices * Math.PI);
 		double r = (double)slice / totalSlices;
-		if (r > 0.875) bestFirstDirection = 5;
-		else if (r > 0.75) bestFirstDirection = 6;
-		else if (r > 0.625) bestFirstDirection = 7;
-		else if (r > 0.5) bestFirstDirection = 0;
-		else if (r > 0.375) bestFirstDirection = 1;
-		else if (r > 0.25) bestFirstDirection = 2;
-		else if (r > 0.125) bestFirstDirection = 3;
-		else bestFirstDirection = 4;
+		if (r > 0.875) bestFirstDirection = Direction.southwest;		// 7/8
+		else if (r > 0.75) bestFirstDirection = Direction.west;			// 6/8
+		else if (r > 0.625) bestFirstDirection = Direction.northwest;	// 5/8
+		else if (r > 0.5) bestFirstDirection = Direction.north;			// 4/8
+		else if (r > 0.375) bestFirstDirection = Direction.northeast;	// 3/8
+		else if (r > 0.25) bestFirstDirection = Direction.east;			// 2/8
+		else if (r > 0.125) bestFirstDirection = Direction.southeast;	// 1/8
+		else bestFirstDirection = Direction.south;						// 0/8
 	}
 
 	@Override
@@ -37,4 +39,18 @@ public class RotationCoordinates {
 		return cosf * y + sinf * x;
 	}
 
+	public Direction nextDirection(Direction dir) {
+		if (dir == Direction.south) return Direction.southeast;
+		else if (dir == Direction.southeast) return Direction.east;
+		else if (dir == Direction.east) return Direction.northeast;
+		else if (dir == Direction.northeast) return Direction.north;
+		else if (dir == Direction.north) return Direction.northwest;
+		else if (dir == Direction.northwest) return Direction.west;
+		else if (dir == Direction.west) return Direction.southwest;
+		else {
+			assert dir == Direction.southwest;
+			return Direction.south;
+		}
+	}
+	
 }
