@@ -4,7 +4,7 @@ import org.linkedin.contest.ants.api.*;
 
 public class FollowPath extends Operation {
 
-	private Path path;
+	protected Path path;
 
 	FollowPath(Role role) {
 		super(role);

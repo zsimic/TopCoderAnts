@@ -16,7 +16,7 @@ abstract class CommonAnt implements Ant {
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	protected Trail trail;							// Trail leading back to nest
-	protected long totalRunTime = 0;
+	protected long totalRunTime = 0;				// Logger.
 
 	@Override
 	public String toString() {
@@ -73,18 +73,14 @@ abstract class CommonAnt implements Ant {
      * @return an implementation of the Action class indicating what this ant should do
      */
 	public Action act(Environment environment, List<WorldEvent> events) {
-		long elapsedTimeMillis = System.currentTimeMillis();
+		long elapsedTimeMillis = System.currentTimeMillis();		// Logger.
 		Action act = null;
 		turn++;
-		if (turn % 1000 == 0) {
-			Logger.dumpBoard(this);
-		}
 		here.update(environment);
 		if (role==null) {
 			assert id==0;
 			assert turn==1;
 			assert here.isNest();
-			board.updateCell(here);
 			id = here.scent.a + 1;
 			Scent s = new Scent();
 			s.a = id;
@@ -100,14 +96,6 @@ abstract class CommonAnt implements Ant {
 		west.update(environment);
 		northwest.update(environment);
 		north.update(environment);
-		board.updateCell(northeast);
-		board.updateCell(east);
-		board.updateCell(southeast);
-		board.updateCell(south);
-		board.updateCell(southwest);
-		board.updateCell(west);
-		board.updateCell(northwest);
-		board.updateCell(north);
 		trail.add(here);
 		if (here.scent.stinky) act = new Write(null);		// Erase opponent's writing
 		if (act == null) act = role.act();
@@ -130,20 +118,21 @@ abstract class CommonAnt implements Ant {
 			assert s.isPassable();
 			hasFood = false;
 			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
-		} else if (act instanceof Write) {
+		} else if (act instanceof Write) {	// Logger.
 			Logger.trace(this, String.format("writing value: %s", (new Scent(act)).toString()));
-		} else if (act instanceof Say) {
+		} else if (act instanceof Say) {	// Logger.
 			Logger.trace(this, String.format("Say: '%s'", act.toString()));
-		} else if (act instanceof Pass) {
+		} else if (act instanceof Pass) {	// Logger.
 			// Do nothing
-		} else {
+		} else {							// Logger.
 			Logger.trace(this, "check action " + Constants.className(act));
-			assert false;
+			assert false;					// Logger.
 		}
-		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
+		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;		// Logger.
 		Logger.logRunTime(this, elapsedTimeMillis);
-		totalRunTime += elapsedTimeMillis;
-		if (turn % 2000 == 0) Logger.logAverageRunTime(this);
+		totalRunTime += elapsedTimeMillis;										// Logger.
+		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
+		if (turn % 1000 == 0) Logger.dumpBoard(this);
 		return act;
 	}
 

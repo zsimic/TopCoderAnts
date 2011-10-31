@@ -7,6 +7,8 @@ use Getopt::Long;
 use Data::Dumper;
 use GD;
 use File::Find;
+use Math::Complex;
+use Math::Trig;
 
 my $boardSize = 512;
 my $logFolder = 'logs';
@@ -32,6 +34,7 @@ Options:
    -f --folder PATH  Analyze given folder (instead of '$logFolder')
       --nolog        Comment all logging in program (to make it faster)
       --log          Turn on all logging in program
+      --dry          Dry run for --nolog or --log
    -h -? --help      This help message
 EOM
 	exit 1;
@@ -44,6 +47,8 @@ my $clsave = undef;
 my $clfolder = undef;
 my $clnolog = 0;
 my $cllog = 0;
+my $cldry = 0;
+my $clmap = 0;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
@@ -51,7 +56,8 @@ GetOptions(
 	'r|run=i'=>\$clrun,
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
-	'nolog'=>\$clnolog, 'log'=>\$cllog,
+	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
+	'map'=>\$clmap,
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
@@ -61,7 +67,10 @@ usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
 usage("--nolog must be specified alone when specified") if ($clnolog and ($cllog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
 usage("--log must be specified alone when specified") if ($cllog and ($clnolog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
 
-if ($clnolog || $cllog) {
+if ($clmap) {
+	generate_heat_maps(45);
+	exit;
+} elsif ($clnolog || $cllog) {
 	modify_source_code();
 	exit;
 }
@@ -100,20 +109,157 @@ sub process_file {
 			if ($line=~m/^[^\/].*Logger\./o) {
 				$contents .= "//L$line";
 			} else {
-				$contents .= $line;
+				$contents .= $line unless ($cldry);
 			}
 		} else {
 			if ($line=~m/^\/\/L(.*)$/o) {
 				$contents .= "$1\n";
 			} else {
-				$contents .= $line;
+				$contents .= $line unless ($cldry);
 			}
 		}
+	}
+	if ($cldry) {
+		return unless (length($contents));
+		print "-- $fpath:\n";
+		print "$contents\n";
+		return;
 	}
 	close($fh);
 	open($fh, ">$fpath") or fail("Can't write $fpath");
 	print $fh $contents;
 	close($fh);
+}
+
+sub generate_heat_maps {
+	my ($totalSlices) = @_;
+	for (my $i = 0; $i < $totalSlices; $i++) {
+		my $num = $i;
+		$num = "0$i" unless ($num>9);
+		generate_heat_map($num,$totalSlices);
+	}
+}
+
+sub generate_heat_map {
+	my ($num,$totalSlices) = @_;
+	fail("No 'maps' folder") unless (-d "maps");
+	generate_heat_map_centered($num,$totalSlices,'a',100,100);
+#	generate_heat_map_centered($num,$totalSlices,'b',412,100);
+#	generate_heat_map_centered($num,$totalSlices,'c',256,256);
+#	generate_heat_map_centered($num,$totalSlices,'d',100,412);
+#	generate_heat_map_centered($num,$totalSlices,'e',412,412);
+}
+
+sub generate_heat_map_centered {
+	my ($num,$totalSlices,$name,$xc,$yc) = @_;
+	my $dir = "maps/$name";
+	mkdir($dir) unless (-d $dir);
+	my $slice = slice($num,$totalSlices);
+	my $factors = {};
+	for (my $x = 0; $x < $boardSize; $x++) {
+		for (my $y = 0; $y < $boardSize; $y++) {
+			my $g = normal_distance($x-$xc,$y-$yc);
+			my $h = distance_from_slice($slice,$x-$xc,$y-$yc);
+			my $f = $g + $h;
+			$factors->{points}->{$x}->{$y}->{g} = $g;
+			$factors->{points}->{$x}->{$y}->{h} = $h;
+			$factors->{points}->{$x}->{$y}->{f} = $f;
+			gather_bounds($factors,'g',$g);
+			gather_bounds($factors,'h',$h);
+			gather_bounds($factors,'f',$f);
+		}
+	}
+#	save_heat_map("$dir/composed_$name$num.png",composed_factors($factors));
+	save_heat_map("$dir/h_$name$num.png",unique_factor($factors,'h'));
+#	save_heat_map("$dir/f_$name$num.png",unique_factor($factors,'f'));
+}
+
+sub distance_from_slice {
+	my ($slice,$x,$y) = @_;
+	my $px = $slice->{cosf} * $x - $slice->{sinf} * $y;
+	if ($px<0) { return 512; }
+	else {
+		my $py = $slice->{cosf} * $y + $slice->{sinf} * $x;
+		my $distance = abs($py) - $px;
+		return $distance;
+	}
+}
+
+sub slice {
+	my ($num,$totalSlices) = @_;
+	my $i = $num % $totalSlices;
+	my $res = {};
+	$res->{cosf} = cos(2 * $i / $totalSlices * pi);
+	$res->{sinf} = sin(2 * $i / $totalSlices * pi);
+	return $res;
+}
+
+sub normal_distance {
+	my ($x,$y) = @_;
+	return sqrt($x*$x + $y*$y);
+}
+
+sub save_heat_map {
+	my ($fname,$factors) = @_;
+	GD::Image->trueColor(1);
+	my $cellSize = 2;
+	my $im = new GD::Image($boardSize * $cellSize, $boardSize * $cellSize);
+	my $emptyBg = $im->colorAllocate(204, 222, 216);
+	$im->interlaced('true');
+	$im->fill(2,2,$emptyBg);
+	for (my $x = 0; $x < $boardSize; $x++) {
+		for (my $y = 0; $y < $boardSize; $y++) {
+			my $r = $factors->{$x}->{$y}->{r};
+			my $g = $factors->{$x}->{$y}->{g};
+			my $b = $factors->{$x}->{$y}->{g};
+			my $color = $im->colorAllocate($r, $g, $b);
+			$im->filledRectangle($cellSize * $x, $cellSize * $y, $cellSize * ($x+1), $cellSize * ($y+1), $color);
+		}
+	}
+	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
+	binmode $fh;
+	print $fh $im->png;
+	close($fh);
+	print "Generated $fname\n"
+}
+
+sub composed_factors {
+	my ($factors) = @_;
+	my $res = {};
+	for (my $x = 0; $x < $boardSize; $x++) {
+		for (my $y = 0; $y < $boardSize; $y++) {
+			my $g = $factors->{points}->{$x}->{$y}->{g};
+			my $h = $factors->{points}->{$x}->{$y}->{h};
+			my $gn = ($g - $factors->{g}->{min}) / $factors->{g}->{range};
+			my $hn = ($h - $factors->{h}->{min}) / $factors->{h}->{range};
+			$res->{$x}->{$y}->{r} = 255 * $gn;
+			$res->{$x}->{$y}->{g} = 255 * $hn;
+			$res->{$x}->{$y}->{b} = 0;
+		}
+	}
+	return $res;
+}
+
+sub unique_factor {
+	my ($factors,$key) = @_;
+	my $res = {};
+	for (my $x = 0; $x < $boardSize; $x++) {
+		for (my $y = 0; $y < $boardSize; $y++) {
+			my $value = $factors->{points}->{$x}->{$y}->{$key};
+			my $vn = ($value - $factors->{$key}->{min}) / $factors->{$key}->{range};
+			$res->{$x}->{$y}->{r} = 255 * $vn;
+			$res->{$x}->{$y}->{g} = 255 * $vn;
+			$res->{$x}->{$y}->{b} = 255 * $vn;
+		}
+	}
+	return $res;
+}
+
+sub gather_bounds {
+	my ($factors,$key,$value) = @_;
+	$factors->{$key}->{max} = $value if (!defined $factors->{$key}->{max} || $factors->{$key}->{max} < $value);
+	$factors->{$key}->{min} = $value if (!defined $factors->{$key}->{min} || $factors->{$key}->{min} > $value);
+	$factors->{$key}->{range} = $factors->{$key}->{max} - $factors->{$key}->{min};
 }
 
 sub record_analysis {

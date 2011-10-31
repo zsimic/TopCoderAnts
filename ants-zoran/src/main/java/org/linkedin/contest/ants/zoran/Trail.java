@@ -14,15 +14,15 @@ public class Trail {
 		clear();
 	}
 
-	@Override
-	public String toString() {
-		if (isCorrupt) return "corrupt";
-		String s = "";
-		for (Integer key : list) {
-			s += String.format("[%d,%d] ", Constants.decodedX(key), Constants.decodedY(key));
-		}
-		return String.format("%d: %s", list.size(), s);
-	}
+	@Override																					// Logger.
+	public String toString() {																	// Logger.
+		if (isCorrupt) return "corrupt";														// Logger.
+		String s = "";																			// Logger.
+		for (Integer key : list) {																// Logger.
+			s += String.format("[%d,%d] ", Constants.decodedX(key), Constants.decodedY(key));	// Logger.
+		}																						// Logger.
+		return String.format("%d: %s", list.size(), s);											// Logger.
+	}																							// Logger.
 
 	// Number of coordinates in path
 	public int size() {

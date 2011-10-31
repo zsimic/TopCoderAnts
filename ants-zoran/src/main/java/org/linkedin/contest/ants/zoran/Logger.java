@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class Logger {
 
-	private static boolean omitLogs = false;		// Set to 'false' to enable output
+	private static boolean omitLogs = true;		// Set to 'false' to enable output
 
 	private static HashMap<String, OutputStreamWriter> streamWriters = new HashMap<String, OutputStreamWriter>();
 	static {
@@ -32,26 +32,20 @@ public class Logger {
 		return String.format("Turn took %d ms\n", elapsedTimeMillis);
 	}
 
-	public static void logAverageRunTime(CommonAnt ant) {
-		if (omitLogs) return;
-		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));
-		if (omitLogs) {
-			System.err.print(message(ant, msg));
-		} else {
-			inform(ant, msg);
-		}
-	}
+	public static void logAverageRunTime(CommonAnt ant) {														// Logger.
+		if (omitLogs) return;																					// Logger.
+		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));	// Logger.
+		if (omitLogs) {																							// Logger.
+			System.err.print(message(ant, msg));																// Logger.
+		} else {																								// Logger.
+			inform(ant, msg);																					// Logger.
+		}																										// Logger.
+	}																											// Logger.
 
 	// Log how long a turn took to complete
 	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {
-		if (omitLogs) {
-			if (elapsedTimeMillis > 50) {
-				System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
-			}
-		} else if (elapsedTimeMillis > 200) {
-			error(ant, turnTooLongMessage(elapsedTimeMillis));
-		} else if (elapsedTimeMillis > 100) {
-			warn(ant, turnTooLongMessage(elapsedTimeMillis));
+		if (elapsedTimeMillis > 10) {
+			System.err.print(message(ant, turnTooLongMessage(elapsedTimeMillis)));
 		}
 	}
 
@@ -78,27 +72,26 @@ public class Logger {
 	// Output warning message for 'ant', need to check what happened here
 	public static void warn(CommonAnt ant, String info) {
 		if (omitLogs) return;
-		String fileName = "info";
 		String message = message(ant, info);
-		append(fileName, "warning: " + message);
+		append("info", "warning: " + message);
+		append(getFileName("trace", ant.id), message);
 		System.out.print(message);
 	}
 
 	// Output error message for 'ant', need to check what happened here
 	public static void error(CommonAnt ant, String info) {
 		if (omitLogs) return;
-		String fileName = "info";
 		String message = message(ant, info);
-		append(fileName, "error: " + message);
+		append("info", "error: " + message);
+		append(getFileName("trace", ant.id), message);
 		System.err.print(message);
 	}
 
 	// Dump current board representation for ant, under log file board_ID_name.txt
 	public static void dumpBoard(CommonAnt ant) {
 		if (omitLogs) return;
-		String fileName = getFileName("board", ant.id);
 		String representation = String.format("%s\n%s", ant.toString(), ant.board.representation(true));
-		writeAndClose(fileName, representation);
+		writeAndClose(getFileName("board", ant.id), representation);
 	}
 
 	// Standard file name

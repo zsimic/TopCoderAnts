@@ -44,7 +44,7 @@ public class Board {
 	};
 
 	// Path to closest unexplored cell from xStart,yStart, following 'section' (one of 8 major directions from nest)
-	public Path pathToClosestUnexplored(RotationCoordinates slice, int avoidX, int avoidY) {
+	public Path pathToClosestUnexplored(RotationCoordinates slice, int avoidX, int avoidY, int maxMillis) {
 		assert slice != null;
 		assert get(ant.x, ant.y) == Constants.STATE_PASSABLE;
 		HashMap<Integer, PathNode> opened = new HashMap<Integer, PathNode>();
@@ -54,8 +54,9 @@ public class Board {
 		opened.put(Constants.encodedXY(ant.x, ant.y), start);
 		pQueue.add(start);
 		PathNode goal = null;
-		int consider = 8;		// Number of unknowns to consider before picking one
-		long timeLimit = System.currentTimeMillis() + 5;
+		PathNode closest = null;
+		int consider = 2;		// Number of unknowns to consider before picking one
+		long timeLimit = System.currentTimeMillis() + maxMillis;
 		while (true) {
 			PathNode current = pQueue.poll();
 			if (get(current.x, current.y) == Constants.STATE_UNKNOWN) {
@@ -68,6 +69,7 @@ public class Board {
 			}
 			opened.remove(current.id);
 			closed.put(current.id, current);
+			if (current.parent != null && (closest == null || closest.h > current.h)) closest = current;
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
@@ -96,21 +98,22 @@ public class Board {
 				break;
 			}
 		}
+		if (goal == null) return pathFromNode(closest);
 		return pathFromNode(goal);
 	}
 
 	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
 		double px = slice.projectedX(x, y);
+		if (px < 0) return 10 * Constants.BOARD_SIZE;
 		double py = slice.projectedY(x, y);
-		double distance = 2 * Math.abs(py);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
-		if (px < 0) distance *= -px + 10.0; 
+		double distance = Math.abs(py) + (Constants.BOARD_SIZE - px);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
 		return distance;
 	}
 
 	// Best path back to nest
-	public Path bestPathToNest() {
-		assert !ant.here.isNest() && !ant.isNextToNest();
-		Path path = bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE, false);
+	public Path bestPathToNest(int maxMillis) {
+		assert !ant.here.isNest();
+		Path path = bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE, false, maxMillis);
 		if (path == null) {
 			path = new Path(ant.trail);
 		}
@@ -118,7 +121,7 @@ public class Board {
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, boolean useClosest) {
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, boolean useClosest, int maxMillis) {
 		assert xStart != xEnd || yStart != yEnd;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		assert get(xEnd, yEnd) == Constants.STATE_PASSABLE;
@@ -130,7 +133,7 @@ public class Board {
 		pQueue.add(start);
 		PathNode goal = null;
 		PathNode closest = null;
-		long timeLimit = System.currentTimeMillis() + 5;
+		long timeLimit = System.currentTimeMillis() + maxMillis;
 		while (true) {
 			PathNode current = pQueue.poll();
 			opened.remove(current.id);
@@ -139,7 +142,7 @@ public class Board {
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				break;
 			}
-			if (useClosest && (closest == null || closest.getF() > current.getF())) closest = current;
+			if (useClosest && current.parent != null && (closest == null || closest.getF() > current.getF())) closest = current;
 			closed.put(current.id, current);
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
@@ -174,8 +177,8 @@ public class Board {
 	}
 
 	private static Path pathFromNode(PathNode goal) {
-		if (goal == null || goal.parent == null) return null;
-//		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
+		if (goal == null) return null;
+		assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 		Path p = new Path();
 		int prevX = goal.x;
 		int prevY = goal.y;
@@ -195,46 +198,44 @@ public class Board {
 	}
 
 	public String representation(boolean decorate) {
-		String s = "";
-		if (decorate) s+= String.format("Board x=%d-%d y=%d-%d known=%d\n", actualMinX, actualMaxX, minY, maxY, knownCells);
-		else s+= String.format("%d %d\n", actualMinX, minY);
-		String line;
+		StringBuilder sb = new StringBuilder(100000);
+		if (decorate) sb.append(String.format("Board x=%d-%d y=%d-%d known=%d\n", actualMinX, actualMaxX, minY, maxY, knownCells));
+		else sb.append(String.format("%d %d\n", actualMinX, minY));
 		int jNest = Constants.BOARD_SIZE - minX;
 		int iNest = Constants.BOARD_SIZE - minY;
 		int jStart = actualMinX - minX;
 		int jEnd = actualMaxX - minX;
 		int px, py;
 		if (decorate) {
-			s += "     ";
+			sb.append("     ");
 			for (int j = jStart; j < jEnd; j++) {
 				px = j + minX;
-				if (px % 10 == 0) s += '|';
-				else if (px % 5 == 0) s += '5';
-				else s += ' ';
+				if (px % 10 == 0) sb.append('|');
+				else if (px % 5 == 0) sb.append('5');
+				else sb.append(' ');
 			}
-			s += '\n';
+			sb.append('\n');
 		}
 		for (int i = knownRows.size() - 1; i >= 0; i--) {
 			py = i + minY;
-			line = new String();
-			if (decorate) line += String.format("%4d ", py);
+			if (decorate) sb.append(String.format("%4d ", py));
 			BitSet known = knownRows.get(i);
 			BitSet obs = obstacleRows.get(i);
 			for (int j = jStart; j <= jEnd; j++) {
 				px = j + minX;
 				if (!known.get(j)) {
-					line += ' ';
+					sb.append(' ');
 				} else if (obs.get(j)) {
-					line += '#';
+					sb.append('#');
 				} else if (i == iNest && j == jNest) {
-					line += 'N';
+					sb.append('N');
 				} else {
-					line += '.';
+					sb.append('.');
 				}
 			}
-			s += line + '\n';
+			sb.append('\n');
 		}
-		return s;
+		return sb.toString();
 	}
 
 	// Is the status of point at coordinates x,y known?
@@ -251,39 +252,6 @@ public class Board {
 		if (!knownRows.get(py).get(px)) return Constants.STATE_UNKNOWN;
 		if (obstacleRows.get(py).get(px)) return Constants.STATE_OBSTACLE;
 		return Constants.STATE_PASSABLE;
-	}
-
-	// Set board state from received 'lines'
-	public void setFromLines(List<String> lines) {
-		if (lines.size() < 4) return;
-		String firstLine = lines.remove(0);
-		if (firstLine.isEmpty()) return;
-		int i = firstLine.indexOf(' ');			// xStart
-		if (i < 0) return;
-		String sn = firstLine.substring(0, i);
-		if (!Constants.isNumber(sn)) return;
-		int xStart = Integer.parseInt(sn);
-		sn = firstLine.substring(i + 1);		// yStart
-		if (!Constants.isNumber(sn)) return;
-		int yEnd = Integer.parseInt(sn) + lines.size() - 1;
-		for (i = maxY + 1; i < yEnd; i++) {
-			ensureCellExists(Constants.BOARD_SIZE, i);
-		}
-		if (xStart + lines.get(0).length() - 1 > maxX + 1) {
-			for (i = maxX + 1; i < xStart + lines.get(0).length() - 1; i++) {
-				ensureCellExists(i, Constants.BOARD_SIZE);
-			}
-		}
-		for (String line : lines) {
-			for (i = line.length() - 1; i >= 0; i--) {
-				char c = line.charAt(i);
-				if (c == '.') setPassable(xStart + i, yEnd);
-				else if (c == '#') setObstacle(xStart + i, yEnd);
-				else if (c == 'N') assert xStart + i == Constants.BOARD_SIZE && yEnd == Constants.BOARD_SIZE;
-				else assert c == ' ';
-			}
-			yEnd--;
-		}
 	}
 
 	// Set state of point (x,y) to 'value' (must be one of the non-unknown Constants.STATE_* values)

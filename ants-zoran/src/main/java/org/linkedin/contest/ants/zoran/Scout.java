@@ -17,22 +17,22 @@ public class Scout extends Role {
 	private int sliceSwitchCount = 0;			// After changing slices a certain number of times, we give up
 	private RotationCoordinates slice;			// The ant will be encouraged to stay in the direction of its given slice to explore
 	private int avoidX = 0, avoidY = 0;			// Square to avoid because of possible enemy ants
-	private int resumeX = 0, resumeY = 0;		// Where to resume exploring after hauling food back to nest
+	private Path resume = null;					// Path to where to resume exploring after hauling food back to nest
 	private boolean isHauling = false;
 	private int skipSteps = 0;
-	private String mode = "starting";
+	private String mode = "starting";			// Logger.
 	private FollowPath follower = new FollowPath(this);
-
-	@Override
-	public String toString() {
-		String s = mode;
-		if (skipSteps > 0) s += "+skip";
-		return String.format("Scout slice %d %s", sliceNumber, s);
-	}
+	
+	@Override														// Logger.
+	public String toString() {										// Logger.
+		String s = mode;											// Logger.
+		if (skipSteps > 0) s += "+skip";							// Logger.
+		return String.format("Scout slice %d %s", sliceNumber, s);	// Logger.
+	}																// Logger.
 
 	private void ensureHasPathToNest() {
 		if (follower.isActive() || ant.here.isNest() || ant.isNextToNest()) return;
-		follower.setPath(ant.board.bestPathToNest());
+		follower.setPath(ant.board.bestPathToNest(3));
 		assert follower.isActive();
 	}
 
@@ -40,14 +40,14 @@ public class Scout extends Role {
 		isHauling = false;
 		skipSteps = 0;
 		follower.setPath(null);
-		if (resumeX != 0 && resumeY != 0 && resumeX != ant.x && resumeY != ant.y) {
-			mode = String.format("returning to %d,%d", resumeX, resumeY);
-			Path path = ant.board.bestPath(ant.x, ant.y, resumeX, resumeY, true);
-			follower.setPath(path);
-			resumeX = 0;
-			resumeY = 0;
-		} else {
-			mode = "exploring";
+		if (resume != null) {
+			mode = String.format("returning to %d,%d", resume.targetX(), resume.targetY());		// Logger.
+			resume.truncateTo(ant.x, ant.y);
+			if (resume.isEmpty()) resume = null;
+			follower.setPath(resume);
+			resume = null;
+		} else {					// Logger.
+			mode = "exploring";		// Logger.
 		}
 	}
 
@@ -56,10 +56,9 @@ public class Scout extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		ensureHasPathToNest();
-		mode = "hauling";
+		mode = "hauling";									// Logger.
 		if (!ant.here.isNest() && !ant.isNextToNest()) {
-			resumeX = ant.x;
-			resumeY = ant.y;
+			resume = follower.path.reverse(ant.x, ant.y);
 		}
 	}
 
@@ -98,6 +97,7 @@ public class Scout extends Role {
 				}
 				stopHauling();
 			}
+			return new Pass();
 		}
 		sfood = ant.squareWithFood(null);
 		if (sfood != null) {
@@ -116,21 +116,25 @@ public class Scout extends Role {
 			Logger.inform(ant, "switched to new slice");
 			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 			follower.setPath(null);
-			if (!ant.here.isNest() && !ant.isNextToNest()) ensureHasPathToNest();
+			if (!ant.here.isNest() && !ant.isNextToNest()) {
+				ensureHasPathToNest();
+			}
+			return new Pass();
 		}
 		if (!follower.isActive()) {
 			findNewPathToExplore();
+			return new Pass();
 		}
 		Action act = nextFollowerMove(false);
 		if (act == null) {
-			Logger.error(ant, "no next move, check why");
-			mode = "confused";
+			Logger.inform(ant, "can't find path to explore");
+			mode = "confused";			// Logger.
 			return new Pass();
 		}
 		ZSquare s = ant.square(act);
-		if (!s.isPassable()) {		// Happens when we explore
+		if (!s.isPassable()) {			// Happens when we explore
 			follower.setPath(null);
-			mode = "hit wall";
+			mode = "hit wall";			// Logger.
 			return new Pass();
 		}
 		if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
@@ -146,23 +150,20 @@ public class Scout extends Role {
 	}
 
 	private void findNewPathToExplore() {
-		if (avoidX != 0 && avoidY != 0) {
-			mode += String.format(", avoiding %d,%d", avoidX, avoidY);
-		} else {
-			mode = "exploring";
-		}
+		if (avoidX != 0 && avoidY != 0) {									// Logger.
+			mode += String.format(", avoiding %d,%d", avoidX, avoidY);		// Logger.
+		} else {															// Logger.
+			mode = "exploring";												// Logger.
+		}																	// Logger.
 		long elapsedTimeMillis = System.currentTimeMillis();
-		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY);
+		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY, 4);
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
-		if (elapsedTimeMillis > 4) {
+		if (elapsedTimeMillis > 3) {
 			changeSlice = true;
 			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
 		}
 		avoidX = 0;
 		avoidY = 0;
-		if (path == null) {
-			Logger.error(ant, "can't find path to explore");
-		}
 		follower.setPath(path);
 	}
 
