@@ -43,6 +43,7 @@ EOM
 my $board = {};
 my $clcompile = 0;
 my $clrun = 0;
+my $cldebug = 0;
 my $clsave = undef;
 my $clfolder = undef;
 my $clnolog = 0;
@@ -53,7 +54,7 @@ my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
 	'c|compile'=>\$clcompile,
-	'r|run=i'=>\$clrun,
+	'r|run=i'=>\$clrun, 'debug'=>\$cldebug,
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
 	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
@@ -531,8 +532,9 @@ sub run_game {
 	my @t0 = times();
 	my $cmdRun = 'java -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
-	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
-	$cmdRun .= ' -B -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
+	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer -r logs/replay.txt';
+	$cmdRun .= ' -B' if ($cldebug);
+	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
 	logm("Running game $cmdRun ... ");
 	my $s = `$cmdRun`;
 	if ($?) {
