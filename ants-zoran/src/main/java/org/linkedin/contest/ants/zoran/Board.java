@@ -113,7 +113,7 @@ public class Board {
 	// Best path back to nest
 	public Path bestPathToNest(int maxMillis) {
 		assert !ant.here.isNest();
-		Path path = bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE, false, maxMillis);
+		Path path = bestPath(ant.x, ant.y, Constants.BOARD_SIZE, Constants.BOARD_SIZE, maxMillis);
 		if (path == null) {
 			path = new Path(ant.trail);
 		}
@@ -121,7 +121,7 @@ public class Board {
 	}
 
 	// Best path from xStart,yStart to xEnd,yEnd (excluding the start coordinates)
-	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, boolean useClosest, int maxMillis) {
+	public Path bestPath(int xStart, int yStart, int xEnd, int yEnd, int maxMillis) {
 		assert xStart != xEnd || yStart != yEnd;
 		assert get(xStart, yStart) == Constants.STATE_PASSABLE;
 		assert get(xEnd, yEnd) == Constants.STATE_PASSABLE;
@@ -132,7 +132,6 @@ public class Board {
 		opened.put(Constants.encodedXY(xStart, yStart), start);
 		pQueue.add(start);
 		PathNode goal = null;
-		PathNode closest = null;
 		long timeLimit = System.currentTimeMillis() + maxMillis;
 		while (true) {
 			PathNode current = pQueue.poll();
@@ -142,7 +141,6 @@ public class Board {
 				assert goal.parent != null;		// Otherwise, we're asking the ant to go where it already is!
 				break;
 			}
-			if (useClosest && current.parent != null && (closest == null || closest.getF() > current.getF())) closest = current;
 			closed.put(current.id, current);
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
@@ -172,7 +170,6 @@ public class Board {
 				break;
 			}
 		}
-		if (goal == null) return pathFromNode(closest);
 		return pathFromNode(goal);
 	}
 
