@@ -98,7 +98,7 @@ if ($clrun) {
 	my $dateRep = strftime("%Y-%m-%d %H:%M:%S",localtime($gameId));
 	add_html_line("$resultsFolder/index.html",new_main_index_html(),"<li><a href=\"runs/$gameId.html\">$dateRep</a>\n");
 	while ($n--) {
-		my $gameResult = run_game($n,$gameId.'_'.$n,$baseRunsFolder);
+		my $gameResult = run_game($n,$gameId,$n,$baseRunsFolder);
 		$gameResult->{logFolder} = $logFolder if ($cldebug);
 		archive_logs($gameResult) if ($cldebug && $clarchive);
 		analyze_folder($gameResult);
@@ -513,7 +513,7 @@ sub analyze_folder {
 	add_stat($gameResult,$computed,'obstacle','cells');
 	$gameResult->{gamepng} = 'game_';
 	if (defined $gameResult->{id}) {
-		$gameResult->{gamepng} .= $gameResult->{id};
+		$gameResult->{gamepng} .= $gameResult->{id}.'_'.$gameResult->{gameNumber};
 	} else {
 		$gameResult->{gamepng} .= $gameResult->{time};
 	}
@@ -533,7 +533,7 @@ sub add_stat {
 
 sub archive_logs {
 	my ($gameResult) = @_;
-	my $archiveFolder = "$gameResult->{logFolder}/archive_".$gameResult->{id};
+	my $archiveFolder = "$gameResult->{logFolder}/archive_".$gameResult->{id}.'_'.$gameResult->{gameNumber};
 	mkdir $archiveFolder;
 	run_command("mv $gameResult->{logFolder}/*.txt $archiveFolder/");
 	$gameResult->{archiveFolder} = $archiveFolder;
@@ -549,9 +549,10 @@ sub compile_project {
 }
 
 sub run_game {
-	my ($gameNumber,$gameId,$baseFolder) = @_;
+	my ($gameNumber,$gameId,$number,$baseFolder) = @_;
 	my $gameResult = {};
 	$gameResult->{id} = $gameId;
+	$gameResult->{gameNumber} = $number;
 	$gameResult->{baseFolder} = $baseFolder;
 	my $tStart = time;
 	my $cmdRun = 'java';
@@ -574,7 +575,7 @@ sub run_game {
 	my $tEnd = time;
 	$gameResult->{gameruntime} = $tEnd - $tStart;
 	logm("Run time: $gameResult->{gameruntime} s\n");
-	$gameResult->{output} = "output_$gameResult->{id}.txt";
+	$gameResult->{output} = "output_$gameResult->{id}_$gameResult->{gameNumber}.txt";
 	logm("Writing '$baseFolder/$gameResult->{output}'");
 	open (my $fh, ">$baseFolder/$gameResult->{output}") or fail("Can't write server output to '$baseFolder/$gameResult->{output}'");
 	print $fh $s;
@@ -602,10 +603,10 @@ sub run_game {
 		}
 	}
 	my $y = 0;
-	$gameResult->{server}->{bx0} = 0;
-	$gameResult->{server}->{bx1} = $boardSize;
-	$gameResult->{server}->{by0} = 0;
-	$gameResult->{server}->{by1} = $boardSize;
+	$gameResult->{server}->{board}->{bx0} = 0;
+	$gameResult->{server}->{board}->{bx1} = $boardSize;
+	$gameResult->{server}->{board}->{by0} = 0;
+	$gameResult->{server}->{board}->{by1} = $boardSize;
 	foreach my $line (split(/\n/,$gameResult->{server}->{boardRep})) {
 		for (my $x = 0; $x < $boardSize; $x++) {
 			my $c = substr($line,$x,1);
@@ -613,7 +614,7 @@ sub run_game {
 		}
 		$y++;
 	}
-	$gameResult->{serverpng} = "server_$gameResult->{id}.png";
+	$gameResult->{serverpng} = "server_$gameResult->{id}_$gameResult->{gameNumber}.png";
 	create_png($gameResult->{server},"$baseFolder/$gameResult->{serverpng}");
 	return $gameResult;
 }
@@ -717,7 +718,7 @@ sub read_board {
 	my $line = <$fh>;
 	if ($line=~m/^([0-9]+) ([0-9]+) xy=\[([0-9]+),([0-9]+)\] bs=\[([0-9]+),([0-9]+),([0-9]+)\]/o) {
 		$res->{turn} = $1;
-		$res->{id} = $2;
+		$res->{antid} = $2;
 		$res->{posX} = $3;
 		$res->{posY} = $4;
 		$res->{bsizeX} = $5;
