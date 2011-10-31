@@ -368,19 +368,12 @@ sub create_png {
 	my $cellSizeX = 6;
 	my $cellSizeY = 4;
 	my $im = new GD::Image($boardSize * $cellSizeX, $boardSize * $cellSizeY);
+	my $emptyBg = $im->colorAllocate(240, 240, 240);
 	my $white = $im->colorAllocate(255, 255, 255);
-	my $lightYellow = $im->colorAllocate(255, 245, 220);
-	my $lightGreen = $im->colorAllocate(220, 255, 220);
-	my $blue = $im->colorAllocate(100, 100, 255);
-	my $red = $im->colorAllocate(255, 0, 0);
-	my $darkBlue = $im->colorAllocate(0, 0, 180);
 	my $black = $im->colorAllocate(0, 0, 0);
-	my $emptyBg = $im->colorAllocate(204, 222, 216);
-	# make the background transparent and interlaced
-#	$im->transparent($white);
+	my $red = $im->colorAllocate(255, 0, 0);
+	my $green = $im->colorAllocate(0, 255, 0);
 	$im->interlaced('true');
-#	$im->alphaBlending(0);
-#	$im->saveAlpha(1);
 	$im->fill(2,2,$emptyBg);
 	my $x0 = $stat->{board}->{bx0};
 	my $x1 = $stat->{board}->{bx1};
@@ -395,9 +388,9 @@ sub create_png {
 			my $c = ' ';
 			$c = $stat->{board}->{board}->{$x}->{$y}->{v} if (defined $stat->{board}->{board}->{$x}->{$y});
 			if ($c eq ' ') { $color = $white; }
-			elsif ($c eq '.') { $color = $lightYellow; }
-			elsif ($c eq '%') { $color = $lightGreen; }
-			elsif ($c eq '@') { $color = $blue; }
+			elsif ($c eq '.') { $color = $white; }
+			elsif ($c eq '%') { $color = $green; }
+			elsif ($c eq '@') { $color = $red; }
 			elsif ($c eq '#') { $color = $black; }
 			elsif ($c eq 'N') { $color = $red; $xnest = $px; $ynest = $py; }
 			else { fail("check PNG color for '$c'") }
@@ -406,7 +399,7 @@ sub create_png {
 	}
 	if (defined $stat->{cells}->{n}) {
 		my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
-		draw_title($im,4,2,$lightYellow,$red,gdMediumBoldFont,$title);
+		draw_title($im,4,2,$white,$red,gdMediumBoldFont,$title);
 	}
 	$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
