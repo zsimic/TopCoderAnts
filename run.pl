@@ -541,13 +541,15 @@ sub run_game {
 	my ($gameNumber) = @_;
 	my $gameResult = {};
 	my $tStart = time;
-	my $cmdRun = 'java -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
+	my $cmdRun = 'java';
+	$cmdRun .= ' -ea -Xmx1024m' if ($cldebug);
+	$cmdRun .= ' -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B' if ($cldebug);
 	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
 	logm("--------------------------------\n");
-	logm("Running game $cmdRun ...\n----\n");
+	logm("Running game $gameNumber: $cmdRun ...\n----\n");
 	open(my $ps,"$cmdRun |") || fail("Failed: $!\n");
 	my $s = '';
 	local $| = 1;
