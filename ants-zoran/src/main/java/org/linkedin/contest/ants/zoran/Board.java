@@ -54,8 +54,7 @@ public class Board {
 		opened.put(Constants.encodedXY(ant.x, ant.y), start);
 		pQueue.add(start);
 		PathNode goal = null;
-		PathNode closest = null;
-		int consider = 2;		// Number of unknowns to consider before picking one
+		int consider = 8;		// Number of unknowns to consider before picking one
 		long timeLimit = System.currentTimeMillis() + maxMillis;
 		while (true) {
 			PathNode current = pQueue.poll();
@@ -69,7 +68,6 @@ public class Board {
 			}
 			opened.remove(current.id);
 			closed.put(current.id, current);
-			if (current.parent != null && (closest == null || closest.h > current.h)) closest = current;
 			for (Direction neighbor : neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
@@ -98,15 +96,14 @@ public class Board {
 				break;
 			}
 		}
-		if (goal == null) return pathFromNode(closest);
 		return pathFromNode(goal);
 	}
 
 	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
 		double px = slice.projectedX(x, y);
-		if (px < 0) return 10 * Constants.BOARD_SIZE;
+		if (px < 0) return 10000.0 - px;
 		double py = slice.projectedY(x, y);
-		double distance = Math.abs(py) + (Constants.BOARD_SIZE - px);// + Constants.normalDistance(x, y) / Constants.BOARD_MAX_DISTANCE;
+		double distance = 2.0*Math.abs(py);
 		return distance;
 	}
 
