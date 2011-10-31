@@ -294,7 +294,6 @@ sub record_analysis {
 		}
 		# run.html
 		my $fname = "$resultsFolder/runs/$name.html";
-		logm("Recording results to $fname\n");
 		# full board html
 		my $newRow = "<tr>";
 		$newRow .= new_td($gameResult->{date},undef);
@@ -348,11 +347,13 @@ sub add_html_line {
 	my ($fname,$initial,$newLine) = @_;
 	my $html = '';
 	if (-f $fname) {
+		print "Updating $fname\n";
 		open (my $fh, "<$fname") or fail("Can't read results html '$fname'");
 		local $/ = undef;
 		$html = <$fh>;
 		close($fh);
 	} else {
+		print "Creating $fname\n";
 		$html = $initial;
 	}
 	$html=~s/$htmlPlaceholder/$newLine$htmlPlaceholder/go;
@@ -369,6 +370,8 @@ sub create_png {
 	my $im = new GD::Image($boardSize * $cellSizeX, $boardSize * $cellSizeY);
 	my $white = $im->colorAllocate(255, 255, 255);
 	my $lightYellow = $im->colorAllocate(255, 245, 220);
+	my $lightGreen = $im->colorAllocate(220, 255, 220);
+	my $blue = $im->colorAllocate(100, 100, 255);
 	my $red = $im->colorAllocate(255, 0, 0);
 	my $darkBlue = $im->colorAllocate(0, 0, 180);
 	my $black = $im->colorAllocate(0, 0, 0);
@@ -393,14 +396,18 @@ sub create_png {
 			$c = $stat->{board}->{board}->{$x}->{$y}->{v} if (defined $stat->{board}->{board}->{$x}->{$y});
 			if ($c eq ' ') { $color = $white; }
 			elsif ($c eq '.') { $color = $lightYellow; }
+			elsif ($c eq '%') { $color = $lightGreen; }
+			elsif ($c eq '@') { $color = $blue; }
 			elsif ($c eq '#') { $color = $black; }
 			elsif ($c eq 'N') { $color = $red; $xnest = $px; $ynest = $py; }
 			else { fail("check PNG color for '$c'") }
 			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
 		}
 	}
-	my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
-	draw_title($im,4,2,$lightYellow,$red,gdMediumBoldFont,$title);
+	if (defined $stat->{cells}->{n}) {
+		my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
+		draw_title($im,4,2,$lightYellow,$red,gdMediumBoldFont,$title);
+	}
 	$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
 	binmode $fh;
@@ -544,6 +551,8 @@ sub compile_project {
 sub run_game {
 	my ($gameNumber,$gameId,$baseFolder) = @_;
 	my $gameResult = {};
+	$gameResult->{id} = $gameId;
+	$gameResult->{baseFolder} = $baseFolder;
 	my $tStart = time;
 	my $cmdRun = 'java';
 	$cmdRun .= ' -ea -Xmx1024m' if ($cldebug);
@@ -565,6 +574,11 @@ sub run_game {
 	my $tEnd = time;
 	$gameResult->{gameruntime} = $tEnd - $tStart;
 	logm("Run time: $gameResult->{gameruntime} s\n");
+	$gameResult->{output} = "output_$gameResult->{id}.txt";
+	logm("Writing '$baseFolder/$gameResult->{output}'");
+	open (my $fh, ">$baseFolder/$gameResult->{output}") or fail("Can't write server output to '$baseFolder/$gameResult->{output}'");
+	print $fh $s;
+	close($fh);
 	my $player = 0;
 	$gameResult->{boardRep} = '';
 	foreach my $line (split(/\n/,$s)) {
@@ -581,8 +595,8 @@ sub run_game {
 		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
 			my $n = $1;
 			$gameResult->{rounds} = $n;
-		} elsif ($line=~m/(#[#\.\%\@]+)$/o) {
-			my $boardLine = $1;
+		} elsif ($line=~m/^([^#]*)(#[#\.\%\@]+)$/o) {
+			my $boardLine = $2;
 			fail("Bad board line representation: $boardLine") unless (length($boardLine) == $boardSize);
 			$gameResult->{server}->{boardRep} .= "$boardLine\n";
 		}
@@ -599,15 +613,8 @@ sub run_game {
 		}
 		$y++;
 	}
-	$gameResult->{id} = $gameId;
-	$gameResult->{baseFolder} = $baseFolder;
-	$gameResult->{output} = "output_$gameResult->{id}.txt";
 	$gameResult->{serverpng} = "server_$gameResult->{id}.png";
 	create_png($gameResult->{server},"$baseFolder/$gameResult->{serverpng}");
-	if (open (my $fh, ">$baseFolder/$gameResult->{output}")) {
-		print $fh $s;
-		close($fh);
-	}
 	return $gameResult;
 }
 
@@ -758,6 +765,6 @@ sub read_board {
 }
 
 sub fail {
-	print "@_\n";
+	print "!! @_\n";
 	exit 1;
 }
