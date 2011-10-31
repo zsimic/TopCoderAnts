@@ -154,12 +154,10 @@ public class Scout extends Role {
 //L		} else {															// Logger.
 //L			mode = "exploring";												// Logger.
 //L		}																	// Logger.
-		long elapsedTimeMillis = System.currentTimeMillis();
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY, 7);
-		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
-		if (elapsedTimeMillis > 8) {
+		if (path == null) {
 			changeSlice = true;
-//L			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
+//L			Logger.inform(ant, "scheduling slice switch, couldn't find a new cell to explore within alotted time");
 		}
 		avoidX = 0;
 		avoidY = 0;
