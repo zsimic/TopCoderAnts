@@ -9,14 +9,12 @@ public abstract class Role {
 		this.ant = ant;
 	}
 
-	protected int roleTurn = 0;			// Turn counter within this role
 	protected CommonAnt ant;			// Associated ant
 
 	// Perform next act for this role, an act can consist of either push operations to the ant's operation stack
 	// or setting the ant's next action
 	public Action act() {
 		assert ant != null;
-		roleTurn++;
 		Action act = effectiveAct();
 		assert act != null;
 		return act;
