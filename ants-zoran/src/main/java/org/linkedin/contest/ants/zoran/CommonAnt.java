@@ -16,7 +16,7 @@ abstract class CommonAnt implements Ant {
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	protected Trail trail;							// Trail leading back to nest
-	protected long totalRunTime = 0;				// Logger.
+//L	protected long totalRunTime = 0;				// Logger.
 
 	@Override
 	public String toString() {
@@ -105,34 +105,38 @@ abstract class CommonAnt implements Ant {
 			assert s.isPassable();
 			x += s.deltaX;
 			y += s.deltaY;
-			Logger.trace(this, "move " + s.dir.name());
+//L			Logger.trace(this, "move " + s.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
 			ZSquare s = square(act);
 			assert s.isPassable() && s.hasFood();
 			hasFood = true;
-			Logger.trace(this, String.format("takes food from %d,%d", s.x, s.y));
+//L			Logger.trace(this, String.format("takes food from %d,%d", s.x, s.y));
 		} else if (act instanceof DropFood) {
 			assert hasFood;
 			ZSquare s = square(act);
 			assert s.isPassable();
 			hasFood = false;
-			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
-		} else if (act instanceof Write) {	// Logger.
-			Logger.trace(this, String.format("writing value: %s", (new Scent(act)).toString()));
-		} else if (act instanceof Say) {	// Logger.
-			Logger.trace(this, String.format("Say: '%s'", act.toString()));
-		} else if (act instanceof Pass) {	// Logger.
+//L			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
+//L		} else if (act instanceof Write) {	// Logger.
+//L			Logger.trace(this, String.format("writing value: %s", (new Scent(act)).toString()));
+//L		} else if (act instanceof Say) {	// Logger.
+//L			Logger.trace(this, String.format("Say: '%s'", act.toString()));
+//L		} else if (act instanceof Pass) {	// Logger.
 			// Do nothing
-		} else {							// Logger.
-			Logger.trace(this, "check action " + Constants.className(act));
-			assert false;					// Logger.
+//L		} else {							// Logger.
+//L			Logger.trace(this, "check action " + Constants.className(act));
+//L			assert false;					// Logger.
 		}
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;		// Logger.
 		Logger.logRunTime(this, elapsedTimeMillis);
-		totalRunTime += elapsedTimeMillis;										// Logger.
-		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
-		if (turn % 1000 == 0) Logger.dumpBoard(this);
+//L		totalRunTime += elapsedTimeMillis;										// Logger.
+//L		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
+//L		if (turn % 1000 == 0) Logger.dumpBoard(this);
+//		if (elapsedTimeMillis > 600) {
+//			String s = null;
+//			s.toString();
+//		}
 		return act;
 	}
 
@@ -149,8 +153,8 @@ abstract class CommonAnt implements Ant {
      */
 	public Action onDeath(WorldEvent cause) {
 //		return sayInAllDirections("Man down " + role.toString());
-		if (cause==null) Logger.error(this, String.format("died after trying to attack"));
-		else Logger.error(this, String.format("died %s",cause.toString()));
+//L		if (cause==null) Logger.error(this, String.format("died after trying to attack"));
+//L		else Logger.error(this, String.format("died %s",cause.toString()));
 		return null;
 	}
 
@@ -297,7 +301,7 @@ abstract class CommonAnt implements Ant {
 	protected void setRole(Role role) {
 		assert role != null;
 		this.role = role;
-		Logger.trace(this, "changed role");
+//L		Logger.trace(this, "changed role");
 	}
 
 }

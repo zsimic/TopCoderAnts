@@ -20,15 +20,15 @@ public class Scout extends Role {
 	private Path resume = null;					// Path to where to resume exploring after hauling food back to nest
 	private boolean isHauling = false;
 	private int skipSteps = 0;
-	private String mode = "starting";			// Logger.
+//L	private String mode = "starting";			// Logger.
 	private FollowPath follower = new FollowPath(this);
 	
-	@Override														// Logger.
-	public String toString() {										// Logger.
-		String s = mode;											// Logger.
-		if (skipSteps > 0) s += "+skip";							// Logger.
-		return String.format("Scout slice %d %s", sliceNumber, s);	// Logger.
-	}																// Logger.
+//L	@Override														// Logger.
+//L	public String toString() {										// Logger.
+//L		String s = mode;											// Logger.
+//L		if (skipSteps > 0) s += "+skip";							// Logger.
+//L		return String.format("Scout slice %d %s", sliceNumber, s);	// Logger.
+//L	}																// Logger.
 
 	private void ensureHasPathToNest() {
 		if (follower.isActive() || ant.here.isNest() || ant.isNextToNest()) return;
@@ -41,13 +41,13 @@ public class Scout extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		if (resume != null) {
-			mode = String.format("returning to %d,%d", resume.targetX(), resume.targetY());		// Logger.
+//L			mode = String.format("returning to %d,%d", resume.targetX(), resume.targetY());		// Logger.
 			resume.truncateTo(ant.x, ant.y);
 			if (resume.isEmpty()) resume = null;
 			follower.setPath(resume);
 			resume = null;
-		} else {					// Logger.
-			mode = "exploring";		// Logger.
+//L		} else {					// Logger.
+//L			mode = "exploring";		// Logger.
 		}
 	}
 
@@ -56,14 +56,13 @@ public class Scout extends Role {
 		skipSteps = 0;
 		follower.setPath(null);
 		ensureHasPathToNest();
-		mode = "hauling";									// Logger.
+//L		mode = "hauling";									// Logger.
 		if (!ant.here.isNest() && !ant.isNextToNest()) {
 			resume = follower.path.reverse(ant.x, ant.y);
 		}
 	}
 
 	private Action nextFollowerMove(boolean requirePassable) {
-//		assert follower.isActive();
 		Action act = follower.isActive() ? follower.act() : null;
 		if (requirePassable) assert act != null && ant.square(act).isPassable();
 		return act;
@@ -108,12 +107,12 @@ public class Scout extends Role {
 			changeSlice = false;
 			sliceSwitchCount++;
 			if (sliceSwitchCount > totalSlices) {		// Give up, we're hitting a wall in all directions looks like
-				Logger.inform(ant, "giving up exploration, turning into a guard");
+//L				Logger.inform(ant, "giving up exploration, turning into a guard");
 				ant.setRole(new Guard(ant));
 				return new Pass();
 			}
 			sliceNumber = (sliceNumber + 1) % totalSlices;
-			Logger.inform(ant, "switched to new slice");
+//L			Logger.inform(ant, "switched to new slice");
 			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 			follower.setPath(null);
 			if (!ant.here.isNest() && !ant.isNextToNest()) {
@@ -127,18 +126,18 @@ public class Scout extends Role {
 		}
 		Action act = nextFollowerMove(false);
 		if (act == null) {
-			Logger.inform(ant, "can't find path to explore");
-			mode = "confused";			// Logger.
+//L			Logger.inform(ant, "can't find path to explore");
+//L			mode = "confused";			// Logger.
 			return new Pass();
 		}
 		ZSquare s = ant.square(act);
 		if (!s.isPassable()) {			// Happens when we explore
 			follower.setPath(null);
-			mode = "hit wall";			// Logger.
+//L			mode = "hit wall";			// Logger.
 			return new Pass();
 		}
 		if (s != ant.here && !s.isAroundNest() && s.getNumberOfAnts() > 1) {
-			Logger.inform(ant, String.format("avoiding %d ants on %d,%d", s.getNumberOfAnts(), s.x, s.y));
+//L			Logger.inform(ant, String.format("avoiding %d ants on %d,%d", s.getNumberOfAnts(), s.x, s.y));
 			avoidX = s.x;
 			avoidY = s.y;
 			follower.setPath(null);
@@ -150,17 +149,17 @@ public class Scout extends Role {
 	}
 
 	private void findNewPathToExplore() {
-		if (avoidX != 0 && avoidY != 0) {									// Logger.
-			mode += String.format(", avoiding %d,%d", avoidX, avoidY);		// Logger.
-		} else {															// Logger.
-			mode = "exploring";												// Logger.
-		}																	// Logger.
+//L		if (avoidX != 0 && avoidY != 0) {									// Logger.
+//L			mode += String.format(", avoiding %d,%d", avoidX, avoidY);		// Logger.
+//L		} else {															// Logger.
+//L			mode = "exploring";												// Logger.
+//L		}																	// Logger.
 		long elapsedTimeMillis = System.currentTimeMillis();
 		Path path = ant.board.pathToClosestUnexplored(slice, avoidX, avoidY, 4);
 		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;
 		if (elapsedTimeMillis > 3) {
 			changeSlice = true;
-			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
+//L			Logger.inform(ant, String.format("scheduling slice switch, spent %d ms looking for next unexplored cell", elapsedTimeMillis));
 		}
 		avoidX = 0;
 		avoidY = 0;

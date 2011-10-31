@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class Logger {
 
-	private static boolean omitLogs = true;		// Set to 'false' to enable output
+	private static boolean omitLogs = false;		// Set to 'false' to enable output
 
 	private static HashMap<String, OutputStreamWriter> streamWriters = new HashMap<String, OutputStreamWriter>();
 	static {
@@ -32,15 +32,15 @@ public class Logger {
 		return String.format("Turn took %d ms\n", elapsedTimeMillis);
 	}
 
-	public static void logAverageRunTime(CommonAnt ant) {														// Logger.
-		if (omitLogs) return;																					// Logger.
-		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));	// Logger.
-		if (omitLogs) {																							// Logger.
-			System.err.print(message(ant, msg));																// Logger.
-		} else {																								// Logger.
-			inform(ant, msg);																					// Logger.
-		}																										// Logger.
-	}																											// Logger.
+//L	public static void logAverageRunTime(CommonAnt ant) {														// Logger.
+//L		if (omitLogs) return;																					// Logger.
+//L		String msg = String.format("Average run-time: %d", Math.round(ant.totalRunTime * 1000.0 / ant.turn));	// Logger.
+//L		if (omitLogs) {																							// Logger.
+//L			System.err.print(message(ant, msg));																// Logger.
+//L		} else {																								// Logger.
+//L			inform(ant, msg);																					// Logger.
+//L		}																										// Logger.
+//L	}																											// Logger.
 
 	// Log how long a turn took to complete
 	public static void logRunTime(CommonAnt ant, long elapsedTimeMillis) {

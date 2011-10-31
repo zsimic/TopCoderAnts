@@ -58,7 +58,7 @@ public class ZSquare {
 			if (ant.board.get(x, y) == Constants.STATE_PASSABLE) {
 				// This looks suspiciously like enemy's nest, mark it as non passable.
 				ant.board.setObstacle(x, y);
-				Logger.inform(ant, String.format("avoiding %d,%d probably enemy nest", x, y));
+//L				Logger.inform(ant, String.format("avoiding %d,%d probably enemy nest", x, y));
 			}
 		}
 	}

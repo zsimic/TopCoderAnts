@@ -36,15 +36,15 @@ public class Path {
 		return Constants.decodedY(points.get(0));
 	}
 
-	@Override																					// Logger.
-	public String toString() {																	// Logger.
-		String s = "";																			// Logger.
-		for (Integer key : points) {															// Logger.
-			if (s.length() > 0) s += ',';														// Logger.
-			s += String.format("[%d,%d]", Constants.decodedX(key), Constants.decodedY(key));	// Logger.
-		}																						// Logger.
-		return s;																				// Logger.
-	}																							// Logger.
+//L	@Override																					// Logger.
+//L	public String toString() {																	// Logger.
+//L		String s = "";																			// Logger.
+//L		for (Integer key : points) {															// Logger.
+//L			if (s.length() > 0) s += ',';														// Logger.
+//L			s += String.format("[%d,%d]", Constants.decodedX(key), Constants.decodedY(key));	// Logger.
+//L		}																						// Logger.
+//L		return s;																				// Logger.
+//L	}																							// Logger.
 
 	public Integer peek() {
 		return points.peek();
