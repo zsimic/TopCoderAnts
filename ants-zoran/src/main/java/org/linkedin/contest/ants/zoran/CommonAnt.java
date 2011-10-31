@@ -73,7 +73,7 @@ abstract class CommonAnt implements Ant {
      * @return an implementation of the Action class indicating what this ant should do
      */
 	public Action act(Environment environment, List<WorldEvent> events) {
-		long elapsedTimeMillis = System.currentTimeMillis();		// Logger.
+//L		long elapsedTimeMillis = System.currentTimeMillis();		// Logger.
 		Action act = null;
 		turn++;
 		here.update(environment);
@@ -128,8 +128,8 @@ abstract class CommonAnt implements Ant {
 //L			Logger.trace(this, "check action " + Constants.className(act));
 //L			assert false;					// Logger.
 		}
-		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;		// Logger.
-		Logger.logRunTime(this, elapsedTimeMillis);
+//L		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;		// Logger.
+//L		Logger.logRunTime(this, elapsedTimeMillis);
 //L		totalRunTime += elapsedTimeMillis;										// Logger.
 //L		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
 //L		if (turn % 1000 == 0) Logger.dumpBoard(this);
