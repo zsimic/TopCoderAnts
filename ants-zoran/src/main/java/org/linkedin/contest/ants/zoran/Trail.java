@@ -15,7 +15,6 @@ public class Trail {
 
 //L	@Override																					// Logger.
 //L	public String toString() {																	// Logger.
-//L		if (isCorrupt) return "corrupt";														// Logger.
 //L		String s = "";																			// Logger.
 //L		for (Integer key : list) {																// Logger.
 //L			s += String.format("[%d,%d] ", Constants.decodedX(key), Constants.decodedY(key));	// Logger.
@@ -35,9 +34,9 @@ public class Trail {
 	}
 
 	// Add coordinates in given 'square' to this path
-	public void add(ZSquare square) {
-		assert addable(square);
-		Integer key = Constants.encodedXY(square.x, square.y);
+	public void add(CommonAnt ant) {
+		assert addable(ant);
+		Integer key = Constants.encodedXY(ant.x, ant.y);
 		int size = list.size();
 		if (hash.containsKey(key)) {		// We've already been through this point, truncate list back to it
 			int n = hash.get(key) + 1;
@@ -50,11 +49,11 @@ public class Trail {
 		}
 	}
 
-	private boolean addable(ZSquare square) {
+	private boolean addable(CommonAnt ant) {
 		int n = list.size();
 		if (n == 0) return true;
 		Integer key = list.get(n-1);
-		return Math.abs(Constants.decodedX(key) - square.x) <= 1 && Math.abs(Constants.decodedY(key) - square.y) <= 1;
+		return Math.abs(Constants.decodedX(key) - ant.x) <= 1 && Math.abs(Constants.decodedY(key) - ant.y) <= 1;
 	}
 
 }

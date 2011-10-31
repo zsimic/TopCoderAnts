@@ -63,6 +63,7 @@ abstract class CommonAnt implements Ant {
 		cells.add(west);
 		cells.add(northwest);
 		cells.add(here);
+		trail.add(this);
 	}
 
     /**
@@ -96,7 +97,6 @@ abstract class CommonAnt implements Ant {
 		west.update(environment);
 		northwest.update(environment);
 		north.update(environment);
-		trail.add(here);
 		if (here.scent.stinky) act = new Write(null);		// Erase opponent's writing
 		if (act == null) act = role.act();
 		if (act == null) act = new Pass();
@@ -105,6 +105,7 @@ abstract class CommonAnt implements Ant {
 			assert s.isPassable();
 			x += s.deltaX;
 			y += s.deltaY;
+			trail.add(this);
 //L			Logger.trace(this, "move " + s.dir.name());
 		} else if (act instanceof GetFood) {
 			assert !hasFood;
