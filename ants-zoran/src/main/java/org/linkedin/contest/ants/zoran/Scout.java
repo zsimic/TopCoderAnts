@@ -115,9 +115,9 @@ public class Scout extends Role {
 //L			Logger.inform(ant, "switched to new slice");
 			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
 			follower.setPath(null);
-			if (!ant.here.isNest() && !ant.isNextToNest()) {
-				ensureHasPathToNest();
-			}
+//			if (!ant.here.isNest() && !ant.isNextToNest()) {
+//				ensureHasPathToNest();
+//			}
 			return new Pass();
 		}
 		if (!follower.isActive()) {
