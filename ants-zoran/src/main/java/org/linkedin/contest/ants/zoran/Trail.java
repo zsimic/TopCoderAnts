@@ -4,7 +4,6 @@ import java.util.*;
 
 public class Trail {
 
-	protected boolean isCorrupt;				// Is this path corrupt (can't be used to go back to nest)
 	protected ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
 	private Hashtable<Integer, Integer> hash; 	// Hash used to determine quickly whether a coordinate is already part of the path
 
@@ -31,20 +30,13 @@ public class Trail {
 
 	// Clear this path
 	public void clear() {
-		isCorrupt = false;
 		hash.clear();
 		list.clear();
 	}
 
 	// Add coordinates in given 'square' to this path
 	public void add(ZSquare square) {
-		if (isCorrupt) return;
 		assert addable(square);
-//		if (!addable(square)) {		// A tracking error occurred somewhere
-//			clear();
-//			isCorrupt = true;
-//			return;
-//		}
 		Integer key = Constants.encodedXY(square.x, square.y);
 		int size = list.size();
 		if (hash.containsKey(key)) {		// We've already been through this point, truncate list back to it
