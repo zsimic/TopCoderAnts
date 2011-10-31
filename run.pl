@@ -103,29 +103,33 @@ sub process_file {
 	return if (-d $fpath);
 	return unless ($fpath=~m/\.java$/o);
 	my $contents = '';
+	my $modified = 0;
 	open(my $fh, "<$fpath") or fail("Can't read $fpath");
 	while (my $line = <$fh>) {
 		if ($clnolog) {
 			if ($line=~m/^[^\/].*Logger\./o) {
 				$contents .= "//L$line";
+				$modified++;
 			} else {
 				$contents .= $line unless ($cldry);
 			}
 		} else {
 			if ($line=~m/^\/\/L(.*)$/o) {
 				$contents .= "$1\n";
+				$modified++;
 			} else {
 				$contents .= $line unless ($cldry);
 			}
 		}
 	}
+	close($fh);
 	if ($cldry) {
 		return unless (length($contents));
 		print "-- $fpath:\n";
 		print "$contents\n";
 		return;
 	}
-	close($fh);
+	return unless ($modified);
 	open($fh, ">$fpath") or fail("Can't write $fpath");
 	print $fh $contents;
 	close($fh);
