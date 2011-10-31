@@ -16,7 +16,6 @@ abstract class CommonAnt implements Ant {
 	protected Board board;							// Board as discovered so far
 	protected Role role;							// Scout, Guard, Gatherer, Soldier
 	protected Trail trail;							// Trail leading back to nest
-//L	protected long totalRunTime = 0;				// Logger.
 
 	@Override
 	public String toString() {
@@ -131,8 +130,6 @@ abstract class CommonAnt implements Ant {
 		}
 //L		elapsedTimeMillis = System.currentTimeMillis() - elapsedTimeMillis;		// Logger.
 //L		Logger.logRunTime(this, elapsedTimeMillis);
-//L		totalRunTime += elapsedTimeMillis;										// Logger.
-//L		if (turn % 5000 == 0) Logger.logAverageRunTime(this);
 //L		if (turn % 1000 == 0) Logger.dumpBoard(this);
 		return act;
 	}

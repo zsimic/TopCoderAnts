@@ -44,6 +44,7 @@ my $board = {};
 my $clcompile = 0;
 my $clrun = 0;
 my $cldebug = 0;
+my $clarchive = 0;
 my $clsave = undef;
 my $clfolder = undef;
 my $clnolog = 0;
@@ -54,7 +55,7 @@ my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
 	'c|compile'=>\$clcompile,
-	'r|run=i'=>\$clrun, 'debug'=>\$cldebug,
+	'r|run=i'=>\$clrun, 'debug'=>\$cldebug, 'archive'=>\$clarchive,
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
 	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
@@ -76,30 +77,37 @@ if ($clmap) {
 	exit;
 }
 
+my $baseRunsFolder = "$resultsFolder/runs";
+if ($clrun || defined $clsave) {
+	mkdir($baseRunsFolder) unless (-d $baseRunsFolder);
+}
 if ($clrun) {
-	if ($cldebug) {
-		$clnolog = 0;
-		$cllog = 1;
-	} else {
-		$clnolog = 1;
-		$cllog = 0;
+	if ($clcompile) {
+		if ($cldebug) {
+			$clnolog = 0;
+			$cllog = 1;
+		} else {
+			$clnolog = 1;
+			$cllog = 0;
+		}
+		modify_source_code();
+		compile_project();
 	}
-	modify_source_code();
-	compile_project() if ($clcompile);
 	my $n = $clrun;
+	my $gameId = time;
+	my $dateRep = strftime("%Y-%m-%d %H:%M:%S",localtime($gameId));
+	add_html_line("$resultsFolder/index.html",new_main_index_html(),"<li><a href=\"runs/$gameId.html\">$dateRep</a>\n");
 	while ($n--) {
-		my $gameResult = run_game($n);
-		my $folder = $logFolder;
-		$folder = archive_logs();
-		my $res = analyze_folder($folder);
-		$res->{gameruntime} = $gameResult->{gameruntime};
-		$res->{player} = $gameResult->{player};
-		$res->{rounds} = $gameResult->{rounds};
-		record_analysis($res);
+		my $gameResult = run_game($n,$gameId.'_'.$n,$baseRunsFolder);
+		$gameResult->{logFolder} = $logFolder if ($cldebug);
+		archive_logs($gameResult) if ($cldebug && $clarchive);
+		analyze_folder($gameResult);
+		record_analysis($gameResult);
 	}
 } else {
-	my $res = analyze_folder($clfolder || $logFolder);
-	record_analysis($res);
+	my $gameResult = {logFolder=>$clfolder || $logFolder};
+	analyze_folder($gameResult);
+	record_analysis($gameResult);
 }
 
 sub modify_source_code {
@@ -275,85 +283,82 @@ sub gather_bounds {
 }
 
 sub record_analysis {
-	my ($res) = @_;
+	my ($gameResult) = @_;
 	if ($clrun || defined $clsave) {
 		# Save summary in archive.txt or adhoc.txt
-		my $fname = $clsave;
-		$fname = $res->{folder} unless (length($fname));
-		if ($fname eq $logFolder) {
-			$fname = 'adhoc';
+		my $name = $clsave;
+		if (defined $gameResult->{id}) {
+			$name = $gameResult->{id};
 		} else {
-			$fname = basename($fname);
+			$name = 'adhoc';
 		}
-		$fname = "$resultsFolder/$fname.txt";
-		logm("Saving overview to $fname ... ");
-		open (my $fh, ">>$fname");
-		print $fh $res->{summary};
-		print $fh "--------\n";
-		close($fh);
-		logm("done\n");
-		# runs.txt
-		$fname = "$resultsFolder/runs.txt";
-		logm("Recording results to $fname\n");
-		if (-f $fname) {
-			open ($fh, ">>$fname") or fail("Can't write results to '$fname'");
-		} else {
-			open ($fh, ">$fname") or fail("Can't write results to '$fname'");
-			print $fh "date\t\tmissing\tfill%\tcells\trounds\tfood\tants\tgame time\tturn time\tfolder\t\t\t\tfail\n";
-		}
-		print $fh "$res->{date}\t$res->{missing}\t$res->{cells}->{percent}\t$res->{cells}->{n}";
-		print $fh "\t$res->{rounds}\t$res->{player}->{1}->{food}\t$res->{player}->{1}->{ants}";
-		print $fh "\t$res->{gameruntime}\t$res->{avgturntime}\t$res->{fail}\n";
-		close($fh);
 		# run.html
-		$fname = "$resultsFolder/runs.html";
+		my $fname = "$resultsFolder/runs/$name.html";
 		logm("Recording results to $fname\n");
-		my $html = '';
-		if (-f $fname) {
-			open ($fh, "<$fname") or fail("Can't read results html '$fname'");
-			local $/ = undef;
-			$html = <$fh>;
-			close($fh);
-		} else {
-			$html = new_run_html();
-		}
 		# full board html
-		my $fullBoardFile = "full_board_$res->{time}";
 		my $newRow = "<tr>";
-		$newRow .= new_td($res->{date},undef);
-		$newRow .= new_td($res->{missing},undef);
-		$newRow .= new_td($res->{cells}->{percent}.'%',undef);
-		$newRow .= new_td(new_href($res->{cells}->{n},"file:$fullBoardFile.png"),undef);
-		$newRow .= new_td($res->{rounds}, undef);
-		$newRow .= new_td($res->{player}->{1}->{food}, undef);
-		$newRow .= new_td($res->{player}->{1}->{ants}, undef);
-		$newRow .= new_td($res->{gameruntime},undef);
-		$newRow .= new_td($res->{avgturntime},undef);
-		$newRow .= new_td($res->{fail},'red');
-		$newRow .= "</tr>\n";
-		$html=~s/$htmlPlaceholder/$newRow  $htmlPlaceholder/go;
-		open ($fh, ">$fname") or fail("Can't write results html '$fname'");
-		print $fh $html;
-		close($fh);
-		create_png($res,"$resultsFolder/$fullBoardFile.png");
-	} else {
-		print $res->{summary};
-		print "--------\n" if ($clrun);
+		$newRow .= new_td($gameResult->{date},undef);
+		$newRow .= new_td($gameResult->{cells}->{percent}.'%',undef);
+		my $s = $gameResult->{cells}->{n};
+		$s = new_href($s,"file:$gameResult->{gamepng}") if (defined $gameResult->{gamepng});
+		$newRow .= new_td($s,undef);
+		$s = $gameResult->{rounds};
+		$s = new_href($s,"file:$gameResult->{serverpng}") if (defined $gameResult->{serverpng});
+		$newRow .= new_td($s, undef);
+		$newRow .= new_td($gameResult->{player}->{1}->{food}, undef);
+		$newRow .= new_td($gameResult->{player}->{1}->{ants}, undef);
+		$newRow .= new_td($gameResult->{gameruntime},undef);
+		my $s = '';
+		$s = sprintf("%.2g", $gameResult->{gameruntime}/$gameResult->{rounds}) if (defined $gameResult->{gameruntime} && $gameResult->{gameruntime} > 0);
+		$newRow .= new_td($s,undef);
+		$s = '';
+		$newRow .= new_td($s,'red');
+		$newRow .= "</tr>\n  ";
+		add_html_line($fname,new_run_html($name),$newRow);
 	}
 }
 
 sub new_run_html {
+	my ($name) = @_;
 	return <<EOT;
-<html><head><title>Run results</title></head>
+<html><head><title>Run '$name'</title></head>
 <body><table border="1" cellspacing="0" cellpadding="3">
   <tr>
-    <th>Date</th><th>Missing</th><th>Fill%</th><th>Cells</th>
+    <th>Date</th><th>Fill%</th><th>Cells</th>
     <th>Rounds</th><th>Food</th><th>Ants</th>
     <th>Run time</th><th>Turn time</th><th>Note</th></tr>
   $htmlPlaceholder
 </table>
 </body></html>
 EOT
+}
+
+sub new_main_index_html {
+	return <<EOT;
+<html><head><title>Run results</title></head>
+<body><ul>
+<li><a href="adhoc.html">Ad hoc</a>
+$htmlPlaceholder
+</ul>
+</body></html>
+EOT
+}
+
+sub add_html_line {
+	my ($fname,$initial,$newLine) = @_;
+	my $html = '';
+	if (-f $fname) {
+		open (my $fh, "<$fname") or fail("Can't read results html '$fname'");
+		local $/ = undef;
+		$html = <$fh>;
+		close($fh);
+	} else {
+		$html = $initial;
+	}
+	$html=~s/$htmlPlaceholder/$newLine$htmlPlaceholder/go;
+	open (my $fh, ">$fname") or fail("Can't write html to '$fname'");
+	print $fh $html;
+	close($fh);
 }
 
 sub create_png {
@@ -443,15 +448,16 @@ sub new_td {
 	my $str = "<td";
 	$str .= " style=\"color: $color;\"" if (defined $color);
 	$str .= '>';
-	$str .= $text;
+	$str .= $text || '&nbsp;';
 	$str .= "</td>";
 	return $str;
 }
 
 sub analyze_folder {
-	my ($folder) = @_;
+	my ($gameResult) = @_;
+	my $folder = $gameResult->{archiveFolder} || $gameResult->{logFolder};
+	return unless (defined $folder);
 	logm("Analyzing folder '$folder'\n");
-	fail("No logs folder generated in '$folder'") unless (-d $folder);
 	my $t = 0;
 	for (my $i = 2; $i <= 33; $i++) {
 		my $num = $i;
@@ -481,33 +487,31 @@ sub analyze_folder {
 	}
 	$computed->{state}->{max} = ($boardSize - 2) * ($boardSize - 1);
 	$computed->{state}->{unknown} = $computed->{state}->{max} - $computed->{state}->{cells};
-	my $res = {folder=>$folder, missing=>0, summary=>''};
-	$res->{board} = $computed;
-	$res->{fail} .= "Missing nest\n" unless ($computed->{state}->{nest} == 1);
-	$res->{time} = $computed->{time};
-	$res->{date} = strftime("%Y-%m-%d %H:%M:%S",localtime($computed->{time}));
-	$res->{summary} .= "$res->{date} $res->{folder}\n";
-	$res->{summary} .= $res->{fail} if (defined $res->{fail});
+	$gameResult->{missing} = 0;
+	$gameResult->{board} = $computed;
+	$gameResult->{rounds} = $computed->{turn} unless (defined $gameResult->{rounds});
+	if (!defined $gameResult->{player}->{1}->{food}) {
+		my $s = `cat $folder/trace_*.txt | grep -c "drops food to 512,512"`;
+		$s += 0;
+		$gameResult->{player}->{1}->{food} = $s if ($s > 0);
+	}
+	$gameResult->{time} = $computed->{time};
+	$gameResult->{date} = strftime("%Y-%m-%d %H:%M:%S",localtime($computed->{time}));
 	if (defined $board->{missing}->{count}) {
-		$res->{missing} = $board->{missing}->{count};
-		$res->{summary} .= "$board->{missing}->{count} missing ants\n" ;
+		$gameResult->{missing} = $board->{missing}->{count};
 	}
-	add_stat($res,$computed,'cells','max');
-	add_stat($res,$computed,'unknown','max');
-	add_stat($res,$computed,'empty','cells');
-	add_stat($res,$computed,'obstacle','cells');
-	$res->{summary} .= "all good, times: [".join(' ',times)."]\n";
-	$res->{avgturntime} = 0;
-	if (open (my $fh, "<$folder/info.txt")) {
-		while (my $line = <$fh>) {
-			if ($line=~m/Average run-time: ([0-9]+)$/o) {
-				my $t = $1;
-				$res->{avgturntime} = $t if ($res->{avgturntime} < $t);
-			}
-		}
-		close($fh);
+	add_stat($gameResult,$computed,'cells','max');
+	add_stat($gameResult,$computed,'unknown','max');
+	add_stat($gameResult,$computed,'empty','cells');
+	add_stat($gameResult,$computed,'obstacle','cells');
+	$gameResult->{gamepng} = 'game_';
+	if (defined $gameResult->{id}) {
+		$gameResult->{gamepng} .= $gameResult->{id};
+	} else {
+		$gameResult->{gamepng} .= $gameResult->{time};
 	}
-	return $res;
+	$gameResult->{gamepng} .= '.png';
+	create_png($gameResult,"$resultsFolder/runs/$gameResult->{gamepng}");
 }
 
 sub add_stat {
@@ -518,14 +522,14 @@ sub add_stat {
 	$p = sprintf("%.2g", $n/$tot*100) if ($tot > 0);
 	$res->{$key}->{n} = $n;
 	$res->{$key}->{percent} = $p;
-	$res->{summary} .= "$key: $n / $tot [$p%]\n";
 }
 
 sub archive_logs {
-	my $archiveFolder = "$logFolder/archive_".time();
+	my ($gameResult) = @_;
+	my $archiveFolder = "$gameResult->{logFolder}/archive_".$gameResult->{id};
 	mkdir $archiveFolder;
-	run_command("mv $logFolder/*.txt $archiveFolder/");
-	return $archiveFolder;
+	run_command("mv $gameResult->{logFolder}/*.txt $archiveFolder/");
+	$gameResult->{archiveFolder} = $archiveFolder;
 }
 
 sub compile_project {
@@ -538,7 +542,7 @@ sub compile_project {
 }
 
 sub run_game {
-	my ($gameNumber) = @_;
+	my ($gameNumber,$gameId,$baseFolder) = @_;
 	my $gameResult = {};
 	my $tStart = time;
 	my $cmdRun = 'java';
@@ -560,8 +564,9 @@ sub run_game {
 	logm("\n----\ndone\n");
 	my $tEnd = time;
 	$gameResult->{gameruntime} = $tEnd - $tStart;
-	logm("Run time: $gameResult->{gameruntime}\n");
+	logm("Run time: $gameResult->{gameruntime} s\n");
 	my $player = 0;
+	$gameResult->{boardRep} = '';
 	foreach my $line (split(/\n/,$s)) {
 		if ($line=~m/^Player ([0-9]):/o) {
 			$player = $1;
@@ -576,9 +581,30 @@ sub run_game {
 		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
 			my $n = $1;
 			$gameResult->{rounds} = $n;
+		} elsif ($line=~m/(#[#\.\%\@]+)$/o) {
+			my $boardLine = $1;
+			fail("Bad board line representation: $boardLine") unless (length($boardLine) == $boardSize);
+			$gameResult->{server}->{boardRep} .= "$boardLine\n";
 		}
 	}
-	if (open (my $fh, ">$logFolder/output.txt")) {
+	my $y = 0;
+	$gameResult->{server}->{bx0} = 0;
+	$gameResult->{server}->{bx1} = $boardSize;
+	$gameResult->{server}->{by0} = 0;
+	$gameResult->{server}->{by1} = $boardSize;
+	foreach my $line (split(/\n/,$gameResult->{server}->{boardRep})) {
+		for (my $x = 0; $x < $boardSize; $x++) {
+			my $c = substr($line,$x,1);
+			$gameResult->{server}->{board}->{board}->{$x}->{$y}->{v} = $c;
+		}
+		$y++;
+	}
+	$gameResult->{id} = $gameId;
+	$gameResult->{baseFolder} = $baseFolder;
+	$gameResult->{output} = "output_$gameResult->{id}.txt";
+	$gameResult->{serverpng} = "server_$gameResult->{id}.png";
+	create_png($gameResult->{server},"$baseFolder/$gameResult->{serverpng}");
+	if (open (my $fh, ">$baseFolder/$gameResult->{output}")) {
 		print $fh $s;
 		close($fh);
 	}
@@ -600,6 +626,7 @@ sub join_board {
 	set_value($b1,$b2,'turn',1);
 	set_value($b1,$b2,'bsizeX',1);
 	set_value($b1,$b2,'bsizeY',1);
+	set_value($b1,$b2,'turn',1);
 	foreach my $x (keys %{$b2->{board}}) {
 		foreach my $y (keys %{$b2->{board}->{$x}}) {
 			my $c = $b2->{board}->{$x}->{$y}->{v};
