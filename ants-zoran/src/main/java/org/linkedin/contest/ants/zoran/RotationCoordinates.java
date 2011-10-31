@@ -6,6 +6,7 @@ public class RotationCoordinates {
 
 	public int slice;
 	public int totalSlices;
+	public boolean invert;
 	public Direction bestFirstDirection;
 	public double cosf;
 	public double sinf;
@@ -13,6 +14,7 @@ public class RotationCoordinates {
 	RotationCoordinates(int slice, int totalSlices) {
 		this.slice = slice % totalSlices;
 		this.totalSlices = totalSlices;
+		invert = slice > (totalSlices / 2);
 		cosf = Math.cos(2.0 * this.slice / totalSlices * Math.PI);
 		sinf = Math.sin(2.0 * this.slice / totalSlices * Math.PI);
 		double r = (double)slice / totalSlices;
@@ -40,6 +42,19 @@ public class RotationCoordinates {
 	}
 
 	public Direction nextDirection(Direction dir) {
+		if (invert) {
+			if (dir == Direction.south) return Direction.southwest;
+			else if (dir == Direction.southwest) return Direction.west;
+			else if (dir == Direction.west) return Direction.northwest;
+			else if (dir == Direction.northwest) return Direction.north;
+			else if (dir == Direction.north) return Direction.northeast;
+			else if (dir == Direction.northeast) return Direction.east;
+			else if (dir == Direction.east) return Direction.southeast;
+			else {
+				assert dir == Direction.southeast;
+				return Direction.south;
+			}
+		}
 		if (dir == Direction.south) return Direction.southeast;
 		else if (dir == Direction.southeast) return Direction.east;
 		else if (dir == Direction.east) return Direction.northeast;
