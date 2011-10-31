@@ -6,14 +6,6 @@ public class Constants {
 	public static final int BOARD_SIZE = 512;									// Board size
 	public static final double BOARD_MAX_DISTANCE = Math.sqrt(2)*BOARD_SIZE;	// Max distance on board from nest
 
-	public final static RotationCoordinates rotationCoordinates(int slice, int totalSlices) {
-		int i = slice % totalSlices;
-		double cosf = Math.cos(2.0*i/totalSlices*Math.PI);
-		double sinf = Math.sin(2.0*i/totalSlices*Math.PI);
-		RotationCoordinates rc = new RotationCoordinates(cosf, sinf);
-		return rc;
-	}
-
 	// Encoding/decoding cell coordinates in one Integer
 	private final static int xPointMask = 0x000fff;
 	private final static int yPointMask = 0xfff000;

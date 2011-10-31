@@ -68,7 +68,10 @@ public class Board {
 			}
 			opened.remove(current.id);
 			closed.put(current.id, current);
-			for (Direction neighbor : neighbors) {
+			int i0 = slice.bestFirstDirection;
+			int i = i0;
+			while (true) {
+				Direction neighbor = ant.neighbors.get(i).dir;
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
 				byte state = get(nx, ny);
@@ -91,6 +94,9 @@ public class Board {
 						}
 					}
 				}
+				i++;
+				if (i >= ant.neighbors.size()) i = 0;
+				if (i == i0) break;
 			}
 			if (opened.isEmpty() || timeLimit < System.currentTimeMillis()) {
 				break;
@@ -103,8 +109,8 @@ public class Board {
 		double px = slice.projectedX(x, y);
 		if (px < 0) return 10000.0 - px;
 		double py = slice.projectedY(x, y);
-		double distance = 2.0*Math.abs(py);
-		return distance;
+		if (py<0) return -3.0 * py;
+		return 2.0 * py;
 	}
 
 	// Best path back to nest

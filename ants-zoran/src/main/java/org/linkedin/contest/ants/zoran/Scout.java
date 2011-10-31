@@ -6,13 +6,9 @@ public class Scout extends Role {
 
 	Scout(CommonAnt ant, int sliceNumber, int totalSlices) {
 		super(ant);
-		this.sliceNumber = sliceNumber % totalSlices;
-		this.totalSlices = totalSlices;
-		this.slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
+		this.slice = new RotationCoordinates(sliceNumber, totalSlices);
 	}
 
-	protected int sliceNumber;					// The slice we want to explore (from 0 to totalSlices)
-	private int totalSlices;
 	private boolean changeSlice = false;		// When we spend too much time on a slice, we switch to the next one
 	private int sliceSwitchCount = 0;			// After changing slices a certain number of times, we give up
 	private RotationCoordinates slice;			// The ant will be encouraged to stay in the direction of its given slice to explore
@@ -27,7 +23,7 @@ public class Scout extends Role {
 //L	public String toString() {										// Logger.
 //L		String s = mode;											// Logger.
 //L		if (skipSteps > 0) s += "+skip";							// Logger.
-//L		return String.format("Scout slice %d %s", sliceNumber, s);	// Logger.
+//L		return String.format("Scout slice %d %s", slice.slice, s);	// Logger.
 //L	}																// Logger.
 
 	private void ensureHasPathToNest() {
@@ -106,14 +102,13 @@ public class Scout extends Role {
 		if (changeSlice) {
 			changeSlice = false;
 			sliceSwitchCount++;
-			if (sliceSwitchCount > totalSlices) {		// Give up, we're hitting a wall in all directions looks like
+			if (sliceSwitchCount > slice.totalSlices) {		// Give up, we're hitting a wall in all directions looks like
 //L				Logger.inform(ant, "giving up exploration, turning into a guard");
 				ant.setRole(new Guard(ant));
 				return new Pass();
 			}
-			sliceNumber = (sliceNumber + 1) % totalSlices;
 //L			Logger.inform(ant, "switched to new slice");
-			slice = Constants.rotationCoordinates(sliceNumber, totalSlices);
+			slice = new RotationCoordinates(slice.slice + 1, slice.totalSlices);
 			follower.setPath(null);
 //			if (!ant.here.isNest() && !ant.isNextToNest()) {
 //				ensureHasPathToNest();
