@@ -9,7 +9,7 @@ package org.linkedin.contest.ants.zoran;
  */
 public class ZoranAnt extends CommonAnt {
 
-	private static final int guards = 5;
+	private static final int guards = 4;
 
 	@Override
 	public void initializeState() {

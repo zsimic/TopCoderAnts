@@ -42,10 +42,11 @@ public class Scent {
 	public void update(Long value) {
 		rawValue = value;
 		if (isValidScent(value)) {
+			long v = value.longValue();
 			stinky = false;
-			a = (int)(value & Constants.A_MASK);
-			b = (int)((value & Constants.B_MASK) >>> Constants.bBitOffset);
-			c = (int)((value & Constants.C_MASK) >>> Constants.cBitOffset);
+			a = (int)(v & Constants.A_MASK);
+			b = (int)((v & Constants.B_MASK) >>> Constants.bBitOffset);
+			c = (int)((v & Constants.C_MASK) >>> Constants.cBitOffset);
 			assert a >= 0 && b >= 0 && c >= 0; 
 		} else {
 			stinky = value != null;
@@ -68,9 +69,9 @@ public class Scent {
 
 	// Is scent with given 'value' a valid scent (produced by our own ants)?
 	private static boolean isValidScent(Long value) {
-		if (value==null || value == 0) return false;
-		long chk = (value & Constants.CHECKSUM_MASK) >>> Constants.checksumBitOffset;
-		int n = Long.bitCount(value & Constants.VALUE_MASK);
+		if (value == null || value.longValue() == 0) return false;
+		long chk = (value.longValue() & Constants.CHECKSUM_MASK) >>> Constants.checksumBitOffset;
+		int n = Long.bitCount(value.longValue() & Constants.VALUE_MASK);
 		n = n & 0xff;
 		return n == chk;
 	}

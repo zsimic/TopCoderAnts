@@ -81,10 +81,10 @@ public class Path {
 	// This is to be used for 'resume' paths, where we had a reverse path back to a certain target from the nest
 	// Typically a gatherer won't reach the nest back exactly, so a 'truncateTo' would allow it to resume back to target from where it is currently
 	public void truncateTo(int x, int y) {
-		Integer targetKey = Constants.encodedXY(x, y);
+		int targetKey = Constants.encodedXY(x, y);
 		while (points.size() > 0) {
 			Integer k = points.pop();
-			if (k.intValue() == targetKey.intValue()) break;
+			if (k.intValue() == targetKey) break;
 		}
 	}
 

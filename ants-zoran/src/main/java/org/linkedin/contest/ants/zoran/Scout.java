@@ -102,7 +102,7 @@ public class Scout extends Role {
 		if (changeSlice) {
 			changeSlice = false;
 			sliceSwitchCount++;
-			if (sliceSwitchCount > slice.totalSlices) {		// Give up, we're hitting a wall in all directions looks like
+			if (sliceSwitchCount > 2 * slice.totalSlices) {		// Give up, we're hitting a wall in all directions looks like
 //L				Logger.inform(ant, "giving up exploration, turning into a guard");
 				ant.setRole(new Guard(ant));
 				return new Pass();

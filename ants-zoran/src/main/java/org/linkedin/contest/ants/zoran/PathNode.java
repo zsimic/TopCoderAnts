@@ -30,4 +30,9 @@ public class PathNode {
 		return id;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("xy=%d %d f=%g", x, y, getF());
+	}
+
 }
