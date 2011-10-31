@@ -77,6 +77,14 @@ if ($clmap) {
 }
 
 if ($clrun) {
+	if ($cldebug) {
+		$clnolog = 0;
+		$cllog = 1;
+	} else {
+		$clnolog = 1;
+		$cllog = 0;
+	}
+	modify_source_code();
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
@@ -533,14 +541,6 @@ sub run_game {
 	my ($gameNumber) = @_;
 	my $gameResult = {};
 	my $tStart = time;
-	if ($cldebug) {
-		$clnolog = 0;
-		$cllog = 1;
-	} else {
-		$clnolog = 1;
-		$cllog = 0;
-	}
-	modify_source_code();
 	my $cmdRun = 'java -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
