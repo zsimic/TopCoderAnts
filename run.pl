@@ -80,7 +80,6 @@ if ($clrun) {
 	compile_project() if ($clcompile);
 	my $n = $clrun;
 	while ($n--) {
-		logm("--------------------------------\n") if ($clrun > 1);
 		my $gameResult = run_game($n);
 		my $folder = $logFolder;
 		$folder = archive_logs();
@@ -529,20 +528,24 @@ sub compile_project {
 sub run_game {
 	my ($gameNumber) = @_;
 	my $gameResult = {};
-	my @t0 = times();
+	my $tStart = time;
 	my $cmdRun = 'java -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
-	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer -r logs/replay.txt';
+	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B' if ($cldebug);
 	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
-	logm("Running game $cmdRun ... ");
-	my $s = `$cmdRun`;
-	if ($?) {
-		fail("Game crashed:\n\nexit code $?\n$!");
+	logm("--------------------------------\n");
+	logm("Running game $cmdRun ...\n----\n");
+	open(my $ps,"$cmdRun |") || fail("Failed: $!\n");
+	my $s = '';
+	local $| = 1;
+	while (my $line = <$ps>) {
+		$s .= $line;
+		print $line;
 	}
-	logm("done\n");
-	my @t1 = times();
-	$gameResult->{gameruntime} = actual_times(\@t0,\@t1);
+	logm("\n----\ndone\n");
+	my $tEnd = time;
+	$gameResult->{gameruntime} = $tEnd - $tStart;
 	logm("Run time: $gameResult->{gameruntime}\n");
 	my $player = 0;
 	foreach my $line (split(/\n/,$s)) {
@@ -561,16 +564,11 @@ sub run_game {
 			$gameResult->{rounds} = $n;
 		}
 	}
-	if (open (my $fh, ">$logFolder/output_$gameNumber.txt")) {
+	if (open (my $fh, ">$logFolder/output.txt")) {
 		print $fh $s;
 		close($fh);
 	}
 	return $gameResult;
-}
-
-sub actual_times {
-	my ($t0,$t1) = @_;
-	return $t1->[0] - $t0->[0] + $t1->[1] - $t0->[1] + $t1->[2] - $t0->[2] + $t1->[3] - $t0->[3];
 }
 
 sub logm {
