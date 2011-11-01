@@ -5,7 +5,6 @@ use File::Basename;
 use POSIX qw(strftime);
 use Getopt::Long;
 use Data::Dumper;
-use GD;
 use File::Find;
 use Math::Complex;
 use Math::Trig;
@@ -276,6 +275,8 @@ sub normal_distance {
 
 sub save_heat_map {
 	my ($fname,$factors) = @_;
+	require GD or logm("Can't make PNG, please install GD\n"), return;
+	GD->import;
 	GD::Image->trueColor(1);
 	my $cellSize = 2;
 	my $im = new GD::Image($boardSize * $cellSize, $boardSize * $cellSize);
@@ -421,6 +422,8 @@ sub add_html_line {
 
 sub create_png {
 	my ($stat,$fname) = @_;
+	require GD or logm("Can't make PNG, please install GD\n"), return;
+	GD->import;
 	GD::Image->trueColor(1);
 	my $cellSizeX = 6;
 	my $cellSizeY = 4;
@@ -455,10 +458,10 @@ sub create_png {
 			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
 		}
 	}
-	if (defined $stat->{cells}->{n}) {
-		my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
-		draw_title($im,4,2,$white,$red,gdMediumBoldFont,$title);
-	}
+#	if (defined $stat->{cells}->{n}) {
+#		my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
+#		draw_title($im,4,2,$white,$red,$title);
+#	}
 	if ($xnest>0 && $ynest>0) {
 		$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	}
@@ -469,17 +472,17 @@ sub create_png {
 }
 
 sub draw_title {
-	my ($im,$x,$y,$bg,$fg,$font,$title) = @_;
-	my $font = gdLargeFont;
-	$im->string($font, $x-2, $y-2, $title, $bg);
-	$im->string($font, $x-2, $y+2, $title, $bg);
-	$im->string($font, $x+2, $y+2, $title, $bg);
-	$im->string($font, $x+2, $y-2, $title, $bg);
-	$im->string($font, $x-1, $y-1, $title, $bg);
-	$im->string($font, $x-1, $y+1, $title, $bg);
-	$im->string($font, $x+1, $y+1, $title, $bg);
-	$im->string($font, $x+1, $y-1, $title, $bg);
-	$im->string($font, $x, $y, $title, $fg);
+	my ($im,$x,$y,$bg,$fg,$title) = @_;
+	my $fontname = "";
+	$im->stringFT($bg, $fontname, 14, 0, $x-2, $y-2, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x-2, $y+2, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x+2, $y+2, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x+2, $y-2, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x-1, $y-1, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x-1, $y+1, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x+1, $y+1, $title);
+	$im->stringFT($bg, $fontname, 14, 0, $x+1, $y-1, $title);
+	$im->stringFT($fg, $fontname, 14, 0, $x, $y, $title, $fg);
 }
 
 sub represented_html_game_cell {

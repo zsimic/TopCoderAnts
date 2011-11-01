@@ -68,16 +68,14 @@ public class Board {
 			}
 			opened.remove(current.id);
 			closed.put(current.id, current);
-			Direction neighbor0 = slice.bestFirstDirection;
-			Direction neighbor = neighbor0;
-			while (true) {
+			for (ZSquare neighbor : ant.neighbors) {
 				int nx = current.x + neighbor.deltaX;		// Coordinates of neighbor
 				int ny = current.y + neighbor.deltaY;
 				byte state = get(nx, ny);
 				if (state != Constants.STATE_OBSTACLE && !(current.x == avoidX && current.y == avoidY)) {
 					Integer key = Constants.encodedXY(nx, ny);
 					if (!closed.containsKey(key)) {
-						double g = current.g + 1;							// current g + distance from current to neighbor
+						double g = current.g + 1;
 						double h = distanceFromSlice(nx - Constants.BOARD_SIZE, ny - Constants.BOARD_SIZE, slice);	// Heuristic when exploring
 						PathNode node = opened.get(key);
 						if (node == null) {
@@ -93,8 +91,6 @@ public class Board {
 						}
 					}
 				}
-				neighbor = slice.nextDirection(neighbor);
-				if (neighbor == neighbor0) break;
 			}
 			if (opened.isEmpty() || timeLimit < System.currentTimeMillis()) {
 				break;
@@ -105,10 +101,9 @@ public class Board {
 
 	private static double distanceFromSlice(int x, int y, RotationCoordinates slice) {
 		double px = slice.projectedX(x, y);
-		if (px < 0) return 10000.0 - px;
+		if (px <= 0.5) return 10000.0 - px;
 		double py = slice.projectedY(x, y);
-		if (py<0) return -3.0 * py;
-		return 2.0 * py;
+		return Math.abs(py);// + px;
 	}
 
 	// Best path back to nest
