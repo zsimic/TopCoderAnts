@@ -208,12 +208,8 @@ sub generate_heat_map_centered {
 sub dump_slice_projections {
 	my $sliceA = slice(1,32);
 	my $sliceB = slice(17,32);
-	my $sliceC = slice(16,32);
-	my $sliceD = slice(24,32);
 	dump_slice_projection_set($sliceA,3);
 	dump_slice_projection_set($sliceB,3);
-#	dump_slice_projection_set($sliceC,2);
-#	dump_slice_projection_set($sliceD,2);
 	exit;
 }
 
