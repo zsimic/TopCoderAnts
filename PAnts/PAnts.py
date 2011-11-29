@@ -98,6 +98,9 @@ class BoardView(QtOpenGL.QGLWidget):
   def center_view(self, updateGL=0):
     self.camera.x = 0
     self.camera.y = 0
+    self.rotation.x = 0
+    self.rotation.y = 0
+    self.rotation.z = 0
     if updateGL: self.zoom = 0.5
     self.set_zoom(1.0)
 
@@ -292,6 +295,7 @@ class LoadThread(QtCore.QThread):
 class Toolbar(QtGui.QWidget):
   def __init__(self, parent = None):
     QtGui.QWidget.__init__(self, parent)
+    Gui.set_sizing(self, 0, 1)
     self.main_window = parent
     self.games = []
     self.default_game_path = '~/play/ants/dist'
@@ -448,6 +452,8 @@ class Toolbar(QtGui.QWidget):
       gf = self.games[item-1]
       if self.main_window.board_view.board and gf.path == self.main_window.board_view.board.path:
         return
+      self.timer.stop()
+      self.gr.play.setText('Play')
       self.gs.combo.setEnabled(False)
       self.gs.status.setText("Loading ...")
       self.gs.status.setPalette(Gui.BLUE_TEXT)

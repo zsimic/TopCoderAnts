@@ -101,7 +101,7 @@ def embox_and_size(container, widget, text, width, height=0):
 def set_sizing(widget, width, height):
   if not widget:
     return
-  if abs(width) > 0:
+  if abs(width) > 1:
     widget.setMinimumWidth(abs(width))
   sizePolicy = QtGui.QSizePolicy()
   sizePolicy.setHeightForWidth(False)
