@@ -18,7 +18,7 @@ from Game import Board, GameFile
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL.GL import *
 
-SPEED_NORMAL_INTERVAL = 1000
+SPEED_NORMAL_INTERVAL = 512
 
 class Point(object):
 
@@ -64,6 +64,7 @@ class BoardView(QtOpenGL.QGLWidget):
     self.rotation.glParent = self
     self.rotation.normalizer = self.normalizeAngle
     self.turn = 0
+    self.fog = 1
     board = Board()
     self.set_board(board)
     self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -85,6 +86,12 @@ class BoardView(QtOpenGL.QGLWidget):
 
   def new_array(self, dtype, n):
     return numpy.zeros(shape=n, dtype=dtype, order='C')
+
+  def set_fog(self, on):
+    self.fog = on
+    if self.is_gl_initialized:
+      self.update_model()
+      self.updateGL()
 
   def set_board(self, board):
     self.board = board
@@ -180,7 +187,10 @@ class BoardView(QtOpenGL.QGLWidget):
         i += 12
 
   def update_tile_color(self, t, i):
-    r, g, b = t.rgb()
+    if self.fog and not t.food and not t.nest_nearby and t.passable and not t.visited[0]:
+      r, g, b = (60, 60, 60)
+    else:
+      r, g, b = t.rgb()
     self.board_colors[i+0] = r
     self.board_colors[i+1] = g
     self.board_colors[i+2] = b
@@ -208,6 +218,7 @@ class BoardView(QtOpenGL.QGLWidget):
 
   def initializeGL(self):
     self.is_gl_initialized = 1
+    self.message_font = QtGui.QFont('Helvetica', 30, 1)
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
 #    glEnable(GL_LIGHT1)
@@ -221,7 +232,7 @@ class BoardView(QtOpenGL.QGLWidget):
       glLightfv(GL_LIGHT0, GL_POSITION, (4.0, 0.0, -80.0, 1.0))   # Position
       glLightfv(GL_LIGHT1, GL_DIFFUSE, (0.5, 0.2, 0.2, 1.0))      # Color
       glLightfv(GL_LIGHT1, GL_POSITION, (1.0, 0.5, 0.5, 0.0))     # Direction
-    glClearColor(0.0, 1.0, 0.0, 1.0)
+    glClearColor(0.0, 0.0, 0.0, 1.0)
     glEnableClientState(GL_VERTEX_ARRAY)
     glEnableClientState(GL_COLOR_ARRAY)
     glVertexPointer(2, GL_SHORT, 0, self.board_vertices)
@@ -237,8 +248,12 @@ class BoardView(QtOpenGL.QGLWidget):
     glRotated(self.rotation.y / 16.0, 0.0, 1.0, 0.0)
     glRotated(self.rotation.z / 16.0, 0.0, 0.0, 1.0)
     glTranslated(-Board.BOARD_SIZE/2, -Board.BOARD_SIZE/2, 0)
-#    glColorPointer(3, GL_UNSIGNED_BYTE, 0, self.board_colors)
-    glDrawArrays(GL_QUADS, 0, 4 * Board.BOARD_SIZE * Board.BOARD_SIZE)
+    if not self.board:
+      self.renderText(10, 60, 'No board loaded', self.message_font)
+    elif self.board.problem:
+      self.renderText(10, 60, self.board.problem, self.message_font)
+    else:
+      glDrawArrays(GL_QUADS, 0, 4 * Board.BOARD_SIZE * Board.BOARD_SIZE)
     glPopMatrix()
 
   def resizeGL(self, width, height):
@@ -255,10 +270,15 @@ class BoardView(QtOpenGL.QGLWidget):
 
 class LoadThread(QtCore.QThread):
   ready = QtCore.Signal()
+  progress = QtCore.Signal(int,int)
 
   def run(self):
     self.board = Board()
-    self.board.load(self.game_file.path)
+    self.board.load(self.game_file.path, self.progress)
+    if len(self.board.teams):
+      self.board.teams[0].name = self.game_file.p1
+      if len(self.board.teams) >= 2:
+        self.board.teams[1].name = self.game_file.p2
     self.ready.emit()
 
 class Toolbar(QtGui.QWidget):
@@ -269,6 +289,7 @@ class Toolbar(QtGui.QWidget):
 #    self.default_game_path = '~/dev/python/PAnts/games'
     self.loader = LoadThread()
     self.loader.ready.connect(self.on_game_loaded)
+    self.loader.progress.connect(self.on_game_progress)
     self.stack = QtGui.QStackedLayout()
     # Game Path selection
     self.gp = QtGui.QWidget()
@@ -286,7 +307,11 @@ class Toolbar(QtGui.QWidget):
     self.gs.hbox = Gui.new_hbox(self.gs, 1, 6, -1)
     self.gs.back = Gui.new_PushButton(self.gs.hbox, "Back", self.switch_to_gp, 1)
     self.gs.combo = Gui.new_Combo(self.gs.hbox, None, self.on_game_selected, 1)
-    self.gs.status = Gui.new_Label(self.gs.hbox, 'Please select a game', -1)
+    self.gs.progress_bar = QtGui.QProgressBar()
+    Gui.embox_and_size(self.gs.hbox, self.gs.progress_bar, None, 200)
+    self.gs.progress_bar.setRange(0, 100)
+    self.gs.progress_bar.setVisible(False)
+    self.gs.status = Gui.new_Label(self.gs.hbox, 'Please select a game replay', -1)
     self.gs.status.setPalette(Gui.GRAY_TEXT)
     self.gs.next = Gui.new_PushButton(self.gs.hbox, "Next", self.switch_to_gr, 1)
     self.gs.next.setEnabled(False)
@@ -294,23 +319,25 @@ class Toolbar(QtGui.QWidget):
     self.gr = QtGui.QWidget()
     self.gr.hbox = Gui.new_hbox(self.gr, 1, 4, -1)
     self.gr.back = Gui.new_PushButton(self.gr.hbox, "Back", self.switch_to_gs, 1)
-    self.gr.sep1 = Gui.new_Label(self.gr.hbox, '', 16)
-    self.gr.stop = Gui.new_PushButton(self.gr.hbox, "Stop", self.on_stop, 1)
-    self.gr.pause = Gui.new_PushButton(self.gr.hbox, "Pause", self.on_pause, 1)
-    self.gr.sep2 = Gui.new_Label(self.gr.hbox, '', 8)
-    self.gr.play = Gui.new_PushButton(self.gr.hbox, "Play", self.on_play, 1)
-    self.gr.sep3 = Gui.new_Label(self.gr.hbox, '', 4)
-    self.gr.speed = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
-    self.gr.speed_normal = Gui.new_RadioButton(self.gr.hbox, "1x", self.on_speed_1, 1)
-    self.gr.speed_double = Gui.new_RadioButton(self.gr.hbox, "2x", self.on_speed_2, 1)
-    self.gr.speed_quad = Gui.new_RadioButton(self.gr.hbox, "4x", self.on_speed_4, 1)
-    self.gr.speed_quad = Gui.new_RadioButton(self.gr.hbox, "8x", self.on_speed_8, 1)
-    self.gr.speed_normal.setChecked(True)
+    self.gr.sep1 = Gui.new_Label(self.gr.hbox, '', 12)
+    self.gr.play = Gui.new_PushButton(self.gr.hbox, "Play", self.on_play_pause, 1)
+    self.gr.speed_label = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
+    self.gr.speed = Gui.new_Combo(self.gr.hbox, ['128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
+    self.gr.sep2 = Gui.new_Label(self.gr.hbox, '', 4)
+    self.gr.step = Gui.new_PushButton(self.gr.hbox, "Step", self.on_step, 1)
+    self.gr.progress_bar = QtGui.QProgressBar()
+    Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 150)
+    self.gr.p1 = Gui.new_Label(self.gr.hbox, '', -1)
+    self.gr.p1.setPalette(Gui.RED_TEXT)
+    self.gr.p2 = Gui.new_Label(self.gr.hbox, '', -1)
+    self.gr.p2.setPalette(Gui.BLUE_TEXT)
     self.gr.status = Gui.new_Label(self.gr.hbox, '', -1)
+    self.gr.fog = Gui.new_CheckBox(self.gr.hbox, 'Fog of war', self.on_fog, -1)
+    self.gr.fog.setChecked(True)
     # timer
     self.timer = QtCore.QTimer(self)
     self.timer.timeout.connect(self.run_turn)
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL)
+    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 128)
     # Stack
     self.stack.addWidget(self.gp)
     self.stack.addWidget(self.gs)
@@ -326,45 +353,51 @@ class Toolbar(QtGui.QWidget):
 
   def run_turn(self):
     self.main_window.board_view.run_turn()
+    board = self.main_window.board_view.board
+    self.gr.progress_bar.setValue(board.played)
+    self.gr.p1.setText("%s: %d food" % (board.teams[0].name, board.teams[0].food()))
+    self.gr.p2.setText("%s: %d food" % (board.teams[1].name, board.teams[1].food()))
+    self.gr.status.setText("Turn %d" % (board.turn))
+
+  def on_fog(self):
+    self.main_window.board_view.set_fog(not self.main_window.board_view.fog)
 
   def activate_play_buttons(self):
     if self.main_window.board_view.board.problem:
-      self.gr.stop.setEnabled(False)
-      self.gr.pause.setEnabled(False)
       self.gr.play.setEnabled(False)
+      self.gr.step.setEnabled(False)
     else:
-      self.gr.stop.setEnabled(self.timer.isActive())
-      self.gr.pause.setEnabled(self.timer.isActive())
-      self.gr.play.setEnabled(not self.timer.isActive())
+      self.gr.play.setEnabled(True)
+      self.gr.step.setEnabled(not self.timer.isActive())
 
-  def on_stop(self):
-    self.timer.stop()
+  def on_step(self):
+    self.run_turn()
     self.activate_play_buttons()
 
-  def on_pause(self):
-    self.timer.stop()
+  def on_play_pause(self):
+    if self.timer.isActive():
+      self.timer.stop()
+      self.gr.play.setText('Play')
+    else:
+      self.timer.start()
+      self.gr.play.setText('Pause')
     self.activate_play_buttons()
 
-  def on_play(self):
-    self.timer.start()
-    self.activate_play_buttons()
+  def on_speed_changed(self, item):
+    i = SPEED_NORMAL_INTERVAL / (2 ** (7-item))
+    self.timer.setInterval(i)
 
-  def on_speed_1(self):
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL)
-
-  def on_speed_2(self):
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 2)
-
-  def on_speed_4(self):
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 4)
-
-  def on_speed_8(self):
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 8)
+  def on_game_progress(self, loaded, total):
+    if self.gs.progress_bar.maximum() < total:
+      self.gs.progress_bar.setRange(0, total)
+    self.gs.progress_bar.setValue(loaded)
 
   def on_game_loaded(self):
     self.gs.combo.setEnabled(True)
     b = self.loader.board
+    self.gr.progress_bar.setRange(0, b.total)
     self.main_window.board_view.set_board (b)
+    self.gs.progress_bar.setVisible(False)
     if b.problem:
       self.gs.status.setText(b.problem)
       self.gs.status.setPalette(Gui.RED_TEXT)
@@ -384,11 +417,12 @@ class Toolbar(QtGui.QWidget):
       self.gs.status.setText("Loading ...")
       self.gs.status.setPalette(Gui.BLUE_TEXT)
       self.loader.game_file = gf
-      self.loader.run()
+      self.gs.progress_bar.setVisible(True)
+      self.loader.start()
     else:
       b = Board()
       self.main_window.board_view.set_board (b)
-      self.gs.status.setText("Please select a game")
+      self.gs.status.setText("Please select a game replay")
       self.gs.status.setPalette(Gui.GRAY_TEXT)
 
   def switch_to_gp(self):

@@ -65,6 +65,14 @@ def new_PushButton(container, text, action, width):
     widget.clicked.connect(action)
   return widget
 
+def new_CheckBox(container, text, action, width):
+  widget = QtGui.QCheckBox()
+  widget.setFocusPolicy(QtCore.Qt.NoFocus)
+  embox_and_size(container, widget, text, width)
+  if action:
+    widget.clicked.connect(action)
+  return widget
+
 def new_RadioButton(container, text, action, width):
   widget = QtGui.QRadioButton()
   widget.setFocusPolicy(QtCore.Qt.NoFocus)

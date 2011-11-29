@@ -45,7 +45,6 @@ class Team(object):
     self.board = board    # reference to parent board object
     self.uid = uid        # team id (1 or 2)
     self.ants = []        # all ants in the team
-    self.food = 0         # amount of food gathered
     self.nest = nest      # object of type Tile()
     assert nest.nest == None
     self.nest.nest = self
@@ -53,7 +52,9 @@ class Team(object):
       self.rgb = (255, 0, 0)
     else:
       self.rgb = (0, 0, 255)
-    print "Team %d: %d %d" % (uid, nest.x, nest.y)
+
+  def food(self):
+    return self.nest.food
 
 class Direction(object):
   def __init__(self, dx, dy):
@@ -62,7 +63,7 @@ class Direction(object):
 
 class Directions(object):
   here = Direction(0, 0)
-  northeast = Direction(0, 0)
+  northeast = Direction(-1, 1)
   east = Direction(0, 1)
   southeast = Direction(1, 1)
   south = Direction(1, 0)
@@ -85,8 +86,7 @@ class Directions(object):
 
 class Action(object):
   mant = re.compile('([0-9]+): (.+)')
-  mwrites = re.compile('Writes ([0-9]+)')
-  mdirected = re.compile('(Drops food|Gets food from|Moves) (.+)')
+  maction = re.compile('(Writes|Drops food|Gets food from|Moves|Says) (.+)')
 
   def __init__(self, board, representation):
     self.valid = 0
@@ -94,25 +94,16 @@ class Action(object):
     if m:
       self.ant = board.ant(int(m.group(1)))
       rest = m.group(2)
-      m = Action.mwrites.match(rest)
+      m = Action.maction.match(rest)
       if m:
-        self.executor = self.write
-        self.value = m.group(1)
+        self.name = m.group(1)
+        self.executor = Actions.by_name[self.name]
+        self.value = m.group(2)
         self.valid = 1
-      else:
-        m = Action.mdirected.match(rest)
-        if m:
-          actname = m.group(1)
-          if actname == 'Drops food': self.executor = self.drop_food
-          elif actname == 'Gets food from': self.executor = self.get_food
-          elif actname == 'Moves': self.executor = self.move
-          elif actname == 'Says': self.executor = self.say
-          elif actname == 'Writes': self.executor = self.write
-          self.direction = Directions.by_name[m.group(2)]
-          self.valid = self.executor
 
   def target_tile(self):
-    return self.ant.board.tile(self.ant.x + self.direction.dx, self.ant.y + self.direction.dy)
+    direction = Directions.by_name[self.value]
+    return self.ant.board.tile(self.ant.x + direction.dx, self.ant.y + direction.dy)
 
   def drop_food(self, view):
     target_tile = self.target_tile()
@@ -154,10 +145,26 @@ class Action(object):
   def say(self, view):
     pass
 
+  def dies(self, view):
+    current_tile = self.ant.tile()
+    current_tile.remove_ant(self.ant)
+    self.ant.team.remove(self.ant)
+    view.update_tile(current_tile)
+
   def write(self, view):
     current_tile = self.ant.tile()
     current_tile.scent = self.value
     view.update_tile(current_tile)
+
+class Actions(object):
+  by_name = {
+    'Drops food': Action.drop_food,
+    'Gets food from': Action.get_food,
+    'Moves': Action.move,
+    'Says': Action.say,
+    'Dies': Action.dies,
+    'Writes': Action.write
+  }
 
 class Tile(object):
   obstacle_color = (0, 0, 0)
@@ -169,10 +176,13 @@ class Tile(object):
     self.passable = 0
     self.food = 0
     self.nest = None          # will hold an object of type Team() object when the tile is a nest
-    self.visited = [0, 0, 0]  # number of times tile was visited by corresponding team (only indices 1 and 2 are used)
+    self.visited = [0, 0, 0]  # number of times tile was visited by corresponding team (0: total, 1: team 1, 2: team 2)
     self.ants = None
     self.scent = None
     self.nest_nearby = None   # reference to nest tile, if we are close enough to the nest
+
+  def __str__(self):
+    return "Tile %d,%d pass=%d food=%d" % (self.x, self.y, self.passable, self.food)
 
   def take_food(self):
     self.food -= 1
@@ -182,6 +192,8 @@ class Tile(object):
 
   def add_ant(self, ant):
     self.ants.append(ant)
+    self.visited[0] += 1
+    self.visited[ant.team.uid] += 1
 
   def remove_ant(self, ant):
     self.ants.remove(ant)
@@ -209,24 +221,26 @@ class Board(object):
 
   def __init__(self):
     self.actions = []
-    self.action_index = 0
     self.ants = []
     for i in range(100):
       self.ants.append(Ant(i+1))
     self.nests = []
     self.tiles = []
+    self.teams = []
     self.turn = 0
+    self.played = 0       # Number of actions played so far
+    self.total = 0        # Total number of actions
     self.path = None
-    self.problem = 'Please select a game replay to load'
+    self.problem = 'Please select a game replay'
 
   def ant(self, uid):
     return self.ants[uid-1]
 
   def next_action(self):
-    i = self.action_index
+    i = self.played
     if i >= len(self.actions):
       return None
-    self.action_index += 1
+    self.played += 1
     return self.actions[i]
 
   def run_turn(self, view):
@@ -236,38 +250,46 @@ class Board(object):
       act = self.next_action()
       if act:
         if act.ant.turn >= self.turn:
-          self.action_index -= 1
+          self.played -= 1
           break
         else:
           act.ant.turn = self.turn
-          act.executor(view)
-#          print '%d: %d %d' % (act.ant.uid, act.ant.x, act.ant.y)
+          act.executor(act, view)
+#          if act.ant.uid == 19:
+#            print "%d: (%d,%d,%d) %s %s" % (act.ant.uid, self.turn, act.ant.x, act.ant.y, act.name, act.value)
+#            print act.ant.tile()
       else:
         view.game_finished()
         break
 
-  def load(self, path):
+  def load(self, path, progress):
     self.path = path
-    self.problem = self.effective_load()
+    self.problem = self.effective_load(progress)
 
-  def effective_load(self):
+  def effective_load(self, progress):
     self.actions = []
-    self.action_index = 0
     self.nests = []
+    self.teams = []
     self.tiles = []
+    self.played = 0
+    self.total = 0
     self.turn = 0
     for i in range(Board.BOARD_SIZE):
       self.tiles.append(self.new_row(i))
-    n = 0
+    linenumber = 0
+    loaded = 0
     mstate = re.compile('\(([0-9]+),([0-9]+)\) *(.*)')
     mfood = re.compile('Food: ([0-9]+)')
     mstarts = re.compile('([0-9]+): Starts at ([0-9]+),([0-9]+)')
     if not os.path.isfile(self.path):
       return "No file '%s'" % self.path
+    total = os.path.getsize(self.path)
     with open(self.path, 'r') as fh:
       line = fh.readline()
-      n += 1
+      linenumber += 1
+      loaded += len(line)
       while line:
+        if linenumber % 10000 == 0: progress.emit(loaded, total)
         m = mstate.match(line)
         if m:
           x = int(m.group(1))
@@ -287,7 +309,8 @@ class Board(object):
         else:
           break
         line = fh.readline()
-        n += 1
+        linenumber += 1
+        loaded += len(line)
       if len(self.nests) != 2:
         return "%d nests found instead of 2" % len(self.nests)
       lastx, lasty = (0, 0)
@@ -308,25 +331,32 @@ class Board(object):
               team = Team(team.uid + 1, self, nest_tile)
             else:
               team = Team(1, self, nest_tile)
+            self.teams.append(team)
           self.ant(uid).initialize(team, x, y)
         else:
           break
         line = fh.readline()
-        n += 1
+        linenumber += 1
+        loaded += len(line)
+      if len(self.teams) != 2:
+        return "Only %d team effectively defined (bug in replay file generation)" % len(self.teams)
       self.expand_nest(self.nests[0])
       self.expand_nest(self.nests[1])
       while line:
-        if n % 100000 == 0: print 'read %d' % (n / 100000)
+        if linenumber % 10000 == 0: progress.emit(loaded, total)
         act = Action(self, line)
         if act.valid:
           self.actions.append(act)
         else:
           return "Invalid action line %d: '%s'" % (n, line)
         line = fh.readline()
-        n += 1
+        linenumber += 1
+        loaded += len(line)
+    self.total = len(self.actions)
     return None
 
   def expand_nest(self, nest_tile):
+    if not nest_tile: return
     mid = 3
     for i in range(2*mid+1):
       for j in range(2*mid+1):

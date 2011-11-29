@@ -111,17 +111,17 @@ abstract class CommonAnt implements Ant {
 			ZSquare s = square(act);
 			assert s.isPassable() && s.hasFood();
 			hasFood = true;
-//L			Logger.trace(this, String.format("takes food from %d,%d", s.x, s.y));
+//L			Logger.trace(this, String.format("takes food %s %d,%d", s.dir.name(), s.x, s.y));
 		} else if (act instanceof DropFood) {
 			assert hasFood;
 			ZSquare s = square(act);
 			assert s.isPassable();
 			hasFood = false;
-//L			Logger.trace(this, String.format("drops food to %d,%d", s.x, s.y));
+//L			Logger.trace(this, String.format("drops food %s %d,%d", s.dir.name(), s.x, s.y));
 //L		} else if (act instanceof Write) {	// Logger.
-//L			Logger.trace(this, String.format("writing value: %s", (new Scent(act)).toString()));
+//L			Logger.trace(this, String.format("writes: %s", (new Scent(act)).toString()));
 //L		} else if (act instanceof Say) {	// Logger.
-//L			Logger.trace(this, String.format("Say: '%s'", act.toString()));
+//L			Logger.trace(this, String.format("Says: '%s'", act.toString()));
 //L		} else if (act instanceof Pass) {	// Logger.
 			// Do nothing
 //L		} else {							// Logger.

@@ -60,7 +60,7 @@ my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
 	'c|compile'=>\$clcompile,
-	'r|run=i'=>\$clrun, 'debug'=>\$cldebug, 'seed'=>\$clseed, 'archive'=>\$clarchive,
+	'r|run=i'=>\$clrun, 'debug'=>\$cldebug, 'seed:i'=>\$clseed, 'archive'=>\$clarchive,
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
 	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
@@ -617,12 +617,17 @@ sub run_game {
 	$gameResult->{baseFolder} = $baseFolder;
 	my $tStart = time;
 	my $cmdRun = 'java';
-	$cmdRun .= ' -ea -Xmx1024m' if ($cldebug);
+	$cmdRun .= ' -ea -Xmx'.($cldebug ? '2048m' : '256m');
 	$cmdRun .= ' -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
 #	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
 	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
 	$cmdRun .= ' -B' if ($cldebug);
-	$cmdRun .= " -s $clseed" if ($clseed);
+	if ($clseed) {
+		$cmdRun .= " -s $clseed";
+		$cmdRun .= " -r ~/play/ants/dist/ZoranVsSeed${clseed}.1";
+	} else {
+		$cmdRun .= " -r ZoranVsNothing.$gameResult->{id}";
+	}
 	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
 	logm("--------------------------------\n");
 	logm("Running game $gameNumber: $cmdRun ...\n----\n");
