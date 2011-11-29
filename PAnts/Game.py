@@ -147,6 +147,8 @@ class Action(object):
 
   def dies(self, view):
     current_tile = self.ant.tile()
+    if self.ant.food:
+      current_tile.put_food()
     current_tile.remove_ant(self.ant)
     self.ant.team.ants.remove(self.ant)
     view.update_tile(current_tile)
@@ -220,9 +222,20 @@ class Tile(object):
           if b == 0: b = g
           return (r, g, b)
       elif self.visited[0]:
-        r = 255 - min(self.visited[1], 20) * 5
-        b = 255 - min(self.visited[2], 20) * 5
-        return (r, 255, b)
+        r = self.visited[1]
+        b = self.visited[2]
+        g = 255
+        if r and b:
+          g = 255 - min(r + b, 20) * 5
+          r = 200 + min(r, 55)
+          b = 200 + min(b, 55)
+        elif r:
+          g = b = 255 - min(r, 20) * 5
+          r = 255
+        else:
+          g = r = 255 - min(b, 20) * 5
+          b = 255
+        return (r, g, b)
       elif fog:
         return Tile.fog_color
       else:

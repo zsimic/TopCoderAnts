@@ -49,6 +49,7 @@ def new_Label(container, text, width):
 
 def new_Combo(container, items, action, width):
   widget = QtGui.QComboBox()
+  widget.setFocusPolicy(QtCore.Qt.NoFocus)
   if items:
     for i in items:
       widget.addItem(str(i))
