@@ -10,6 +10,7 @@ Usage:
 from setuptools import setup
 
 includes = ['numpy']
+excludes = []
 DATA_FILES = []
 OPTIONS = {
   'argv_emulation': False,

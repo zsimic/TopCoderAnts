@@ -12,7 +12,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
 
 includes = ['numpy', 'OpenGL', 'OpenGL.platform']
-excludes = ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email', 'pywin.debugger',
+excludes = ['_gtkagg', '_tkagg', 'bsddb', 'curses', 'email', 'pywin.debugger', 'nose',
              'pywin.debugger.dbgcon', 'pywin.dialogs', 'tcl',
              'Tkconstants', 'Tkinter']
 packages = []

@@ -22,25 +22,38 @@ class GameFile(object):
     return "%s vs %s [Game %d]" % (self.p1, self.p2, self.seq)
 
 class Ant(object):
-  def __init__(self, uid, board):
-    self.board = board
-    self.uid = uid
-    self.alive = 1
-    self.food = 0
-    self.team = None
-    self.turn = 0
-    self.x = 0
-    self.y = 0
+  def __init__(self, uid):
+    self.uid = uid            # ant's unique id (1 to 100)
+
+  def initialize(self, team, x, y):
+    self.team = team          # ant's team
+    team.ants.append(self)
+    team.nest.add_ant(self)
+    team.board.ants.append(self)
+    self.board = team.board   # reference to parent board object
+    self.alive = 1            # is ant still alive?
+    self.food = 0             # does ant carry food currently?
+    self.turn = 0             # ant's turn
+    self.x = x                # ant's X,Y position on board
+    self.y = y
 
   def tile(self):
     return self.board.tile(self.x, self.y)
 
 class Team(object):
-  def __init__(self, uid):
-    self.uid = uid
-    self.ants = []
-    self.food = 0
-    self.nest = None    # will hold an object of type Tile()
+  def __init__(self, uid, board, nest):
+    self.board = board    # reference to parent board object
+    self.uid = uid        # team id (1 or 2)
+    self.ants = []        # all ants in the team
+    self.food = 0         # amount of food gathered
+    self.nest = nest      # object of type Tile()
+    assert nest.nest == None
+    self.nest.nest = self
+    if uid == 1:
+      self.rgb = (255, 0, 0)
+    else:
+      self.rgb = (0, 0, 255)
+    print "Team %d: %d %d" % (uid, nest.x, nest.y)
 
 class Direction(object):
   def __init__(self, dx, dy):
@@ -99,22 +112,34 @@ class Action(object):
           self.valid = self.executor
 
   def target_tile(self):
-    return self.ant.board.tile(self.ant.x - self.direction.dx, self.ant.y - self.direction.dy)
+    return self.ant.board.tile(self.ant.x + self.direction.dx, self.ant.y + self.direction.dy)
 
   def drop_food(self, view):
     target_tile = self.target_tile()
+    if not target_tile.passable:
+      print 'ant %d (%d %d) drops food to non-passable tile (%d %d)' % (self.ant.uid, self.ant.x, self.ant.y, target_tile.x, target_tile.y)
+    if not self.ant.food:
+      print 'ant %d (%d %d) drops imaginary food' % (self.ant.uid, self.ant.x, self.ant.y)
     target_tile.put_food()
     self.ant.food = 0
     view.update_tile(target_tile)
+    view.update_tile(self.ant.tile())
 
   def get_food(self, view):
     target_tile = self.target_tile()
     target_tile.take_food()
+    if self.ant.food:
+      print 'ant %d (%d %d) takes food while already carrying some' % (self.ant.uid, self.ant.x, self.ant.y)
     self.ant.food = 1
     view.update_tile(target_tile)
+    view.update_tile(self.ant.tile())
+    if target_tile.food < 0:
+      print 'ant %d (%d %d) takes non-existing food from tile (%d %d)' % (self.ant.uid, self.ant.x, self.ant.y, target_tile.x, target_tile.y)
 
   def move(self, view):
     target_tile = self.target_tile()
+    if not target_tile.passable:
+      print 'ant %d (%d %d) goes to non-passable tile (%d %d)' % (self.ant.uid, self.ant.x, self.ant.y, target_tile.x, target_tile.y)
     current_tile = self.ant.tile()
     current_tile.remove_ant(self.ant)
     self.ant.x = target_tile.x
@@ -135,14 +160,19 @@ class Action(object):
     view.update_tile(current_tile)
 
 class Tile(object):
+  obstacle_color = (0, 0, 0)
+  board_color = (255, 255, 255)
+
   def __init__(self, x, y):
     self.x = x
     self.y = y
     self.passable = 0
     self.food = 0
-    self.team = None    # will hold an object of type Team() object when the tile is a nest
-    self.ants = []
+    self.nest = None          # will hold an object of type Team() object when the tile is a nest
+    self.visited = [0, 0, 0]  # number of times tile was visited by corresponding team (only indices 1 and 2 are used)
+    self.ants = None
     self.scent = None
+    self.nest_nearby = None   # reference to nest tile, if we are close enough to the nest
 
   def take_food(self):
     self.food -= 1
@@ -156,6 +186,24 @@ class Tile(object):
   def remove_ant(self, ant):
     self.ants.remove(ant)
 
+  def rgb(self):
+    if not self.passable:
+      return Tile.obstacle_color
+    elif self.ants:
+      return self.ants[0].team.rgb
+    elif self.nest_nearby:
+      r, g, b = self.nest_nearby.nest.rgb
+      g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
+      if r == 0: r = g
+      if b == 0: b = g
+      return (r, g, b)
+    elif self.food:
+      g = 255
+      r = b = 50 - min(self.food, 50)
+      return (r, g, b)
+    else:
+      return Tile.board_color
+
 class Board(object):
   BOARD_SIZE = 512
 
@@ -164,8 +212,7 @@ class Board(object):
     self.action_index = 0
     self.ants = []
     for i in range(100):
-      ant = Ant(i + 1, self)
-      self.ants.append(ant)
+      self.ants.append(Ant(i+1))
     self.nests = []
     self.tiles = []
     self.turn = 0
@@ -228,6 +275,7 @@ class Board(object):
           s = m.group(3)
           t = self.tile(x, y)
           t.passable = 1
+          t.ants = []
           if len(s):
             m = mfood.match(s)
             if m:
@@ -244,7 +292,6 @@ class Board(object):
         return "%d nests found instead of 2" % len(self.nests)
       lastx, lasty = (0, 0)
       team = None
-      nest_tile = None
       while line:
         m = mstarts.match(line)
         if m:
@@ -253,25 +300,15 @@ class Board(object):
           y = int(m.group(3))
           if lastx != x or lasty != y:
             lastx, lasty = (x, y)
-            if team:
-              team = Team(team.uid + 1)
-            else:
-              team = Team(1)
             if self.nests[0].x == x and self.nests[0].y == y:
               nest_tile = self.nests[0]
             else:
               nest_tile = self.nests[1]
-            team.nest = nest_tile
-            nest_tile.team = team
-          ant = self.ant(uid)
-          team.ants.append(ant)
-          team.nest.add_ant(ant)
-          ant.alive = 1
-          ant.food = 0
-          ant.team = team
-          ant.turn = 0
-          ant.x = x
-          ant.y = y
+            if team:
+              team = Team(team.uid + 1, self, nest_tile)
+            else:
+              team = Team(1, self, nest_tile)
+          self.ant(uid).initialize(team, x, y)
         else:
           break
         line = fh.readline()
@@ -293,8 +330,7 @@ class Board(object):
     mid = 3
     for i in range(2*mid+1):
       for j in range(2*mid+1):
-        if i == mid and j == mid: continue
-        self.tile(nest_tile.x+i-mid, nest_tile.y+j-mid).team = nest_tile.team
+        self.tile(nest_tile.x+i-mid, nest_tile.y+j-mid).nest_nearby = nest_tile
 
   def tile(self, x, y):
     return self.tiles[y][x]

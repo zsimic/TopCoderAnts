@@ -180,32 +180,7 @@ class BoardView(QtOpenGL.QGLWidget):
         i += 12
 
   def update_tile_color(self, t, i):
-    if not t.passable:
-      r = g = b = 0
-    elif len(t.ants):
-      if t.ants[0].team.uid == 1:
-        r = 255
-        g = 0
-        b = 0
-      else:
-        r = 0
-        g = 0
-        b = 255
-    elif t.team:
-      g = 50
-      if t.team.nest != t:
-        g += max(abs(t.x - t.team.nest.x), abs(t.y - t.team.nest.y)) * 30
-      if t.team.uid == 1:
-        r = 255
-        b = g
-      else:
-        r = g
-        b = 255
-    elif t.food:
-      g = 255
-      r = b = 0
-    else:
-      r = g = b = 255
+    r, g, b = t.rgb()
     self.board_colors[i+0] = r
     self.board_colors[i+1] = g
     self.board_colors[i+2] = b
@@ -326,9 +301,10 @@ class Toolbar(QtGui.QWidget):
     self.gr.play = Gui.new_PushButton(self.gr.hbox, "Play", self.on_play, 1)
     self.gr.sep3 = Gui.new_Label(self.gr.hbox, '', 4)
     self.gr.speed = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
-    self.gr.speed_normal = Gui.new_RadioButton(self.gr.hbox, "1x", self.on_speed_normal, 1)
-    self.gr.speed_double = Gui.new_RadioButton(self.gr.hbox, "2x", self.on_speed_double, 1)
-    self.gr.speed_quad = Gui.new_RadioButton(self.gr.hbox, "4x", self.on_speed_quad, 1)
+    self.gr.speed_normal = Gui.new_RadioButton(self.gr.hbox, "1x", self.on_speed_1, 1)
+    self.gr.speed_double = Gui.new_RadioButton(self.gr.hbox, "2x", self.on_speed_2, 1)
+    self.gr.speed_quad = Gui.new_RadioButton(self.gr.hbox, "4x", self.on_speed_4, 1)
+    self.gr.speed_quad = Gui.new_RadioButton(self.gr.hbox, "8x", self.on_speed_8, 1)
     self.gr.speed_normal.setChecked(True)
     self.gr.status = Gui.new_Label(self.gr.hbox, '', -1)
     # timer
@@ -343,6 +319,8 @@ class Toolbar(QtGui.QWidget):
     self.setLayout(self.stack)
     if os.path.isdir(Gui.resolved_path(self.default_game_path)):
       self.set_game_path(self.default_game_path)
+      if len(self.games):
+        self.switch_to_gs()
     else:
       self.default_game_path = '~'
 
@@ -371,14 +349,17 @@ class Toolbar(QtGui.QWidget):
     self.timer.start()
     self.activate_play_buttons()
 
-  def on_speed_normal(self):
+  def on_speed_1(self):
     self.timer.setInterval(SPEED_NORMAL_INTERVAL)
 
-  def on_speed_double(self):
+  def on_speed_2(self):
     self.timer.setInterval(SPEED_NORMAL_INTERVAL / 2)
 
-  def on_speed_quad(self):
+  def on_speed_4(self):
     self.timer.setInterval(SPEED_NORMAL_INTERVAL / 4)
+
+  def on_speed_8(self):
+    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 8)
 
   def on_game_loaded(self):
     self.gs.combo.setEnabled(True)
@@ -390,6 +371,7 @@ class Toolbar(QtGui.QWidget):
     else:
       self.gs.status.setText("Game loaded")
       self.gs.status.setPalette(Gui.BLUE_TEXT)
+      self.switch_to_gr()
     self.gs.next.setEnabled(b.problem == None)
 
   def on_game_selected(self, item):
@@ -458,7 +440,7 @@ class Toolbar(QtGui.QWidget):
           mgamefilename = re.compile('(.+)Vs(.+)\.([0-9]+)$')
           m = mgamefilename.match(fname)
           if m:
-            self.games.append(GameFile(m.group(1), m.group(2), m.group(3), fpath))
+            self.games.append(GameFile(m.group(1), m.group(2), int(m.group(3)), fpath))
       if len(self.games):
         self.gp.status.setText("%d games found" % len(self.games))
         self.gp.status.setPalette(Gui.BLUE_TEXT)
