@@ -8,13 +8,18 @@ import os
 import re
 
 class GameFile(object):
-  def __init__(self, p1, p2, path):
-    self.p1 = p1
-    self.p2 = p2
+  def __init__(self, p1, p2, seq, path):
+    if seq % 2:
+      self.p1 = p1
+      self.p2 = p2
+    else:
+      self.p1 = p2
+      self.p2 = p1
+    self.seq = seq
     self.path = path
 
   def __str__(self):
-    return "%s vs %s" % (self.p1, self.p2)
+    return "%s vs %s [Game %d]" % (self.p1, self.p2, self.seq)
 
 class Ant(object):
   def __init__(self, uid, board):

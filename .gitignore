@@ -2,6 +2,11 @@
 .gradle/
 bin/
 build/
+dist/
 logs/
 results/
 maps/
+tmp
+*.pyc
+PAnts/lib*
+PAnts/Qt*

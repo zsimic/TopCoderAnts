@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# about.py - display about box with info on platform etc.
 
 '''
 Created on Nov 23, 2011
@@ -173,7 +172,6 @@ class BoardView(QtOpenGL.QGLWidget):
         self.board_colors[i] = 0
         i -= 1
       return
-    r = g = b = 255
     i = 0
     for y in range(Board.BOARD_SIZE):
       for x in range(Board.BOARD_SIZE):
@@ -293,7 +291,7 @@ class Toolbar(QtGui.QWidget):
     QtGui.QWidget.__init__(self, parent)
     self.games = []
     self.default_game_path = '~/play/ants/dist'
-    self.default_game_path = '~/dev/python/PAnts/games'
+#    self.default_game_path = '~/dev/python/PAnts/games'
     self.loader = LoadThread()
     self.loader.ready.connect(self.on_game_loaded)
     self.stack = QtGui.QStackedLayout()
@@ -457,10 +455,10 @@ class Toolbar(QtGui.QWidget):
         dirnames[:] = []
         for fname in filenames:
           fpath = os.path.join(dirpath, fname)
-          mgamefilename = re.compile('(.+)Vs(.+)\.out$')
+          mgamefilename = re.compile('(.+)Vs(.+)\.([0-9]+)$')
           m = mgamefilename.match(fname)
           if m:
-            self.games.append(GameFile(m.group(1), m.group(2), fpath))
+            self.games.append(GameFile(m.group(1), m.group(2), m.group(3), fpath))
       if len(self.games):
         self.gp.status.setText("%d games found" % len(self.games))
         self.gp.status.setPalette(Gui.BLUE_TEXT)
