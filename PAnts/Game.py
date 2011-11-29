@@ -8,7 +8,9 @@ import os
 import re
 
 class GameFile(object):
-  def __init__(self, p1, p2, seq, path):
+  def __init__(self, fname, p1, p2, seq, path):
+    self.file_name = fname
+    self.sort_key = '%s %s %2d' % (p1, p2, seq)
     if seq % 2:
       self.p1 = p1
       self.p2 = p2
@@ -18,18 +20,16 @@ class GameFile(object):
     self.seq = seq
     self.path = path
 
+  def __repr__(self):
+    return self.file_name
+
   def __str__(self):
     return "%s vs %s [Game %d]" % (self.p1, self.p2, self.seq)
 
 class Ant(object):
-  def __init__(self, uid):
+  def __init__(self, uid, team, x, y):
     self.uid = uid            # ant's unique id (1 to 100)
-
-  def initialize(self, team, x, y):
     self.team = team          # ant's team
-    team.ants.append(self)
-    team.nest.add_ant(self)
-    team.board.ants.append(self)
     self.board = team.board   # reference to parent board object
     self.alive = 1            # is ant still alive?
     self.food = 0             # does ant carry food currently?
@@ -86,7 +86,7 @@ class Directions(object):
 
 class Action(object):
   mant = re.compile('([0-9]+): (.+)')
-  maction = re.compile('(Writes|Drops food|Gets food from|Moves|Says) (.+)')
+  maction = re.compile('(\*dies\*|Writes|Drops food|Gets food from|Moves|Says) ?(.*)')
 
   def __init__(self, board, representation):
     self.valid = 0
@@ -148,7 +148,7 @@ class Action(object):
   def dies(self, view):
     current_tile = self.ant.tile()
     current_tile.remove_ant(self.ant)
-    self.ant.team.remove(self.ant)
+    self.ant.team.ants.remove(self.ant)
     view.update_tile(current_tile)
 
   def write(self, view):
@@ -162,13 +162,14 @@ class Actions(object):
     'Gets food from': Action.get_food,
     'Moves': Action.move,
     'Says': Action.say,
-    'Dies': Action.dies,
+    '*dies*': Action.dies,
     'Writes': Action.write
   }
 
 class Tile(object):
   obstacle_color = (0, 0, 0)
   board_color = (255, 255, 255)
+  fog_color = (60, 60, 60)
 
   def __init__(self, x, y):
     self.x = x
@@ -177,7 +178,7 @@ class Tile(object):
     self.food = 0
     self.nest = None          # will hold an object of type Team() object when the tile is a nest
     self.visited = [0, 0, 0]  # number of times tile was visited by corresponding team (0: total, 1: team 1, 2: team 2)
-    self.ants = None
+    self.ants = [0, 0, 0]     # number of ants on tile (total + by team)
     self.scent = None
     self.nest_nearby = None   # reference to nest tile, if we are close enough to the nest
 
@@ -191,39 +192,50 @@ class Tile(object):
     self.food += 1
 
   def add_ant(self, ant):
-    self.ants.append(ant)
+    self.ants[0] += 1
+    self.ants[ant.team.uid] += 1
     self.visited[0] += 1
     self.visited[ant.team.uid] += 1
 
   def remove_ant(self, ant):
-    self.ants.remove(ant)
+    self.ants[0] -= 1
+    self.ants[ant.team.uid] -= 1
 
-  def rgb(self):
-    if not self.passable:
-      return Tile.obstacle_color
-    elif self.ants:
-      return self.ants[0].team.rgb
-    elif self.nest_nearby:
-      r, g, b = self.nest_nearby.nest.rgb
-      g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
-      if r == 0: r = g
-      if b == 0: b = g
-      return (r, g, b)
-    elif self.food:
-      g = 255
-      r = b = 50 - min(self.food, 50)
-      return (r, g, b)
+  def rgb(self, fog):
+    if self.passable:
+      if self.food:
+        g = 255
+        r = b = 50 - min(self.food, 50)
+        return (r, g, b)
+      elif self.ants[0]:
+        r = self.ants[1]
+        b = self.ants[2]
+        if r: r = 255 - r
+        if b: b = 255 - b
+        return (r, 0, b)
+      elif self.nest_nearby:
+          r, g, b = self.nest_nearby.nest.rgb
+          g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
+          if r == 0: r = g
+          if b == 0: b = g
+          return (r, g, b)
+      elif self.visited[0]:
+        r = 255 - min(self.visited[1], 20) * 5
+        b = 255 - min(self.visited[2], 20) * 5
+        return (r, 255, b)
+      elif fog:
+        return Tile.fog_color
+      else:
+        return Tile.board_color
     else:
-      return Tile.board_color
+      return Tile.obstacle_color
 
 class Board(object):
   BOARD_SIZE = 512
 
   def __init__(self):
     self.actions = []
-    self.ants = []
-    for i in range(100):
-      self.ants.append(Ant(i+1))
+    self.ants = dict()
     self.nests = []
     self.tiles = []
     self.teams = []
@@ -234,7 +246,7 @@ class Board(object):
     self.problem = 'Please select a game replay'
 
   def ant(self, uid):
-    return self.ants[uid-1]
+    return self.ants[uid]
 
   def next_action(self):
     i = self.played
@@ -268,6 +280,7 @@ class Board(object):
 
   def effective_load(self, progress):
     self.actions = []
+    self.ants = dict()
     self.nests = []
     self.teams = []
     self.tiles = []
@@ -297,7 +310,7 @@ class Board(object):
           s = m.group(3)
           t = self.tile(x, y)
           t.passable = 1
-          t.ants = []
+          t.ants = [0, 0, 0]
           if len(s):
             m = mfood.match(s)
             if m:
@@ -305,7 +318,7 @@ class Board(object):
             elif s == 'Nest':
               self.nests.append(t)
             else:
-              return "Malformed state line %d: '%s'" % (n, s)
+              return "Malformed state line %d: '%s'" % (linenumber, s)
         else:
           break
         line = fh.readline()
@@ -332,7 +345,10 @@ class Board(object):
             else:
               team = Team(1, self, nest_tile)
             self.teams.append(team)
-          self.ant(uid).initialize(team, x, y)
+          ant = Ant(uid, team, x, y)
+          team.ants.append(ant)
+          team.nest.add_ant(ant)
+          self.ants[uid] = ant
         else:
           break
         line = fh.readline()
@@ -348,7 +364,7 @@ class Board(object):
         if act.valid:
           self.actions.append(act)
         else:
-          return "Invalid action line %d: '%s'" % (n, line)
+          return "Invalid action line %d: '%s'" % (linenumber, line)
         line = fh.readline()
         linenumber += 1
         loaded += len(line)

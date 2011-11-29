@@ -17,6 +17,7 @@ import Gui
 from Game import Board, GameFile
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL.GL import *
+from operator import attrgetter
 
 SPEED_NORMAL_INTERVAL = 512
 
@@ -93,13 +94,16 @@ class BoardView(QtOpenGL.QGLWidget):
       self.update_model()
       self.updateGL()
 
+  def center_view(self, updateGL=0):
+    self.camera.x = 0
+    self.camera.y = 0
+    if updateGL: self.zoom = 0.5
+    self.set_zoom(1.0)
+
   def set_board(self, board):
     self.board = board
     if self.is_gl_initialized:
-      self.camera.x = 0
-      self.camera.y = 0
-      self.zoom = 0.0
-      self.set_zoom(1.0)
+      self.center_view()
       self.update_model()
       self.updateGL()
 
@@ -133,14 +137,20 @@ class BoardView(QtOpenGL.QGLWidget):
   def keyPressEvent(self, event):
     self.shift_pressed = event.modifiers() & QtCore.Qt.ShiftModifier
     key = event.key()
-    if key == QtCore.Qt.Key_Left:
+    if key == QtCore.Qt.Key_Right:
       self.camera.addX(4 * self.xfactor())
-    elif key == QtCore.Qt.Key_Right:
+    elif key == QtCore.Qt.Key_Left:
       self.camera.addX(-4 * self.xfactor())
-    elif key == QtCore.Qt.Key_Up:
-      self.camera.addY(-4 * self.yfactor())
     elif key == QtCore.Qt.Key_Down:
+      self.camera.addY(-4 * self.yfactor())
+    elif key == QtCore.Qt.Key_Up:
       self.camera.addY(4 * self.yfactor())
+    elif key == QtCore.Qt.Key_Space:
+      self.center_view()
+    elif key == QtCore.Qt.Key_P:
+      self.main_window.app.setStyle('plastique')
+    elif key == QtCore.Qt.Key_M:
+      self.main_window.app.setStyle('macintosh')
     else:
       QtGui.QWidget.keyPressEvent(self, event)
 
@@ -187,10 +197,7 @@ class BoardView(QtOpenGL.QGLWidget):
         i += 12
 
   def update_tile_color(self, t, i):
-    if self.fog and not t.food and not t.nest_nearby and t.passable and not t.visited[0]:
-      r, g, b = (60, 60, 60)
-    else:
-      r, g, b = t.rgb()
+    r, g, b = t.rgb(self.fog)
     self.board_colors[i+0] = r
     self.board_colors[i+1] = g
     self.board_colors[i+2] = b
@@ -286,7 +293,6 @@ class Toolbar(QtGui.QWidget):
     QtGui.QWidget.__init__(self, parent)
     self.games = []
     self.default_game_path = '~/play/ants/dist'
-#    self.default_game_path = '~/dev/python/PAnts/games'
     self.loader = LoadThread()
     self.loader.ready.connect(self.on_game_loaded)
     self.loader.progress.connect(self.on_game_progress)
@@ -324,9 +330,12 @@ class Toolbar(QtGui.QWidget):
     self.gr.speed_label = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
     self.gr.speed = Gui.new_Combo(self.gr.hbox, ['128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
     self.gr.sep2 = Gui.new_Label(self.gr.hbox, '', 4)
+    self.gr.eta = Gui.new_Label(self.gr.hbox, '', 1)
+    self.gr.sep3 = Gui.new_Label(self.gr.hbox, '', 4)
     self.gr.step = Gui.new_PushButton(self.gr.hbox, "Step", self.on_step, 1)
     self.gr.progress_bar = QtGui.QProgressBar()
     Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 150)
+    self.gr.progress_bar.setTextVisible(True)
     self.gr.p1 = Gui.new_Label(self.gr.hbox, '', -1)
     self.gr.p1.setPalette(Gui.RED_TEXT)
     self.gr.p2 = Gui.new_Label(self.gr.hbox, '', -1)
@@ -337,7 +346,7 @@ class Toolbar(QtGui.QWidget):
     # timer
     self.timer = QtCore.QTimer(self)
     self.timer.timeout.connect(self.run_turn)
-    self.timer.setInterval(SPEED_NORMAL_INTERVAL / 128)
+    self.on_speed_changed(0)
     # Stack
     self.stack.addWidget(self.gp)
     self.stack.addWidget(self.gs)
@@ -351,6 +360,23 @@ class Toolbar(QtGui.QWidget):
     else:
       self.default_game_path = '~'
 
+  def estimate_eta(self):
+    eta_rep = ''
+    board = self.main_window.board_view.board
+    if board.played:
+      eta = float(board.total - board.played) / 45.0
+      eta = eta * float(self.speed_factor) / 1000.0
+      if eta < 120:
+        eta_rep = '%d seconds' % eta
+      elif eta < 3600:
+        eta_rep = '%d minutes' % (eta/60)
+      elif eta < 3600:
+        eta_rep = '%d hours' % (eta/3600)
+      eta_rep = 'ETA: %s' % eta_rep
+    self.gr.eta.setText(eta_rep)
+    print 'ETA: ', eta_rep
+
+
   def run_turn(self):
     self.main_window.board_view.run_turn()
     board = self.main_window.board_view.board
@@ -358,6 +384,8 @@ class Toolbar(QtGui.QWidget):
     self.gr.p1.setText("%s: %d food" % (board.teams[0].name, board.teams[0].food()))
     self.gr.p2.setText("%s: %d food" % (board.teams[1].name, board.teams[1].food()))
     self.gr.status.setText("Turn %d" % (board.turn))
+    if board.turn % 100 == 0:
+      self.estimate_eta()
 
   def on_fog(self):
     self.main_window.board_view.set_fog(not self.main_window.board_view.fog)
@@ -381,11 +409,14 @@ class Toolbar(QtGui.QWidget):
     else:
       self.timer.start()
       self.gr.play.setText('Pause')
+    self.estimate_eta()
     self.activate_play_buttons()
 
   def on_speed_changed(self, item):
-    i = SPEED_NORMAL_INTERVAL / (2 ** (7-item))
-    self.timer.setInterval(i)
+    self.speed_factor = SPEED_NORMAL_INTERVAL / (2 ** (7-item))
+    self.timer.setInterval(self.speed_factor)
+    if len(self.games):
+      self.estimate_eta()
 
   def on_game_progress(self, loaded, total):
     if self.gs.progress_bar.maximum() < total:
@@ -393,6 +424,7 @@ class Toolbar(QtGui.QWidget):
     self.gs.progress_bar.setValue(loaded)
 
   def on_game_loaded(self):
+    self.main_window.board_view.center_view()
     self.gs.combo.setEnabled(True)
     b = self.loader.board
     self.gr.progress_bar.setRange(0, b.total)
@@ -426,33 +458,14 @@ class Toolbar(QtGui.QWidget):
       self.gs.status.setPalette(Gui.GRAY_TEXT)
 
   def switch_to_gp(self):
-#    self.animate_pos(self.gp, 1)
-#    self.animate_pos(self.gs, -1)
     self.stack.setCurrentIndex(0)
 
   def switch_to_gs(self):
-#    self.animate_pos(self.gp, -1)
-#    self.animate_pos(self.gs, 1)
     self.stack.setCurrentIndex(1)
 
   def switch_to_gr(self):
     self.activate_play_buttons()
     self.stack.setCurrentIndex(2)
-
-  def animate_pos(self, widget, direction):
-    sp = self.pos()
-    ep = sp
-    if direction == 1:
-      widget.move(sp.x() + self.width(), sp.y())
-      sp = QtCore.QPoint(sp.x(), sp.y())
-    else:
-      ep = QtCore.QPoint(sp.x() - self.width(), sp.y())
-    animation = QtCore.QPropertyAnimation(widget, "pos")
-    animation.setDuration(1750)
-    animation.setEasingCurve(QtCore.QEasingCurve.InBack)
-#    animation.setStartValue(sp)
-    animation.setEndValue(ep)
-    animation.start()
 
   def on_browse_folder(self):
     dialog = QtGui.QFileDialog()
@@ -468,13 +481,13 @@ class Toolbar(QtGui.QWidget):
     self.games = []
     if os.path.isdir(Gui.resolved_path(path)):
       for dirpath, dirnames, filenames in os.walk(Gui.resolved_path(path)):
-        dirnames[:] = []
+#        dirnames[:] = []
         for fname in filenames:
           fpath = os.path.join(dirpath, fname)
           mgamefilename = re.compile('(.+)Vs(.+)\.([0-9]+)$')
           m = mgamefilename.match(fname)
           if m:
-            self.games.append(GameFile(m.group(1), m.group(2), int(m.group(3)), fpath))
+            self.games.append(GameFile(fname, m.group(1), m.group(2), int(m.group(3)), fpath))
       if len(self.games):
         self.gp.status.setText("%d games found" % len(self.games))
         self.gp.status.setPalette(Gui.BLUE_TEXT)
@@ -486,6 +499,7 @@ class Toolbar(QtGui.QWidget):
       self.gp.status.setPalette(Gui.RED_TEXT)
     self.gs.combo.clear()
     self.gs.combo.addItem('Select a game')
+    self.games.sort(key=attrgetter('sort_key'))
     for g in self.games:
       self.gs.combo.addItem(str(g))
     self.gp.next.setEnabled(len(self.games) > 0)
@@ -501,6 +515,7 @@ class MainWindow(QtGui.QMainWindow):
     self.toolbar = Toolbar()
     self.toolbar.main_window = self
     self.board_view = BoardView()
+    self.board_view.main_window = self
     vbox.addWidget(self.toolbar)
     vbox.addWidget(self.board_view)
     widget.setLayout(vbox)
@@ -511,6 +526,8 @@ class MainWindow(QtGui.QMainWindow):
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
+#    app.setStyle('plastique')
     window = MainWindow()
+    window.app = app
     window.show()
     sys.exit(app.exec_())
