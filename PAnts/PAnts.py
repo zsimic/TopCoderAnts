@@ -286,16 +286,8 @@ class LoadThread(QtCore.QThread):
   def run(self):
     self.board = Board()
     self.board.load(self.game_file.path, self.progress)
-    if self.board.switched_teams:
-      self.board.red_team.name = self.game_file.p2
-      self.board.blue_team.name = self.game_file.p1
-    else:
-      self.board.red_team.name = self.game_file.p1
-      self.board.blue_team.name = self.game_file.p2
-#    if not self.board.red_team.name:
-#      self.board.red_team.name = self.game_file.p1
-#    if not self.board.blue_team.name:
-#      self.board.blue_team.name = self.game_file.p2
+    self.board.red_team.name = self.game_file.p1
+    self.board.blue_team.name = self.game_file.p2
     self.ready.emit()
 
 class Toolbar(QtGui.QWidget):

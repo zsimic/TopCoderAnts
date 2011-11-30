@@ -24,7 +24,8 @@ class GameFile(object):
     return self.file_name
 
   def __str__(self):
-    return "%s vs %s [Game %d]" % (self.p1, self.p2, self.seq)
+    return self.file_name
+#    return "%s vs %s [Game %d]" % (self.p1, self.p2, self.seq)
 
 class Ant(object):
   def __init__(self, uid, team, x, y):
@@ -101,21 +102,14 @@ class Action(object):
         self.valid = 1
 
   def record_wandering(self, wanderings):
-    if self.value in Directions.by_name:
+    if self.name == 'Moves':
       ant = self.ant
       direction = Directions.by_name[self.value]
-      tid = -ant.team.uid
-      if not tid in wanderings:
-        wanderings[tid] = [ant.x, ant.y, ant.x, ant.y]
       if not ant.uid in wanderings:
         wanderings[ant.uid] = [ant.x, ant.y]
       wanderings[ant.uid][0] += direction.dx
       wanderings[ant.uid][1] += direction.dy
-      wanderings[tid][0] = min(wanderings[tid][0], wanderings[ant.uid][0])
-      wanderings[tid][1] = min(wanderings[tid][1], wanderings[ant.uid][1])
-      wanderings[tid][2] = max(wanderings[tid][2], wanderings[ant.uid][0])
-      wanderings[tid][3] = max(wanderings[tid][3], wanderings[ant.uid][1])
-      return max(wanderings[tid][2] - wanderings[tid][0], wanderings[tid][3] - wanderings[tid][1]) > 510
+      return wanderings[ant.uid][0] < 0 or wanderings[ant.uid][0] > 512 or wanderings[ant.uid][1] < 0 or wanderings[ant.uid][1] > 512
     return False
 
   def target_tile(self):
@@ -233,24 +227,26 @@ class Tile(object):
         if b: b = 255 - b
         return (r, 0, b)
       elif self.nest_nearby:
-          r, g, b = self.nest_nearby.nest.rgb
-          g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
-          if r == 0: r = g
-          if b == 0: b = g
-          return (r, g, b)
+        r, g, b = self.nest_nearby.nest.rgb
+        g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
+        if r == 0: r = g
+        if b == 0: b = g
+        return (r, g, b)
+      elif self.scent:
+        return (255, 190, 0)    # orange
       elif self.visited[0]:
         r = self.visited[1]
         b = self.visited[2]
         g = 255
         if r and b:
-          g = 255 - min(r + b, 20) * 5
-          r = 200 + min(r, 55)
-          b = 200 + min(b, 55)
+          g = 255 - min(r + b, 10) * 10
+          r = 155 + min(r, 10) * 10
+          b = 155 + min(b, 10) * 10
         elif r:
-          g = b = 255 - min(r, 20) * 5
+          g = b = 255 - min(r, 10) * 10
           r = 255
         else:
-          g = r = 255 - min(b, 20) * 5
+          g = r = 255 - min(b, 10) * 10
           b = 255
         return (r, g, b)
       elif fog:
@@ -389,6 +385,9 @@ class Board(object):
         if other == self.red_team.nest:
           other = self.nests[1]
         self.blue_team.nest = other
+        for ant in self.blue_team.ants:
+          ant.x = other.x
+          ant.y = other.y
         needs_nest_switch = 0
       if self.red_team.nest == self.blue_team.nest:
         return "Only 1 team effectively defined (bug in replay file generation)"
@@ -408,7 +407,6 @@ class Board(object):
     self.expand_nest(self.nests[1])
     self.switched_teams = 0
     if self.red_team.name and needs_nest_switch:
-      print 'switching nests'
       self.switched_teams = 1
       self.red_team.nest, self.blue_team.nest = (self.blue_team.nest, self.red_team.nest)
       for ant in self.red_team.ants:
