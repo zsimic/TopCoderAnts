@@ -41,13 +41,12 @@ class Ant(object):
     return self.board.tile(self.x, self.y)
 
 class Team(object):
-  def __init__(self, uid, board, nest):
+  def __init__(self, uid, board):
+    self.name = None
     self.board = board    # reference to parent board object
     self.uid = uid        # team id (1 or 2)
     self.ants = []        # all ants in the team
-    self.nest = nest      # object of type Tile()
-    assert nest.nest == None
-    self.nest.nest = self
+    self.nest = None      # object of type Tile()
     if uid == 1:
       self.rgb = (255, 0, 0)
     else:
@@ -100,6 +99,24 @@ class Action(object):
         self.executor = Actions.by_name[self.name]
         self.value = m.group(2)
         self.valid = 1
+
+  def record_wandering(self, wanderings):
+    if self.value in Directions.by_name:
+      ant = self.ant
+      direction = Directions.by_name[self.value]
+      tid = -ant.team.uid
+      if not tid in wanderings:
+        wanderings[tid] = [ant.x, ant.y, ant.x, ant.y]
+      if not ant.uid in wanderings:
+        wanderings[ant.uid] = [ant.x, ant.y]
+      wanderings[ant.uid][0] += direction.dx
+      wanderings[ant.uid][1] += direction.dy
+      wanderings[tid][0] = min(wanderings[tid][0], wanderings[ant.uid][0])
+      wanderings[tid][1] = min(wanderings[tid][1], wanderings[ant.uid][1])
+      wanderings[tid][2] = max(wanderings[tid][2], wanderings[ant.uid][0])
+      wanderings[tid][3] = max(wanderings[tid][3], wanderings[ant.uid][1])
+      return max(wanderings[tid][2] - wanderings[tid][0], wanderings[tid][3] - wanderings[tid][1]) > 510
+    return False
 
   def target_tile(self):
     direction = Directions.by_name[self.value]
@@ -251,7 +268,8 @@ class Board(object):
     self.ants = dict()
     self.nests = []
     self.tiles = []
-    self.teams = []
+    self.red_team = Team(1, self)
+    self.blue_team = Team(2, self)
     self.turn = 0
     self.played = 0       # Number of actions played so far
     self.total = 0        # Total number of actions
@@ -295,7 +313,8 @@ class Board(object):
     self.actions = []
     self.ants = dict()
     self.nests = []
-    self.teams = []
+    self.red_team = Team(1, self)
+    self.blue_team = Team(2, self)
     self.tiles = []
     self.played = 0
     self.total = 0
@@ -339,48 +358,69 @@ class Board(object):
         loaded += len(line)
       if len(self.nests) != 2:
         return "%d nests found instead of 2" % len(self.nests)
-      lastx, lasty = (0, 0)
-      team = None
       while line:
         m = mstarts.match(line)
         if m:
           uid = int(m.group(1))
           x = int(m.group(2))
           y = int(m.group(3))
-          if lastx != x or lasty != y:
-            lastx, lasty = (x, y)
+          team = self.blue_team
+          if uid % 2:
+            team = self.red_team
+          if not team.nest:
             if self.nests[0].x == x and self.nests[0].y == y:
-              nest_tile = self.nests[0]
+              team.nest = self.nests[0]
             else:
-              nest_tile = self.nests[1]
-            if team:
-              team = Team(team.uid + 1, self, nest_tile)
-            else:
-              team = Team(1, self, nest_tile)
-            self.teams.append(team)
+              team.nest = self.nests[1]
           ant = Ant(uid, team, x, y)
           team.ants.append(ant)
-          team.nest.add_ant(ant)
           self.ants[uid] = ant
         else:
           break
         line = fh.readline()
         linenumber += 1
         loaded += len(line)
-      if len(self.teams) != 2:
-        return "Only %d team effectively defined (bug in replay file generation)" % len(self.teams)
-      self.expand_nest(self.nests[0])
-      self.expand_nest(self.nests[1])
+      wanderings = dict()
+      needs_nest_switch = 1
+      if self.red_team.nest == self.blue_team.nest:
+        self.red_team.name = 'Red'
+        self.blue_team.name = 'Blue'
+        other = self.nests[0]
+        if other == self.red_team.nest:
+          other = self.nests[1]
+        self.blue_team.nest = other
+        needs_nest_switch = 0
+      if self.red_team.nest == self.blue_team.nest:
+        return "Only 1 team effectively defined (bug in replay file generation)"
       while line:
         if linenumber % 10000 == 0: progress.emit(loaded, total)
         act = Action(self, line)
         if act.valid:
           self.actions.append(act)
+          if not needs_nest_switch:
+            needs_nest_switch = act.record_wandering(wanderings)
         else:
           return "Invalid action line %d: '%s'" % (linenumber, line)
         line = fh.readline()
         linenumber += 1
         loaded += len(line)
+    self.expand_nest(self.nests[0])
+    self.expand_nest(self.nests[1])
+    self.switched_teams = 0
+    if self.red_team.name and needs_nest_switch:
+      print 'switching nests'
+      self.switched_teams = 1
+      self.red_team.nest, self.blue_team.nest = (self.blue_team.nest, self.red_team.nest)
+      for ant in self.red_team.ants:
+        ant.x = self.red_team.nest.x
+        ant.y = self.red_team.nest.y
+      for ant in self.blue_team.ants:
+        ant.x = self.blue_team.nest.x
+        ant.y = self.blue_team.nest.y
+    self.red_team.nest.nest = self.red_team
+    self.blue_team.nest.nest = self.blue_team
+    self.red_team.nest.ants = [50, 50, 0]
+    self.blue_team.nest.ants = [50, 0, 50]
     self.total = len(self.actions)
     return None
 

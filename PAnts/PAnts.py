@@ -286,10 +286,16 @@ class LoadThread(QtCore.QThread):
   def run(self):
     self.board = Board()
     self.board.load(self.game_file.path, self.progress)
-    if len(self.board.teams):
-      self.board.teams[0].name = self.game_file.p1
-      if len(self.board.teams) >= 2:
-        self.board.teams[1].name = self.game_file.p2
+    if self.board.switched_teams:
+      self.board.red_team.name = self.game_file.p2
+      self.board.blue_team.name = self.game_file.p1
+    else:
+      self.board.red_team.name = self.game_file.p1
+      self.board.blue_team.name = self.game_file.p2
+#    if not self.board.red_team.name:
+#      self.board.red_team.name = self.game_file.p1
+#    if not self.board.blue_team.name:
+#      self.board.blue_team.name = self.game_file.p2
     self.ready.emit()
 
 class Toolbar(QtGui.QWidget):
@@ -386,8 +392,8 @@ class Toolbar(QtGui.QWidget):
     self.main_window.board_view.run_turn()
     board = self.main_window.board_view.board
     self.gr.progress_bar.setValue(board.played)
-    self.gr.p1.setText("%s: %d food" % (board.teams[0].name, board.teams[0].food()))
-    self.gr.p2.setText("%s: %d food" % (board.teams[1].name, board.teams[1].food()))
+    self.gr.p1.setText("%s: %d food" % (board.red_team.name, board.red_team.food()))
+    self.gr.p2.setText("%s: %d food" % (board.blue_team.name, board.blue_team.food()))
     self.gr.status.setText("Turn %d" % (board.turn))
     if board.turn % 100 == 0:
       self.estimate_eta()
