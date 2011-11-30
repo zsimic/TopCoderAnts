@@ -230,28 +230,27 @@ class Tile(object):
         return (r, 0, b)
       elif self.scent:
         if self.scent_team.uid == 1:
-          return (255, 250, 150)    # yellow
+          return (255, 240, 150)    # yellow
         else:
-          return (150, 250, 255)    # light blue
-      elif self.visited[0]:
-        r = self.visited[1]
-        b = self.visited[2]
-        g = 255
-        if r and b:
-          g = 255 - min(r + b, 5) * 10
-          r = b = 255
-        elif r:
-          g = b = 255 - min(r, 5) * 10
-          r = 255
-        else:
-          g = r = 255 - min(b, 5) * 10
-          b = 255
-        return (r, g, b)
+          return (150, 240, 255)    # light blue
       elif self.nest_nearby:
         r, g, b = self.nest_nearby.nest.rgb
         g = 50 + max(abs(self.x - self.nest_nearby.x), abs(self.y - self.nest_nearby.y)) * 30
         if r == 0: r = g
         if b == 0: b = g
+        return (r, g, b)
+      elif self.visited[0]:
+        r = self.visited[1]
+        b = self.visited[2]
+        g = 220
+        if r and b:
+          r = b = 255
+        elif r:
+          r = 255
+          b = 220
+        else:
+          r = 220
+          b = 255
         return (r, g, b)
       elif fog:
         return Tile.fog_color

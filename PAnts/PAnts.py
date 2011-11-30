@@ -341,7 +341,7 @@ class Toolbar(QtGui.QWidget):
     self.gr.progress_bar.setTextVisible(True)
     self.gr.eta = Gui.new_Label(self.gr.hbox, '', 1)
     self.gr.eta.setPalette(Gui.GRAY_TEXT)
-    self.gr.eta.setTooltip("ETA 'til end of game at current speed")
+#    self.gr.eta.setTooltip("ETA 'til end of game at current speed")
     self.gr.sep2 = Gui.new_Label(self.gr.hbox, '', 4)
     self.gr.p1 = Gui.new_Label(self.gr.hbox, '', -1)
     self.gr.p1.setPalette(Gui.RED_TEXT)
@@ -409,11 +409,11 @@ class Toolbar(QtGui.QWidget):
 
   def game_finished(self):
     self.is_game_finished = 1
-    self.main_window.toolbar.game_finished()
     self.timer.stop()
     self.gr.play.setText('Done')
     self.gr.play.setEnabled(False)
     self.gr.step.setEnabled(False)
+    self.gr.eta.setText('Done')
     self.game_end_time = time.time()
     print 'game time: ', self.game_end_time - self.game_start_time
 
@@ -468,6 +468,7 @@ class Toolbar(QtGui.QWidget):
       gf = self.games[item-1]
       if self.main_window.board_view.board and gf.path == self.main_window.board_view.board.path:
         return
+      self.main_window.setWindowTitle(gf.file_name)
       self.timer.stop()
       self.gr.play.setText('Play')
       self.gs.combo.setEnabled(False)
