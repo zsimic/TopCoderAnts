@@ -11,6 +11,7 @@ import numpy
 import os
 import re
 import sys
+import time
 
 import Gui
 
@@ -217,6 +218,7 @@ class BoardView(QtOpenGL.QGLWidget):
 
   def game_finished(self):
     self.is_game_finished = 1
+    self.main_window.toolbar.game_finished()
 
   def run_turn(self):
     if not self.is_game_finished:
@@ -405,11 +407,23 @@ class Toolbar(QtGui.QWidget):
     self.run_turn()
     self.activate_play_buttons()
 
+  def game_finished(self):
+    self.is_game_finished = 1
+    self.main_window.toolbar.game_finished()
+    self.timer.stop()
+    self.gr.play.setText('Done')
+    self.gr.play.setEnabled(False)
+    self.gr.step.setEnabled(False)
+    self.game_end_time = time.time()
+    print 'game time: ', self.game_end_time - self.game_start_time
+
   def on_play_pause(self):
     if self.timer.isActive():
       self.timer.stop()
       self.gr.play.setText('Play')
     else:
+      if not self.game_start_time:
+        self.game_start_time = time.time()
       self.timer.start()
       self.gr.play.setText('Pause')
     self.estimate_eta()
@@ -441,6 +455,10 @@ class Toolbar(QtGui.QWidget):
       self.gs.status.setText("Game loaded")
       self.gs.status.setPalette(Gui.BLUE_TEXT)
       self.switch_to_gr()
+      self.is_game_finished = 0
+      self.main_window.board_view.is_game_finished = 0
+      self.game_start_time = 0
+      self.game_end_time = 0
     self.gs.next.setEnabled(b.problem == None)
     self.main_window.board_view.setFocus()
 

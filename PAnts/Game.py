@@ -167,6 +167,7 @@ class Action(object):
   def write(self, view):
     current_tile = self.ant.tile()
     current_tile.scent = self.value
+    current_tile.scent_team = self.ant.team
     view.update_tile(current_tile)
 
 class Actions(object):
@@ -193,6 +194,7 @@ class Tile(object):
     self.visited = [0, 0, 0]  # number of times tile was visited by corresponding team (0: total, 1: team 1, 2: team 2)
     self.ants = [0, 0, 0]     # number of ants on tile (total + by team)
     self.scent = None
+    self.scent_team = None
     self.nest_nearby = None   # reference to nest tile, if we are close enough to the nest
 
   def __str__(self):
@@ -233,20 +235,22 @@ class Tile(object):
         if b == 0: b = g
         return (r, g, b)
       elif self.scent:
-        return (255, 190, 0)    # orange
+        if self.scent_team.uid == 1:
+          return (255, 250, 150)    # yellow
+        else:
+          return (150, 250, 255)    # light blue
       elif self.visited[0]:
         r = self.visited[1]
         b = self.visited[2]
         g = 255
         if r and b:
-          g = 255 - min(r + b, 10) * 10
-          r = 155 + min(r, 10) * 10
-          b = 155 + min(b, 10) * 10
+          g = 255 - min(r + b, 5) * 10
+          r = b = 255
         elif r:
-          g = b = 255 - min(r, 10) * 10
+          g = b = 255 - min(r, 5) * 10
           r = 255
         else:
-          g = r = 255 - min(b, 10) * 10
+          g = r = 255 - min(b, 5) * 10
           b = 255
         return (r, g, b)
       elif fog:
