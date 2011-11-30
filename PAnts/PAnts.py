@@ -337,10 +337,11 @@ class Toolbar(QtGui.QWidget):
     self.gr.speed = Gui.new_Combo(self.gr.hbox, ['128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
     self.gr.step = Gui.new_PushButton(self.gr.hbox, "Step", self.on_step, 1)
     self.gr.progress_bar = QtGui.QProgressBar()
-    Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 150)
+    Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 100)
     self.gr.progress_bar.setTextVisible(True)
     self.gr.eta = Gui.new_Label(self.gr.hbox, '', 1)
     self.gr.eta.setPalette(Gui.GRAY_TEXT)
+    self.gr.eta.setTooltip("ETA 'til end of game at current speed")
     self.gr.sep2 = Gui.new_Label(self.gr.hbox, '', 4)
     self.gr.p1 = Gui.new_Label(self.gr.hbox, '', -1)
     self.gr.p1.setPalette(Gui.RED_TEXT)
@@ -348,7 +349,7 @@ class Toolbar(QtGui.QWidget):
     self.gr.p2.setPalette(Gui.BLUE_TEXT)
     self.gr.status = Gui.new_Label(self.gr.hbox, '', -1)
     self.gr.status.setPalette(Gui.GRAY_TEXT)
-    self.gr.fog = Gui.new_CheckBox(self.gr.hbox, 'Fog of war', self.on_fog, -1)
+    self.gr.fog = Gui.new_CheckBox(self.gr.hbox, 'Fog', self.on_fog, -1)
     self.gr.fog.setChecked(True)
     # timer
     self.timer = QtCore.QTimer(self)
@@ -373,12 +374,11 @@ class Toolbar(QtGui.QWidget):
     if board.played:
       eta = int(float(board.total - board.played) * float(self.speed_factor) / 6000.0)
       if eta < 120:
-        eta_rep = '%d seconds' % eta
+        eta_rep = '%d sec' % eta
       elif eta < 3600:
-        eta_rep = '%d minutes' % (eta/60)
+        eta_rep = '%d min' % (eta/60)
       else:
-        eta_rep = '%d hours' % (eta/3600)
-      eta_rep = 'ETA: %s' % eta_rep
+        eta_rep = '%d h' % (eta/3600)
     self.gr.eta.setText(eta_rep)
 
 
@@ -386,8 +386,8 @@ class Toolbar(QtGui.QWidget):
     self.main_window.board_view.run_turn()
     board = self.main_window.board_view.board
     self.gr.progress_bar.setValue(board.played)
-    self.gr.p1.setText("%s: %d food" % (board.red_team.name, board.red_team.food()))
-    self.gr.p2.setText("%s: %d food" % (board.blue_team.name, board.blue_team.food()))
+    self.gr.p1.setText("%s: %d food, %d ants" % (board.red_team.name, board.red_team.food(), len(board.red_team.ants)))
+    self.gr.p2.setText("%s: %d food, %d ants" % (board.blue_team.name, board.blue_team.food(), len(board.blue_team.ants)))
     self.gr.status.setText("Turn %d" % (board.turn))
     if board.turn % 100 == 0:
       self.estimate_eta()
