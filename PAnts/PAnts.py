@@ -349,7 +349,7 @@ class Toolbar(QtGui.QWidget):
     self.gr.p2.setPalette(Gui.BLUE_TEXT)
     self.gr.status = Gui.new_Label(self.gr.hbox, '', -1)
     self.gr.status.setPalette(Gui.GRAY_TEXT)
-    self.gr.fog = Gui.new_CheckBox(self.gr.hbox, 'Fog', self.on_fog, -1)
+    self.gr.fog = Gui.new_CheckBox(self.gr.hbox, 'Fog', self.on_fog, 1)
     self.gr.fog.setChecked(True)
     # timer
     self.timer = QtCore.QTimer(self)
@@ -372,7 +372,7 @@ class Toolbar(QtGui.QWidget):
     eta_rep = ''
     board = self.main_window.board_view.board
     if board.played:
-      eta = int(float(board.total - board.played) * float(self.speed_factor) / 6000.0)
+      eta = int(float(board.total - board.played) * float(self.speed_factor) / 9200.0)
       if eta < 120:
         eta_rep = '%d sec' % eta
       elif eta < 3600:
