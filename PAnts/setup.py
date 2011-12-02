@@ -19,10 +19,6 @@ OPTIONS = {
   'includes': includes
 }
 
-#need to add this to dist/PAnts.app/Contents/Resources/__boot__.py:
-#    sys.path = [os.path.join(os.environ['RESOURCEPATH'], 'lib', 'python2.6')] + sys.path
-#    sys.path = [os.path.join(os.environ['RESOURCEPATH'], 'lib', 'python2.6', 'lib-dynload')] + sys.path
-
 setup(
     app=['PAnts.py'],
     data_files=DATA_FILES,
@@ -30,24 +26,31 @@ setup(
     setup_requires=['py2app'],
 )
 
+python_ver = '2.6'
+
 boot_addition = """
-    sys.path = [os.path.join(base, 'lib', 'python2.6')] + sys.path
-    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload')] + sys.path
-    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'OpenGL_accelerate')] + sys.path
-    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide')] + sys.path
-    os.environ['PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide') + ":" + os.environ['PATH']
-    os.environ['PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'OpenGL_accelerate') + ":" + os.environ['PATH']
+    py_lib = os.path.join(base, 'lib', 'python2.6')
+    sys.path = [py_lib] + sys.path
+    sys.path = [os.path.join(py_lib, 'lib-dynload')] + sys.path
+    sys.path = [os.path.join(py_lib, 'lib-dynload', 'OpenGL_accelerate')] + sys.path
+    sys.path = [os.path.join(py_lib, 'lib-dynload', 'PySide')] + sys.path
+    os.environ['PATH'] = os.path.join(py_lib, 'lib-dynload', 'PySide') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(py_lib, 'lib-dynload', 'OpenGL_accelerate') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'core') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'fft') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'lib') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'linalg') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'numarray') + ":" + os.environ['PATH']
     os.environ['PATH'] = os.path.join(base, 'numpy', 'random') + ":" + os.environ['PATH']
-    os.environ['DYLD_LIBRARY_PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide')
+    if not 'DYLD_LIBRARY_PATH' in os.environ:
+      os.environ['DYLD_LIBRARY_PATH'] = ''
+    os.environ['DYLD_LIBRARY_PATH'] = os.path.join(py_lib, 'lib-dynload') + ":" + os.environ['DYLD_LIBRARY_PATH']
+    os.environ['DYLD_LIBRARY_PATH'] = os.path.join(py_lib, 'lib-dynload', 'OpenGL_accelerate') + ":" + os.environ['DYLD_LIBRARY_PATH']
+    os.environ['DYLD_LIBRARY_PATH'] = os.path.join(py_lib, 'lib-dynload', 'PySide') + ":" + os.environ['DYLD_LIBRARY_PATH']
 """
 
 res_dir = 'dist/PAnts.app/Contents/Resources/'
-lib_dir = 'dist/PAnts.app/Contents/Resources/lib/python2.6/lib-dynload/'
+lib_dir = 'dist/PAnts.app/Contents/Resources/lib/python' + python_ver + '/lib-dynload/'
 boot_file = res_dir + '__boot__.py'
 boot_contents = []
 with open(boot_file, 'r') as fh:
@@ -64,5 +67,5 @@ with open(boot_file, 'w') as fh:
 def copy_lib_file(name):
   shutil.copy2('/usr/lib/' + name, lib_dir + name)
 
-copy_lib_file('libpyside-python2.6.1.0.dylib')
-copy_lib_file('libshiboken-python2.6.1.0.dylib')
+copy_lib_file('libpyside-python' + python_ver + '.1.0.dylib')
+copy_lib_file('libshiboken-python' + python_ver + '.1.0.dylib')
