@@ -7,6 +7,7 @@ Usage:
     python setup.py py2app
 """
 
+import os
 import shutil
 
 from setuptools import setup
@@ -65,7 +66,14 @@ with open(boot_file, 'w') as fh:
   fh.write('\n'.join(boot_contents))
 
 def copy_lib_file(name):
-  shutil.copy2('/usr/lib/' + name, lib_dir + name)
+  shutil.copy2('/usr/lib/' + name, res_dir + name)
+
+def create_link(name):
+  if not os.path.exists(res_dir + name):
+    os.symlink('../Frameworks/' + name, res_dir + name)
 
 copy_lib_file('libpyside-python' + python_ver + '.1.0.dylib')
 copy_lib_file('libshiboken-python' + python_ver + '.1.0.dylib')
+create_link('QtCore.framework')
+create_link('QtGui.framework')
+create_link('QtOpenGL.framework')
