@@ -7,6 +7,8 @@ Usage:
     python setup.py py2app
 """
 
+import shutil
+
 from setuptools import setup
 
 includes = ['numpy']
@@ -27,3 +29,40 @@ setup(
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )
+
+boot_addition = """
+    sys.path = [os.path.join(base, 'lib', 'python2.6')] + sys.path
+    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload')] + sys.path
+    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'OpenGL_accelerate')] + sys.path
+    sys.path = [os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide')] + sys.path
+    os.environ['PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'OpenGL_accelerate') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'core') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'fft') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'lib') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'linalg') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'numarray') + ":" + os.environ['PATH']
+    os.environ['PATH'] = os.path.join(base, 'numpy', 'random') + ":" + os.environ['PATH']
+    os.environ['DYLD_LIBRARY_PATH'] = os.path.join(base, 'lib', 'python2.6', 'lib-dynload', 'PySide')
+"""
+
+res_dir = 'dist/PAnts.app/Contents/Resources/'
+lib_dir = 'dist/PAnts.app/Contents/Resources/lib/python2.6/lib-dynload/'
+boot_file = res_dir + '__boot__.py'
+boot_contents = []
+with open(boot_file, 'r') as fh:
+  line = fh.readline()
+  while line:
+    boot_contents.append(line.rstrip())
+    if 'base = ' in line:
+      boot_contents.append(boot_addition)
+    line = fh.readline()
+
+with open(boot_file, 'w') as fh:
+  fh.write('\n'.join(boot_contents))
+
+def copy_lib_file(name):
+  shutil.copy2('/usr/lib/' + name, lib_dir + name)
+
+copy_lib_file('libpyside-python2.6.1.0.dylib')
+copy_lib_file('libshiboken-python2.6.1.0.dylib')
