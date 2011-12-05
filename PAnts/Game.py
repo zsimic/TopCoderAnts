@@ -263,7 +263,6 @@ class Board(object):
   BOARD_SIZE = 512
 
   def __init__(self):
-    self.actions = []
     self.ants = dict()
     self.nests = []
     self.tiles = []
@@ -271,19 +270,22 @@ class Board(object):
     self.blue_team = Team(2, self)
     self.turn = 0
     self.played = 0       # Number of actions played so far
-    self.total = 0        # Total number of actions
+    self.total = 0        # Total number of lines in replay file
     self.path = None
     self.problem = 'Please select a game replay'
+    self.lines = []
+    self.start = 0
 
   def ant(self, uid):
     return self.ants[uid]
 
   def next_action(self):
-    i = self.played
-    if i >= len(self.actions):
+    i = self.start + self.played
+    if i >= self.total:
       return None
     self.played += 1
-    return self.actions[i]
+    act = Action(self, self.lines[i])
+    return act
 
   def run_turn(self, view):
     self.turn += 1
@@ -309,7 +311,6 @@ class Board(object):
     self.problem = self.effective_load(progress)
 
   def effective_load(self, progress):
-    self.actions = []
     self.ants = dict()
     self.nests = []
     self.red_team = Team(1, self)
@@ -321,91 +322,86 @@ class Board(object):
     for i in range(Board.BOARD_SIZE):
       self.tiles.append(self.new_row(i))
     linenumber = 0
-    loaded = 0
     mstate = re.compile('\(([0-9]+),([0-9]+)\) *(.*)')
     mfood = re.compile('Food: ([0-9]+)')
     mstarts = re.compile('([0-9]+): Starts at ([0-9]+),([0-9]+)')
     if not os.path.isfile(self.path):
       return "No file '%s'" % self.path
-    total = os.path.getsize(self.path)
     with open(self.path, 'r') as fh:
-      line = fh.readline()
+      self.lines = fh.readlines()
+    self.total = len(self.lines)
+    while linenumber < self.total:
+      line = self.lines[linenumber]
+      if linenumber % 1000 == 0: progress.emit(linenumber, self.total)
+      m = mstate.match(line)
+      if m:
+        x = int(m.group(1))
+        y = int(m.group(2))
+        s = m.group(3)
+        t = self.tile(x, y)
+        t.passable = 1
+        t.ants = [0, 0, 0]
+        if len(s):
+          m = mfood.match(s)
+          if m:
+            t.food = int(m.group(1))
+          elif s == 'Nest':
+            self.nests.append(t)
+          else:
+            return "Malformed state line %d: '%s'" % (linenumber, s)
+      else:
+        break
       linenumber += 1
-      loaded += len(line)
-      while line:
-        if linenumber % 10000 == 0: progress.emit(loaded, total)
-        m = mstate.match(line)
-        if m:
-          x = int(m.group(1))
-          y = int(m.group(2))
-          s = m.group(3)
-          t = self.tile(x, y)
-          t.passable = 1
-          t.ants = [0, 0, 0]
-          if len(s):
-            m = mfood.match(s)
-            if m:
-              t.food = int(m.group(1))
-            elif s == 'Nest':
-              self.nests.append(t)
-            else:
-              return "Malformed state line %d: '%s'" % (linenumber, s)
-        else:
-          break
-        line = fh.readline()
-        linenumber += 1
-        loaded += len(line)
-      if len(self.nests) != 2:
-        return "%d nests found instead of 2" % len(self.nests)
-      while line:
-        m = mstarts.match(line)
-        if m:
-          uid = int(m.group(1))
-          x = int(m.group(2))
-          y = int(m.group(3))
-          team = self.blue_team
-          if uid % 2:
-            team = self.red_team
-          if not team.nest:
-            if self.nests[0].x == x and self.nests[0].y == y:
-              team.nest = self.nests[0]
-            else:
-              team.nest = self.nests[1]
-          ant = Ant(uid, team, x, y)
-          team.ants.append(ant)
-          self.ants[uid] = ant
-        else:
-          break
-        line = fh.readline()
-        linenumber += 1
-        loaded += len(line)
-      wanderings = dict()
+    if len(self.nests) != 2:
+      return "%d nests found instead of 2" % len(self.nests)
+    while linenumber < self.total:
+      line = self.lines[linenumber]
+      m = mstarts.match(line)
+      if m:
+        uid = int(m.group(1))
+        x = int(m.group(2))
+        y = int(m.group(3))
+        team = self.blue_team
+        if uid % 2:
+          team = self.red_team
+        if not team.nest:
+          if self.nests[0].x == x and self.nests[0].y == y:
+            team.nest = self.nests[0]
+          else:
+            team.nest = self.nests[1]
+        ant = Ant(uid, team, x, y)
+        team.ants.append(ant)
+        self.ants[uid] = ant
+      else:
+        break
+      linenumber += 1
+    self.start = linenumber
+    wanderings = dict()
+    needs_nest_switch = 0
+    if self.red_team.nest == self.blue_team.nest:
+      self.red_team.name = 'Red'
+      self.blue_team.name = 'Blue'
+      other = self.nests[0]
+      if other == self.red_team.nest:
+        other = self.nests[1]
+      self.blue_team.nest = other
+      for ant in self.blue_team.ants:
+        ant.x = other.x
+        ant.y = other.y
       needs_nest_switch = 1
-      if self.red_team.nest == self.blue_team.nest:
-        self.red_team.name = 'Red'
-        self.blue_team.name = 'Blue'
-        other = self.nests[0]
-        if other == self.red_team.nest:
-          other = self.nests[1]
-        self.blue_team.nest = other
-        for ant in self.blue_team.ants:
-          ant.x = other.x
-          ant.y = other.y
-        needs_nest_switch = 0
-      if self.red_team.nest == self.blue_team.nest:
-        return "Only 1 team effectively defined (bug in replay file generation)"
-      while line:
-        if linenumber % 10000 == 0: progress.emit(loaded, total)
-        act = Action(self, line)
-        if act.valid:
-          self.actions.append(act)
-          if not needs_nest_switch:
-            needs_nest_switch = act.record_wandering(wanderings)
-        else:
-          return "Invalid action line %d: '%s'" % (linenumber, line)
-        line = fh.readline()
-        linenumber += 1
-        loaded += len(line)
+    if self.red_team.nest == self.blue_team.nest:
+      return "Only 1 team effectively defined (bug in replay file generation)"
+    while needs_nest_switch and linenumber < self.total:
+      line = self.lines[linenumber]
+      if linenumber % 1000 == 0: progress.emit(linenumber, self.total)
+      act = Action(self, line)
+      if act.valid:
+        needs_nest_switch = act.record_wandering(wanderings)
+        if needs_nest_switch:
+          break
+      else:
+        return "Invalid action line %d: '%s'" % (linenumber, line)
+      linenumber += 1
     self.expand_nest(self.nests[0])
     self.expand_nest(self.nests[1])
     self.switched_teams = 0
@@ -422,7 +418,6 @@ class Board(object):
     self.blue_team.nest.nest = self.blue_team
     self.red_team.nest.ants = [50, 50, 0]
     self.blue_team.nest.ants = [50, 0, 50]
-    self.total = len(self.actions)
     return None
 
   def expand_nest(self, nest_tile):
