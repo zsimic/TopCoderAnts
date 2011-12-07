@@ -21,7 +21,7 @@ OPTIONS = {
 }
 
 setup(
-    app=['PAnts.py'],
+    app=['AntsViewer.py'],
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
@@ -50,8 +50,8 @@ boot_addition = """
     os.environ['DYLD_LIBRARY_PATH'] = os.path.join(py_lib, 'lib-dynload', 'PySide') + ":" + os.environ['DYLD_LIBRARY_PATH']
 """
 
-res_dir = 'dist/PAnts.app/Contents/Resources/'
-lib_dir = 'dist/PAnts.app/Contents/Resources/lib/python' + python_ver + '/lib-dynload/'
+res_dir = 'dist/AntsViewer.app/Contents/Resources/'
+lib_dir = 'dist/AntsViewer.app/Contents/Resources/lib/python' + python_ver + '/lib-dynload/'
 boot_file = res_dir + '__boot__.py'
 boot_contents = []
 with open(boot_file, 'r') as fh:

@@ -334,7 +334,7 @@ class Toolbar(QtGui.QWidget):
     self.gr.sep1 = Gui.new_Label(self.gr.hbox, '', 12)
     self.gr.play = Gui.new_PushButton(self.gr.hbox, "Play", self.on_play_pause, 1)
     self.gr.speed_label = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
-    self.gr.speed = Gui.new_Combo(self.gr.hbox, ['128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
+    self.gr.speed = Gui.new_Combo(self.gr.hbox, ['512x', '256x', '128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
     self.gr.step = Gui.new_PushButton(self.gr.hbox, "Step", self.on_step, 1)
     self.gr.progress_bar = QtGui.QProgressBar()
     Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 100)
@@ -430,7 +430,7 @@ class Toolbar(QtGui.QWidget):
     self.activate_play_buttons()
 
   def on_speed_changed(self, item):
-    self.speed_factor = SPEED_NORMAL_INTERVAL / (2 ** (7-item))
+    self.speed_factor = SPEED_NORMAL_INTERVAL / (2 ** (9-item))
     self.timer.setInterval(self.speed_factor)
     if len(self.games):
       self.estimate_eta()
@@ -550,7 +550,7 @@ class MainWindow(QtGui.QMainWindow):
     widget.setLayout(vbox)
     self.setCentralWidget(widget)
     self.unifiedTitleAndToolBarOnMac = True
-    self.setWindowTitle(self.tr("PAnts"))
+    self.setWindowTitle(self.tr("Ants Viewer"))
 
 
 if __name__ == '__main__':

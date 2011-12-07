@@ -19,7 +19,7 @@ packages = []
 path = []
 
 Target_1 = Executable(
-  script = "PAnts.py",
+  script = "AntsViewer.py",
   initScript = None,
   base = base,
   compress = True,
@@ -30,7 +30,7 @@ Target_1 = Executable(
 )
 
 setup(
-        name = "PAnts",
+        name = "AntsViewer",
         version = "1.0",
         description = "Python Ants",
         author = "Zoran Simic",
