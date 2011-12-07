@@ -220,9 +220,14 @@ class BoardView(QtOpenGL.QGLWidget):
     self.is_game_finished = 1
     self.main_window.toolbar.game_finished()
 
-  def run_turn(self):
+  def run_turn(self, speed_factor):
     if not self.is_game_finished:
       self.board.run_turn(self)
+      if not self.is_game_finished and speed_factor < 4:
+        self.board.run_turn(self)
+        if speed_factor < 2:
+          if not self.is_game_finished: self.board.run_turn(self)
+          if not self.is_game_finished: self.board.run_turn(self)
       self.updateGL()
 
   def update_tile(self, tile):
@@ -334,7 +339,7 @@ class Toolbar(QtGui.QWidget):
     self.gr.sep1 = Gui.new_Label(self.gr.hbox, '', 12)
     self.gr.play = Gui.new_PushButton(self.gr.hbox, "Play", self.on_play_pause, 1)
     self.gr.speed_label = Gui.new_Label(self.gr.hbox, 'Speed:', 1)
-    self.gr.speed = Gui.new_Combo(self.gr.hbox, ['512x', '256x', '128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
+    self.gr.speed = Gui.new_Combo(self.gr.hbox, ['256x', '128x', '64x', '32x', '16x', '8x', '4x', '2x', '1x'], self.on_speed_changed, 1)
     self.gr.step = Gui.new_PushButton(self.gr.hbox, "Step", self.on_step, 1)
     self.gr.progress_bar = QtGui.QProgressBar()
     Gui.embox_and_size(self.gr.hbox, self.gr.progress_bar, None, 100)
@@ -383,7 +388,7 @@ class Toolbar(QtGui.QWidget):
 
 
   def run_turn(self):
-    self.main_window.board_view.run_turn()
+    self.main_window.board_view.run_turn(self.speed_factor)
     board = self.main_window.board_view.board
     self.gr.progress_bar.setValue(board.played)
     self.gr.p1.setText("%s: %d food, %d ants" % (board.red_team.name, board.red_team.food(), len(board.red_team.ants)))
@@ -410,12 +415,13 @@ class Toolbar(QtGui.QWidget):
   def game_finished(self):
     self.is_game_finished = 1
     self.timer.stop()
+    self.game_end_time = time.time()
+    print 'game time: ', self.game_end_time - self.game_start_time
     self.gr.play.setText('Done')
     self.gr.play.setEnabled(False)
     self.gr.step.setEnabled(False)
     self.gr.eta.setText('Done')
-    self.game_end_time = time.time()
-    print 'game time: ', self.game_end_time - self.game_start_time
+    self.gr.progress_bar.setValue(self.main_window.board_view.board.total)
 
   def on_play_pause(self):
     if self.timer.isActive():
@@ -430,7 +436,7 @@ class Toolbar(QtGui.QWidget):
     self.activate_play_buttons()
 
   def on_speed_changed(self, item):
-    self.speed_factor = SPEED_NORMAL_INTERVAL / (2 ** (9-item))
+    self.speed_factor = SPEED_NORMAL_INTERVAL / (2 ** (8-item))
     self.timer.setInterval(self.speed_factor)
     if len(self.games):
       self.estimate_eta()
