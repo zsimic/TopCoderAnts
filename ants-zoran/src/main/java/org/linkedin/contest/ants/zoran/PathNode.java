@@ -1,6 +1,8 @@
 package org.linkedin.contest.ants.zoran;
 
-// Needed for the A* path algorithm
+/**
+ * Needed for the A* path algorithm
+ */
 public class PathNode {
 
 	protected int x, y;			// x,y coordinates of associated point

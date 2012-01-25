@@ -2,6 +2,11 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * 'long' ants can leave on board as scent,
+ *  organized in a specific way so it can carry various types of info 
+ *  (with a checksum to verify it was left by an ant from our team)
+ */
 public class Scent {
 
 	public Long rawValue;		// Value as found on the cell (could be null or written by an enemy ant)

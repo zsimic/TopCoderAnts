@@ -2,6 +2,10 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Simply stays put on the nest to protect gathered food from opponents coming and stealing it
+ * and takes food from neighboring cells (to help gatherers save a turn or two)
+ */
 public class Guard extends Role {
 
 	Guard(CommonAnt ant) {

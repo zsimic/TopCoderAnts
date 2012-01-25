@@ -1,7 +1,7 @@
 package org.linkedin.contest.ants.zoran;
 
 /**
- * ZoranAnt implementation
+ * Effective implementation submitted, it just assigns the initial ant roles based on their "internal id"
  * 4 guards, 46 scouts (food gatherers)
  */
 public class ZoranAnt extends CommonAnt {

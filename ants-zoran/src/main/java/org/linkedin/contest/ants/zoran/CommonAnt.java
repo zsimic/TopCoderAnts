@@ -3,6 +3,10 @@ package org.linkedin.contest.ants.zoran;
 import org.linkedin.contest.ants.api.*;
 import java.util.*;
 
+/**
+ * Generic ant management + some utility and logging functions
+ * Ant's actual behavior is determined by ant's 'role' object, not this object
+ */
 abstract class CommonAnt implements Ant {
 
 	protected int id;								// Ant's id (decides ant's initial role)

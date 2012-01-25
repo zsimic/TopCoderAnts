@@ -2,6 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Same as Square, but with a few additions such as coordinates
+ */
 public class ZSquare {
 
 	protected Square square;		// Associated square from environment

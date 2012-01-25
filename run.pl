@@ -11,15 +11,14 @@ use Math::Trig;
 
 my $boardSize = 512;
 my $logFolder = 'logs';
-my $resultsFolder = 'results';
+my $resultsFolder = "$logFolder/results";
+my $baseRunsFolder = "$resultsFolder/runs";
 my $htmlPlaceholder = '<!--__ITEM__-->';
 my $scriptName = $0;
 if ($scriptName=~/^(.+)\/([^\/]+)$/o) {
 	$scriptName = $2;
 	chdir $1;
 }
-usage("No '$logFolder' folder exists, please create one") unless (-d $logFolder);
-usage("No '$resultsFolder' folder exists, please create one") unless (-d $resultsFolder);
 
 sub usage {
 	print @_, "\n";
@@ -32,7 +31,6 @@ Options:
       --seed         Specify seed to pass to server
    -a --archive      Archive generated log files (applicable only with -r)
    -s --save FILE    Save analysis results in FILE (under '$resultsFolder' subfolder)
-   -f --folder PATH  Analyze given folder (instead of '$logFolder')
       --nolog        Comment all logging in program (to make it faster)
       --log          Turn on all logging in program
       --dry          Dry run for --nolog or --log
@@ -48,36 +46,33 @@ my $cldebug = 0;
 my $clseed = 0;
 my $clarchive = 0;
 my $clsave = undef;
-my $clfolder = undef;
 my $clnolog = 0;
 my $cllog = 0;
 my $cldry = 0;
-my $clslice = 0;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
 GetOptions(
 	'c|compile'=>\$clcompile,
 	'r|run=i'=>\$clrun, 'debug'=>\$cldebug, 'seed:i'=>\$clseed, 'archive'=>\$clarchive,
 	's|save:s'=>\$clsave,
-	'f|folder=s'=>\$clfolder,
 	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
 $clcompile = 1 if ($clcompile);
 #print "c=[$clcompile] r=[$clrun]\n"; exit;
-usage("-f can't be specified with -r") if (defined $clfolder and $clrun);
-usage("--nolog must be specified alone when specified") if ($clnolog and ($cllog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
-usage("--log must be specified alone when specified") if ($cllog and ($clnolog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
+usage("--nolog must be specified alone when specified") if ($clnolog and ($cllog || $clcompile || $clrun || defined $clsave || $clhelp));
+usage("--log must be specified alone when specified") if ($cllog and ($clnolog || $clcompile || $clrun || defined $clsave || $clhelp));
 
-dump_slice_projections() if ($clslice);
 if ($clnolog || $cllog) {
 	modify_source_code();
 	exit;
 }
 
-my $baseRunsFolder = "$resultsFolder/runs";
+
 if ($clrun || defined $clsave) {
+	mkdir($logFolder) unless (-d $logFolder);
+	mkdir($resultsFolder) unless (-d $resultsFolder);
 	mkdir($baseRunsFolder) unless (-d $baseRunsFolder);
 }
 if ($clrun) {
@@ -103,13 +98,12 @@ if ($clrun) {
 	add_html_line("$resultsFolder/index.html",new_main_index_html(),"<li><a href=\"runs/$gameId.html\">$dateRep</a>\n");
 	while ($n--) {
 		my $gameResult = run_game($n,$gameId,$n,$baseRunsFolder);
-		$gameResult->{logFolder} = $logFolder if ($cldebug);
 		archive_logs($gameResult) if ($cldebug && $clarchive);
 		analyze_folder($gameResult);
 		record_analysis($gameResult);
 	}
 } else {
-	my $gameResult = {logFolder=>$clfolder || $logFolder};
+	my $gameResult = {};
 	analyze_folder($gameResult);
 	record_analysis($gameResult);
 }
@@ -393,7 +387,7 @@ sub new_td {
 
 sub analyze_folder {
 	my ($gameResult) = @_;
-	my $folder = $gameResult->{archiveFolder} || $gameResult->{logFolder};
+	my $folder = $gameResult->{archiveFolder} || $logFolder;
 	return unless (defined $folder);
 	logm("Analyzing folder '$folder'\n");
 	my $t = 0;
@@ -464,9 +458,9 @@ sub add_stat {
 
 sub archive_logs {
 	my ($gameResult) = @_;
-	my $archiveFolder = "$gameResult->{logFolder}/archive_".$gameResult->{id}.'_'.$gameResult->{gameNumber};
+	my $archiveFolder = "$logFolder/archive_".$gameResult->{id}.'_'.$gameResult->{gameNumber};
 	mkdir $archiveFolder;
-	run_command("mv $gameResult->{logFolder}/*.txt $archiveFolder/");
+	run_command("mv $logFolder/*.txt $archiveFolder/");
 	$gameResult->{archiveFolder} = $archiveFolder;
 }
 

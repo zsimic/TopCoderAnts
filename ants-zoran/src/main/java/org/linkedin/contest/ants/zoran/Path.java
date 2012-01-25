@@ -2,7 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
 
-// Stores a path from start to target, in reverse order so we can simply use pop()
+/**
+ * Stores a path from start to target, in reverse order so we can simply use pop()
+ */
 public class Path {
 
 	private Stack<Integer> points;		// Points in the path (encoded by Constants.encodeXY)

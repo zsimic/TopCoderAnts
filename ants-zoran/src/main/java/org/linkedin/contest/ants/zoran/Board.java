@@ -3,6 +3,10 @@ package org.linkedin.contest.ants.zoran;
 import java.util.*;
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Board representation allowing to quickly store/retrieve whether a cell was explored or not,
+ * and provides 2 flavors of the A* algorithm to help ants navigate through the game board
+ */
 public class Board {
 
 	private CommonAnt ant;

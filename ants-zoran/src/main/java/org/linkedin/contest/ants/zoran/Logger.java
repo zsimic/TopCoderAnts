@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.HashMap;
 
+/**
+ * Logging features, optional as it impacts performance heavily, one file per ant + 1 board representation per ant
+ */
 public class Logger {
 
 	private static boolean omitLogs = false;		// Set to 'false' to enable output

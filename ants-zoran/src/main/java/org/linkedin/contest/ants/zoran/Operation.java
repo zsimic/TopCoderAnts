@@ -2,6 +2,10 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Helps abstract a set of simple actions into one 'Operation'
+ * For example: go back to nest, which may be composed of hundreds of 'Move' actions
+ */
 public abstract class Operation {
 
 	protected int turn;			// Turn within this operation

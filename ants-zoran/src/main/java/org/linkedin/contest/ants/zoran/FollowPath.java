@@ -2,6 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Follow a given 'Path' (sequence of 'Move' actions)
+ */
 public class FollowPath extends Operation {
 
 	protected Path path;

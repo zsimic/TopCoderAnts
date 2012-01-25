@@ -1,5 +1,8 @@
 package org.linkedin.contest.ants.zoran;
 
+/**
+ * Board size and arithmetic on coordinates allowing to 'pack' x,y coordinates in one int
+ */
 public class Constants {
 
 	public static final int ANTS_COUNT = 50;

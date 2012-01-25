@@ -2,13 +2,13 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
-/*
- * This defines the effective behavior of an ant, and is 
+/**
+ * This defines the effective behavior of an ant
  * A role must:
  * - have a reference to the ant it's associated with
  * - return a non-null Action for current turn
  * 
- * The role can decide to switch its ant to another role by calling ant.setRole(someOtherRole)
+ * The role can decide to switch its ant to another role in game by calling ant.setRole(someOtherRole)
  */
 public abstract class Role {
 

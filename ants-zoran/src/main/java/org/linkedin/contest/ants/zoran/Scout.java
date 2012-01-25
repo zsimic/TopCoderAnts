@@ -2,6 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import org.linkedin.contest.ants.api.*;
 
+/**
+ * Explores the board looking for food, brings food home as soon as it finds any
+ */
 public class Scout extends Role {
 
 	Scout(CommonAnt ant, int sliceNumber, int totalSlices) {

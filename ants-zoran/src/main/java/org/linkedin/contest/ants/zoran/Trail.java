@@ -2,6 +2,9 @@ package org.linkedin.contest.ants.zoran;
 
 import java.util.*;
 
+/**
+ * Stores the path from the nest to ant's current position, removing unneeded loops
+ */
 public class Trail {
 
 	protected ArrayList<Integer> list;			// List of coordinates in this path (encoded like lastKey)
