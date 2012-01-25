@@ -9,5 +9,5 @@ results/
 maps/
 tmp
 *.pyc
-PAnts/lib*
-PAnts/Qt*
+viewer/lib*
+viewer/Qt*
