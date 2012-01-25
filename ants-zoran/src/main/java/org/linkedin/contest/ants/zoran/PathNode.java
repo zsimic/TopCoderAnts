@@ -3,7 +3,7 @@ package org.linkedin.contest.ants.zoran;
 // Needed for the A* path algorithm
 public class PathNode {
 
-	protected int x, y;					// x,y coordinates of associated point
+	protected int x, y;			// x,y coordinates of associated point
 	protected Integer id;		// x and y coordinates put in one integer (12 bits each)
 	protected PathNode parent;	// Parent path, used to reconstruct the path after search is done
 	protected double g;			// Distance from start point on path

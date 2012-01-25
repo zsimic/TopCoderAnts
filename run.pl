@@ -18,8 +18,8 @@ if ($scriptName=~/^(.+)\/([^\/]+)$/o) {
 	$scriptName = $2;
 	chdir $1;
 }
-usage("No '$logFolder' exists, please create one") unless (-d $logFolder);
-usage("No '$resultsFolder' exists, please create one") unless (-d $resultsFolder);
+usage("No '$logFolder' folder exists, please create one") unless (-d $logFolder);
+usage("No '$resultsFolder' folder exists, please create one") unless (-d $resultsFolder);
 
 sub usage {
 	print @_, "\n";
@@ -36,8 +36,6 @@ Options:
       --nolog        Comment all logging in program (to make it faster)
       --log          Turn on all logging in program
       --dry          Dry run for --nolog or --log
-      --map          Generate 'heat maps' showing how slicing applies (debugging)
-      --slice        Output slice projections (debugging)
    -h -? --help      This help message
 EOM
 	exit 1;
@@ -54,7 +52,6 @@ my $clfolder = undef;
 my $clnolog = 0;
 my $cllog = 0;
 my $cldry = 0;
-my $clmap = 0;
 my $clslice = 0;
 my $clhelp = 0;
 Getopt::Long::Configure ("bundling");
@@ -64,7 +61,6 @@ GetOptions(
 	's|save:s'=>\$clsave,
 	'f|folder=s'=>\$clfolder,
 	'nolog'=>\$clnolog, 'log'=>\$cllog, 'dry'=>\$cldry,
-	'map'=>\$clmap, 'slice'=>\$clslice,
 	'h|?|help'=>\$clhelp
 ) or usage();
 usage() if ($clhelp);
@@ -75,10 +71,7 @@ usage("--nolog must be specified alone when specified") if ($clnolog and ($cllog
 usage("--log must be specified alone when specified") if ($cllog and ($clnolog || $clcompile || $clrun || defined $clsave || defined $clfolder || $clhelp));
 
 dump_slice_projections() if ($clslice);
-if ($clmap) {
-	generate_heat_maps(45);
-	exit;
-} elsif ($clnolog || $cllog) {
+if ($clnolog || $cllog) {
 	modify_source_code();
 	exit;
 }
@@ -121,6 +114,94 @@ if ($clrun) {
 	record_analysis($gameResult);
 }
 
+#AntServer [-HD] [-s seed] [-n number] -p1 player1 -p2 player2
+#	-H	Prints this help message.
+#	-D	Play a "Duplicate" game.
+#	-B	Runs in Debug mode, passing more information about the world state to player code and removing timeouts
+#	-s seed	Specify the PRNG seed used to generate the map
+#	-p1 player1	Specify the full class for the first player
+#	-p2 player2	Specify the full class for the second player
+#	-n number	Number of games to play
+#	-r filename	Save a replay of all moves to filename
+sub run_game {
+	my ($gameNumber,$gameId,$number,$baseFolder) = @_;
+	my $gameResult = {};
+	$gameResult->{id} = $gameId;
+	$gameResult->{gameNumber} = $number;
+	$gameResult->{baseFolder} = $baseFolder;
+	my $tStart = time;
+	my $cmdRun = 'java';
+	$cmdRun .= ' -ea -Xmx'.($cldebug ? '2048m' : '256m');
+	$cmdRun .= ' -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
+#	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
+	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
+	$cmdRun .= ' -B' if ($cldebug);
+	if ($clseed) {
+		$cmdRun .= " -s $clseed";
+		$cmdRun .= " -r $resultsFolder/ZoranVsSeed${clseed}.1";
+	} else {
+		$cmdRun .= " -r $resultsFolder/ZoranVsNothing.$gameResult->{id}";
+	}
+	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
+	logm("--------------------------------\n");
+	logm("Running game $gameNumber: $cmdRun ...\n----\n");
+	open(my $ps,"$cmdRun |") || fail("Failed: $!\n");
+	my $s = '';
+	local $| = 1;
+	while (my $line = <$ps>) {
+		$s .= $line;
+		print $line;
+	}
+	logm("\n----\ndone\n");
+	my $tEnd = time;
+	$gameResult->{gameruntime} = $tEnd - $tStart;
+	logm("Run time: $gameResult->{gameruntime} s\n");
+	$gameResult->{output} = "output_$gameResult->{id}_$gameResult->{gameNumber}.txt";
+	logm("Writing '$baseFolder/$gameResult->{output}'\n");
+	open (my $fh, ">$baseFolder/$gameResult->{output}") or fail("Can't write server output to '$baseFolder/$gameResult->{output}'");
+	print $fh $s;
+	close($fh);
+	my $player = 0;
+	$gameResult->{boardRep} = '';
+	foreach my $line (split(/\n/,$s)) {
+		if ($line=~m/^Player ([0-9]):/o) {
+			$player = $1;
+		} elsif ($line=~m/^\s+Food: ([0-9]+)/o) {
+			my $n = $1;
+			fail("Check results parsing, no player for food count $n") unless ($player > 0);
+			$gameResult->{player}->{$player}->{food} = $n;
+		} elsif ($line=~m/^\s+Ants: ([0-9]+)/o) {
+			my $n = $1;
+			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
+			$gameResult->{player}->{$player}->{ants} = $n;
+		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
+			my $n = $1;
+			$gameResult->{rounds} = $n;
+		} elsif ($line=~m/^([^#]*)(#[#\.\%\@]+)$/o) {
+			my $boardLine = $2;
+			fail("Bad board line representation: $boardLine") unless (length($boardLine) == $boardSize);
+			$gameResult->{server}->{boardRep} .= "$boardLine\n";
+		}
+	}
+	my $y = 0;
+	$gameResult->{server}->{board}->{bx0} = 0;
+	$gameResult->{server}->{board}->{bx1} = $boardSize;
+	$gameResult->{server}->{board}->{by0} = 0;
+	$gameResult->{server}->{board}->{by1} = $boardSize;
+	foreach my $line (split(/\n/,$gameResult->{server}->{boardRep})) {
+		for (my $x = 0; $x < $boardSize; $x++) {
+			my $c = substr($line,$x,1);
+			my $px = $y;
+			my $py = $x;
+			$gameResult->{server}->{board}->{board}->{$px}->{$py}->{v} = $c;
+		}
+		$y++;
+	}
+	$gameResult->{serverpng} = "server_$gameResult->{id}_$gameResult->{gameNumber}.png";
+	create_png($gameResult->{server},"$baseFolder/$gameResult->{serverpng}");
+	return $gameResult;
+}
+
 sub modify_source_code {
 	find({ wanted => \&process_file, no_chdir => 1 }, 'ants-zoran/src');
 }
@@ -160,178 +241,6 @@ sub process_file {
 	open($fh, ">$fpath") or fail("Can't write $fpath");
 	print $fh $contents;
 	close($fh);
-}
-
-sub generate_heat_maps {
-	my ($totalSlices) = @_;
-	for (my $i = 0; $i < $totalSlices; $i++) {
-		my $num = $i;
-		$num = "0$i" unless ($num>9);
-		generate_heat_map($num,$totalSlices);
-	}
-}
-
-sub generate_heat_map {
-	my ($num,$totalSlices) = @_;
-	fail("No 'maps' folder") unless (-d "maps");
-	generate_heat_map_centered($num,$totalSlices,'a',100,100);
-#	generate_heat_map_centered($num,$totalSlices,'b',412,100);
-#	generate_heat_map_centered($num,$totalSlices,'c',256,256);
-#	generate_heat_map_centered($num,$totalSlices,'d',100,412);
-#	generate_heat_map_centered($num,$totalSlices,'e',412,412);
-}
-
-sub generate_heat_map_centered {
-	my ($num,$totalSlices,$name,$xc,$yc) = @_;
-	my $dir = "maps/$name";
-	mkdir($dir) unless (-d $dir);
-	my $slice = slice($num,$totalSlices);
-	my $factors = {};
-	for (my $x = 0; $x < $boardSize; $x++) {
-		for (my $y = 0; $y < $boardSize; $y++) {
-			my $g = normal_distance($x-$xc,$y-$yc);
-			my $h = distance_from_slice($slice,$x-$xc,$y-$yc);
-			my $f = $g + $h;
-			$factors->{points}->{$x}->{$y}->{g} = $g;
-			$factors->{points}->{$x}->{$y}->{h} = $h;
-			$factors->{points}->{$x}->{$y}->{f} = $f;
-			gather_bounds($factors,'g',$g);
-			gather_bounds($factors,'h',$h);
-			gather_bounds($factors,'f',$f);
-		}
-	}
-#	save_heat_map("$dir/composed_$name$num.png",composed_factors($factors));
-	save_heat_map("$dir/h_$name$num.png",unique_factor($factors,'h'));
-#	save_heat_map("$dir/f_$name$num.png",unique_factor($factors,'f'));
-}
-
-sub dump_slice_projections {
-	my $sliceA = slice(1,32);
-	my $sliceB = slice(17,32);
-	dump_slice_projection_set($sliceA,3);
-	dump_slice_projection_set($sliceB,3);
-	exit;
-}
-
-sub dump_slice_projection_set {
-	my ($slice,$a) = @_;
-	print "--------\n";
-	for (my $x = -$a; $x <= $a; $x++) {
-		for (my $y = -$a; $y <= $a; $y++) {
-			dump_slice_projection($slice,$x,$y);
-		}
-	}
-}
-
-sub dump_slice_projection {
-	my ($slice,$x,$y) = @_;
-	my $px = slice_projectX($slice,$x,$y);
-	my $py = slice_projectY($slice,$x,$y);
-	print sprintf("s=%d/%d xy=%3d %3d pxy= %6.2f %6.2f %7.1f\n",$slice->{i},$slice->{totalSlices},$x,$y,$px,$py,distance_from_slice($slice,$x,$y));
-}
-
-sub distance_from_slice {
-	my ($slice,$x,$y) = @_;
-	my $px = slice_projectX($slice,$x,$y);
-	if ($px<=0.0001) { return 512; }
-	else {
-		my $py = slice_projectY($slice,$x,$y);
-		my $distance = abs($py);# - $px;
-		return $distance;
-	}
-}
-
-sub slice_projectX {
-	my ($slice,$x,$y) = @_;
-#	return ($slice->{cosf} * $x + $slice->{sinf} * $y) * $slice->{cosf};
-	return $slice->{cosf} * $x - $slice->{sinf} * $y;
-}
-
-sub slice_projectY {
-	my ($slice,$x,$y) = @_;
-#	return ($slice->{cosf} * $x + $slice->{sinf} * $y) * $slice->{sinf};
-	return $slice->{cosf} * $y + $slice->{sinf} * $x;
-}
-
-sub slice {
-	my ($num,$totalSlices) = @_;
-	my $i = $num % $totalSlices;
-	my $res = {};
-	$res->{i} = $i;
-	$res->{totalSlices} = $totalSlices;
-	$res->{cosf} = cos(-2 * $i / $totalSlices * pi);
-	$res->{sinf} = sin(-2 * $i / $totalSlices * pi);
-	return $res;
-}
-
-sub normal_distance {
-	my ($x,$y) = @_;
-	return sqrt($x*$x + $y*$y);
-}
-
-sub save_heat_map {
-	my ($fname,$factors) = @_;
-	require GD or logm("Can't make PNG, please install GD\n"), return;
-	GD->import;
-	GD::Image->trueColor(1);
-	my $cellSize = 2;
-	my $im = new GD::Image($boardSize * $cellSize, $boardSize * $cellSize);
-	my $emptyBg = $im->colorAllocate(204, 222, 216);
-	$im->interlaced('true');
-	$im->fill(2,2,$emptyBg);
-	for (my $x = 0; $x < $boardSize; $x++) {
-		for (my $y = 0; $y < $boardSize; $y++) {
-			my $r = $factors->{$x}->{$y}->{r};
-			my $g = $factors->{$x}->{$y}->{g};
-			my $b = $factors->{$x}->{$y}->{g};
-			my $color = $im->colorAllocate($r, $g, $b);
-			$im->filledRectangle($cellSize * $x, $cellSize * $y, $cellSize * ($x+1), $cellSize * ($y+1), $color);
-		}
-	}
-	open (my $fh, ">$fname") or fail("Can't write to '$fname'");
-	binmode $fh;
-	print $fh $im->png;
-	close($fh);
-	print "Generated $fname\n"
-}
-
-sub composed_factors {
-	my ($factors) = @_;
-	my $res = {};
-	for (my $x = 0; $x < $boardSize; $x++) {
-		for (my $y = 0; $y < $boardSize; $y++) {
-			my $g = $factors->{points}->{$x}->{$y}->{g};
-			my $h = $factors->{points}->{$x}->{$y}->{h};
-			my $gn = ($g - $factors->{g}->{min}) / $factors->{g}->{range};
-			my $hn = ($h - $factors->{h}->{min}) / $factors->{h}->{range};
-			$res->{$x}->{$y}->{r} = 255 * $gn;
-			$res->{$x}->{$y}->{g} = 255 * $hn;
-			$res->{$x}->{$y}->{b} = 0;
-		}
-	}
-	return $res;
-}
-
-sub unique_factor {
-	my ($factors,$key) = @_;
-	my $res = {};
-	for (my $x = 0; $x < $boardSize; $x++) {
-		for (my $y = 0; $y < $boardSize; $y++) {
-			my $value = $factors->{points}->{$x}->{$y}->{$key};
-			my $vn = ($value - $factors->{$key}->{min}) / $factors->{$key}->{range};
-			$res->{$x}->{$y}->{r} = 255 * $vn;
-			$res->{$x}->{$y}->{g} = 255 * $vn;
-			$res->{$x}->{$y}->{b} = 255 * $vn;
-		}
-	}
-	return $res;
-}
-
-sub gather_bounds {
-	my ($factors,$key,$value) = @_;
-	$factors->{$key}->{max} = $value if (!defined $factors->{$key}->{max} || $factors->{$key}->{max} < $value);
-	$factors->{$key}->{min} = $value if (!defined $factors->{$key}->{min} || $factors->{$key}->{min} > $value);
-	$factors->{$key}->{range} = $factors->{$key}->{max} - $factors->{$key}->{min};
 }
 
 sub record_analysis {
@@ -454,10 +363,6 @@ sub create_png {
 			$im->filledRectangle($cellSizeX * $px, $cellSizeY * $py, $cellSizeX * ($px+1), $cellSizeY * ($py+1), $color);
 		}
 	}
-#	if (defined $stat->{cells}->{n}) {
-#		my $title = "$stat->{cells}->{n} cells [$stat->{cells}->{percent}%% fill]  board: $stat->{board}->{bsizeX} x $stat->{board}->{bsizeY} - $stat->{date}";
-#		draw_title($im,4,2,$white,$red,$title);
-#	}
 	if ($xnest>0 && $ynest>0) {
 		$im->filledRectangle($cellSizeX * ($xnest-1), $cellSizeY * ($ynest-1), $cellSizeX * ($xnest+2), $cellSizeY * ($ynest+2), $red);
 	}
@@ -465,32 +370,6 @@ sub create_png {
 	binmode $fh;
 	print $fh $im->png;
 	close($fh);
-}
-
-sub draw_title {
-	my ($im,$x,$y,$bg,$fg,$title) = @_;
-	my $fontname = "";
-	$im->stringFT($bg, $fontname, 14, 0, $x-2, $y-2, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x-2, $y+2, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x+2, $y+2, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x+2, $y-2, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x-1, $y-1, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x-1, $y+1, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x+1, $y+1, $title);
-	$im->stringFT($bg, $fontname, 14, 0, $x+1, $y-1, $title);
-	$im->stringFT($fg, $fontname, 14, 0, $x, $y, $title, $fg);
-}
-
-sub represented_html_game_cell {
-	my ($b,$x,$y) = @_;
-	return ' ' unless (defined $b->{$x}->{$y});
-	my $c = $b->{$x}->{$y}->{v};
-	my $color;
-	if ($c eq '#') { $color = '#000000'; }
-	elsif ($c eq 'N') { $color = '#FF0000'; }
-	elsif ($c eq '.') { $color = '#F7E477'; }
-	else { fail("check character '$c' in board rep"); }
-	return "<span style=\"color: $color;\">&#x25A0;</span>";
 }
 
 sub new_href {
@@ -592,100 +471,7 @@ sub archive_logs {
 }
 
 sub compile_project {
-	my $cmdCompile = 'gradle build';
-	run_command($cmdCompile);
-#	my $cmdCompile = 'javac -d build -cp lib/ants-api.jar:lib/ants-server.jar ants-zoran/src/main/java/org/linkedin/contest/ants/zoran/*.java';
-#	my $cmdBuild = 'jar cf lib/ants-zoran.jar build/org/';
-#	run_command($cmdCompile);
-#	run_command($cmdBuild);
-}
-
-#AntServer [-HD] [-s seed] [-n number] -p1 player1 -p2 player2
-#	-H	Prints this help message.
-#	-D	Play a "Duplicate" game.
-#	-B	Runs in Debug mode, passing more information about the world state to player code and removing timeouts
-#	-s seed	Specify the PRNG seed used to generate the map
-#	-p1 player1	Specify the full class for the first player
-#	-p2 player2	Specify the full class for the second player
-#	-n number	Number of games to play
-#	-r filename	Save a replay of all moves to filename
-sub run_game {
-	my ($gameNumber,$gameId,$number,$baseFolder) = @_;
-	my $gameResult = {};
-	$gameResult->{id} = $gameId;
-	$gameResult->{gameNumber} = $number;
-	$gameResult->{baseFolder} = $baseFolder;
-	my $tStart = time;
-	my $cmdRun = 'java';
-	$cmdRun .= ' -ea -Xmx'.($cldebug ? '2048m' : '256m');
-	$cmdRun .= ' -cp lib/ants-api.jar:lib/ants-server.jar:ants-zoran/build/libs/ants-zoran.jar';
-#	my $cmdRun = 'java -ea -cp lib/ants-api.jar:lib/ants-server.jar:lib/ants-zoran.jar';
-	$cmdRun .= ' org/linkedin/contest/ants/server/AntServer';
-	$cmdRun .= ' -B' if ($cldebug);
-	if ($clseed) {
-		$cmdRun .= " -s $clseed";
-		$cmdRun .= " -r ~/play/ants/dist/ZoranVsSeed${clseed}.1";
-	} else {
-		$cmdRun .= " -r ZoranVsNothing.$gameResult->{id}";
-	}
-	$cmdRun .= ' -p1 org.linkedin.contest.ants.zoran.ZoranAnt -p2 org.linkedin.contest.ants.zoran.DoNothingAnt';
-	logm("--------------------------------\n");
-	logm("Running game $gameNumber: $cmdRun ...\n----\n");
-	open(my $ps,"$cmdRun |") || fail("Failed: $!\n");
-	my $s = '';
-	local $| = 1;
-	while (my $line = <$ps>) {
-		$s .= $line;
-		print $line;
-	}
-	logm("\n----\ndone\n");
-	my $tEnd = time;
-	$gameResult->{gameruntime} = $tEnd - $tStart;
-	logm("Run time: $gameResult->{gameruntime} s\n");
-	$gameResult->{output} = "output_$gameResult->{id}_$gameResult->{gameNumber}.txt";
-	logm("Writing '$baseFolder/$gameResult->{output}'\n");
-	open (my $fh, ">$baseFolder/$gameResult->{output}") or fail("Can't write server output to '$baseFolder/$gameResult->{output}'");
-	print $fh $s;
-	close($fh);
-	my $player = 0;
-	$gameResult->{boardRep} = '';
-	foreach my $line (split(/\n/,$s)) {
-		if ($line=~m/^Player ([0-9]):/o) {
-			$player = $1;
-		} elsif ($line=~m/^\s+Food: ([0-9]+)/o) {
-			my $n = $1;
-			fail("Check results parsing, no player for food count $n") unless ($player > 0);
-			$gameResult->{player}->{$player}->{food} = $n;
-		} elsif ($line=~m/^\s+Ants: ([0-9]+)/o) {
-			my $n = $1;
-			fail("Check results parsing, no player for ants count $n") unless ($player > 0);
-			$gameResult->{player}->{$player}->{ants} = $n;
-		} elsif ($line=~m/^Rounds played: ([0-9]+)/o) {
-			my $n = $1;
-			$gameResult->{rounds} = $n;
-		} elsif ($line=~m/^([^#]*)(#[#\.\%\@]+)$/o) {
-			my $boardLine = $2;
-			fail("Bad board line representation: $boardLine") unless (length($boardLine) == $boardSize);
-			$gameResult->{server}->{boardRep} .= "$boardLine\n";
-		}
-	}
-	my $y = 0;
-	$gameResult->{server}->{board}->{bx0} = 0;
-	$gameResult->{server}->{board}->{bx1} = $boardSize;
-	$gameResult->{server}->{board}->{by0} = 0;
-	$gameResult->{server}->{board}->{by1} = $boardSize;
-	foreach my $line (split(/\n/,$gameResult->{server}->{boardRep})) {
-		for (my $x = 0; $x < $boardSize; $x++) {
-			my $c = substr($line,$x,1);
-			my $px = $y;
-			my $py = $x;
-			$gameResult->{server}->{board}->{board}->{$px}->{$py}->{v} = $c;
-		}
-		$y++;
-	}
-	$gameResult->{serverpng} = "server_$gameResult->{id}_$gameResult->{gameNumber}.png";
-	create_png($gameResult->{server},"$baseFolder/$gameResult->{serverpng}");
-	return $gameResult;
+	run_command('gradle build');
 }
 
 sub logm {
@@ -734,18 +520,6 @@ sub run_command {
 		fail("Can't run command $cmd:\n\nexit code $?\n$!");
 	}
 	logm("done\n");
-}
-
-sub compare_boards {
-	my ($b1,$b2) = @_;
-	foreach my $x (keys %{$b1->{board}}) {
-		foreach my $y (keys %{$b1->{board}->{$x}}) {
-			my $c1 = $b1->{board}->{$x}->{$y}->{v};
-			my $c2 = ' ';
-			$c2 = $b2->{board}->{$x}->{$y}->{v} if (defined $b2->{board}->{$x}->{$y}->{v});
-			fail("Board mismatch $b2->{name} vs $b1->{name}: $c2 vs $c1") unless ($c1 eq $c2);
-		}
-	}
 }
 
 sub set_cell {

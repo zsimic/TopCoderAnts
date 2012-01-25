@@ -146,9 +146,9 @@ abstract class CommonAnt implements Ant {
      * @return the action to perform
      */
 	public Action onDeath(WorldEvent cause) {
-//		return sayInAllDirections("Man down " + role.toString());
 //L		if (cause==null) Logger.error(this, String.format("died after trying to attack"));
 //L		else Logger.error(this, String.format("died %s",cause.toString()));
+//		return sayInAllDirections("Man down " + role.toString());
 		return null;
 	}
 
