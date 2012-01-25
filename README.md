@@ -1,11 +1,12 @@
-Introduction:
--------------
+Introduction
+------------
 This is my entry for the "Ants" TopCoder LinkedIn competition.
 
-How to run a game:
-------------------
+How to run the game
+-------------------
 Easiest way is to use the `run.pl` script:
 
+		git clone https://zsimic@github.com/zsimic/TopCoderAnts.git
 		perl run.pl --compile --debug --run 1
 
 Use `perl run.pl -h` to see help on its usage.
@@ -20,8 +21,8 @@ See the [rules of the game](RULES.md).
 
 There is also a [viewer](viewer) available now.
 
-Design:
--------
+Description
+-----------
 
 Initially, I had in mind a more complex design with more "roles" and "operations".
 The idea was that ants could have various roles, and that they could switch roles in game as needed.
@@ -66,8 +67,8 @@ It turned out that it was easy to have its get/set routines down to a complexity
 The **Trail** class proved to be an excellent fallback for the times where the A* algorithm started taking too much time.
 It was easy to make its storing complexity O(1), helping keep the overall runtime relatively unimpacted by its use.
 
-Quick code overview:
---------------------
+Quick code overview
+-------------------
 
 - **CommonAnt**: Generic ant management + some utility and logging functions
  - **ZoranAnt**: Effective implementation submitted, it just assigns the initial ant roles based on their "internal id"
