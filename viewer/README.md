@@ -40,4 +40,4 @@ To run the viewer:
 Example:
 --------
 
-![Viewer example](viewer.png)
+![Viewer example](TopCoderAnts/raw/master/viewer/viewer.png)
