@@ -94,7 +94,7 @@ It will keep incrementing its slice until it can make progress.
 If it can't make progress after 2 full rotations (having tried every slice twice),
 it gives up and becomes a guard (goes back to nest and stays put there) to avoid consuming CPU cycles for nothing
 
-I've upload a video illustrating an ant exploring its board using this alhorithm [here](http://www.youtube.com/watch?v=GbUTx1at1XY).
+I've upload a video illustrating an ant exploring its board using this algorithm [here](http://www.youtube.com/watch?v=GbUTx1at1XY).
 The black cells are obstacles, while the gray ones are yet-unexplored. The moving blue cell is the ant, while green cells contain food.
 
 ## Going back to the nest
