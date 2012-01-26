@@ -6,7 +6,7 @@ How to run the game
 -------------------
 Easiest way is to use the `run.pl` script:
 
-		git clone https://zsimic@github.com/zsimic/TopCoderAnts.git
+		git clone git://github.com/zsimic/TopCoderAnts.git
 		perl run.pl --compile --debug --run 1
 
 Use `perl run.pl -h` to see help on its usage.
