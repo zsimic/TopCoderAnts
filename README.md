@@ -11,7 +11,7 @@ Easiest way is to use the `run.pl` script:
 
 Use `perl run.pl -h` to see help on its usage.
 The script invocation above will basically compile the project and run 1 game.
-You can delete the 'logs' and 'results' folder anytime.
+It creates a 'logs' folder which you can delete at any time.
 When you run with --debug, the Java program generates log information in the 'logs' folder.
 The perl script looks at the 'logs' folder (as well as the servers output) and generates some overview in the 'results' folder.
 
