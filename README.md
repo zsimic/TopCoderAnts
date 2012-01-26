@@ -17,9 +17,9 @@ The perl script looks at the 'logs' folder (as well as the servers output) and g
 
 You can also run the game directly from Eclipse of course.
 
-See the [rules of the game](TopCoderAnts/RULES.md).
+See the [rules of the game](TopCoderAnts/blob/master/RULES.md).
 
-There is also a [viewer](TopCoderAnts/viewer) available now.
+There is also a [viewer](TopCoderAnts/tree/master/viewer) available now.
 
 Description
 -----------
