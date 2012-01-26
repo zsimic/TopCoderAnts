@@ -50,8 +50,8 @@ So, I quickly decided to keep as simple as possible:
 - Have just one tool that was capable of measuring roughly how the ants were performing by looking at how many turns it took them to amass half of the food on the board (the lower the number of turns needed, the better the ants are performing)
 - Use 2 specialized versions of the A* algorithm to:
  - Be able to find the shortest path from current position to the nest (considering unexplored cells as unpassable)
- - Be able to find the closest unexplored cell from current position (in "discovery mode")
-- The A* algorithm also had to allow for a "time cap": no more than 7 ms to find its shortest path, if it can't do it within that time frame just drop it or return the best solution found so far
+ - Be able to find the closest unexplored cell from current position (in "exploration mode")
+- The A* algorithm also had to allow for a "time cap": no more than N milliseconds to find its shortest path, if it can't do it within that time frame just drop it or return the best solution found so far
 - Try and keep runtime down as much as possible:
  - Avoid creating objects as much as possible
  - Come up with a few quick specialized containers that would help with doing basic things fast (the **Board**, **Path** and **Trail** classes)
@@ -90,17 +90,20 @@ Here's a "heat map" of how the cost distribution looks like on the board (the wh
 
 Following that direction won't always be possible of course (because of obstacles, or because the end of the board is met).
 If no path can be found within 7ms, the ant will basically switch to the 'next slice' and explore that.
-It will keep incrementing its slice until it can make progress.
+It will keep incrementing its 'slice number' until it can make progress.
 If it can't make progress after 2 full rotations (having tried every slice twice),
-it gives up and becomes a guard (goes back to nest and stays put there) to avoid consuming CPU cycles for nothing
+it gives up and becomes a guard (goes back to nest and stays put) to avoid consuming CPU cycles for nothing.
 
-I've upload a video illustrating an ant exploring its board using this algorithm [here](http://www.youtube.com/watch?v=GbUTx1at1XY).
+I've uploaded a video illustrating an ant exploring its board using this algorithm [here](http://www.youtube.com/watch?v=GbUTx1at1XY).
 The black cells are obstacles, while the gray ones are yet-unexplored. The moving blue cell is the ant, while green cells contain food.
 
 ## Going back to the nest
 When an ant finds food, its mission becomes to bring it back to the nest immediately.
 For that, it will first try and find the shortest path to the nest using the other variant of the A* algorithm.
-If no path can be found in less than 7ms, it will fall back to simply following its **Trail** back to the nest
+If no path can be found in less than 3ms
+(these arbitrary time caps I mention came from experimenting,
+looking at how many ants got killed by the server basically for overstepping the 500ms turn time limit for the team),
+it will fall back to simply following its **Trail** back to the nest
 (which is simply its path from the nest that it keeps up to date at every movement)
 
 Food hauling
@@ -112,17 +115,17 @@ That however has a few drawbacks: the food may not be there anymore by the time 
 to the food spot).
 
 A better way turns out to be to simply pick and drop all the food items one by one towards the nest.
-Then take 2 steps toward the nest and do that again. That method is more efficient for cases where the number of food items to be carried is >= 2.
+Then take 2 steps toward the nest and repeat. That method is more efficient for cases where the number of food items to be carried is >= 2.
 So the scouts use that method: whenever they see food next to them, they go in a pick-drop-step-step mode, bringing the food closer and closer to the nest.
 That method also has a few other benefits:
 
 - several ants can end up collaborating together without any synchronization needed in bringing the food back home faster
 - if an ant dies while it's doing that, it still made progress for the team: it brought the food closer to home for another ant to continue the work
 - it's very simple: no need for scents or remembering where the food spot was
-- once you get the automaton right, any ant can stop whatever they're doing and go in the pick-drop-step-step mode
-- it's also very easy to determine when to stop working in that mode (when there are no food items nearby basically, or when the nest is reached)
+- any ant can stop whatever they're doing and go in the pick-drop-step-step mode
+- it's very easy to determine when to stop working in that mode (when there are no food items nearby basically, or when the nest is reached)
 
-So the overall 'food hauling' algorith becomes:
+So the overall 'food hauling' algorith is roughly:
 
 	if (ant.neighboringAmountOfFood() == 1) {
 		// take the food item and bring it to the nest
@@ -133,7 +136,7 @@ So the overall 'food hauling' algorith becomes:
 I've uploaded a video illustrating the food-hauling described here to [youtube](http://www.youtube.com/watch?v=k8HUP4V1xvQ).
 You can see many cases: ants doing the pick-drop-step-step alone, ants collaborating,
 and even a bug where 2 ants get stuck picking and dropping food items without making progress (14 seconds in),
-Situation gets resolved when a 3rd ant passes nearby and breaks their cycle.
+that situation gets resolved when a 3rd ant passes nearby and breaks their cycle.
 
 Quick code overview
 -------------------
