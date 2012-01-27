@@ -1,5 +1,11 @@
 package org.linkedin.contest.ants.zoran;
 
+/**
+ * This class allows to calculate the 'cost' for the exploratory version of the A* algorithm
+ * We project the ant's coordinates to the 'slice' that it is supposed to follow
+ * The cost is then simply the absolute value of project 'y' coordinate, with a special penalty for negative 'x' coordinates
+ * Doing it this ways allows to calculate rotated coordinates quickly (2 multiplications and 1 addition) instead of a more onerous cartesian projection...
+ */
 public class RotationCoordinates {
 
 	public int slice;

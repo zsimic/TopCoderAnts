@@ -13,13 +13,22 @@ Use `perl run.pl -h` to see help on its usage.
 The script invocation above will basically compile the project and run 1 game.
 It creates a 'logs' folder which you can delete at any time.
 When you run with --debug, the Java program generates log information in the 'logs' folder.
-The perl script looks at the 'logs' folder (as well as the servers output) and generates some overview in the 'results' folder.
+The perl script looks at the 'logs' folder (as well as the servers output) and generates some overview in the 'logs/results' folder.
 
 You can also run the game directly from Eclipse of course.
 
 See the [rules of the game](TopCoderAnts/blob/master/RULES.md).
 
 There is also a [viewer](TopCoderAnts/tree/master/viewer) available now.
+
+You'll notice some comment lines in the code of the form `//L`, this a poor-man's way of implementing C-style pragmas in Java.
+Don't know of any technique on how to do this in Java, so I put in place a very simple thing with the `run.pl` script:
+
+- You can run `perl run.pl --log` and the script modifies all of the Java classes in this project and 'activates' all logging (removes the `//L` comments)
+- You can run `perl run.pl --nolog` and the script modifies the source code again, but this time comments out all lines (using `//L`) containing the character sequence `Logger.`
+
+What you get is an easy way to turn all logging on or off...
+Logging 'off' meaning it was completely commented out of the code (just like what you would do with a C pragma)
 
 Description
 -----------
